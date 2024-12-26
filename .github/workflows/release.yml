@@ -34,10 +34,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      # # Run tests (optional, skip if not needed)
-      # - name: Run tests
-      #   run: go test ./... -v
-
       # Install Goreleaser
       - name: Install Goreleaser
         uses: goreleaser/goreleaser-action@v4
