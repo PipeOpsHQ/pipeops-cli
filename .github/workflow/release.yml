@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*' # Trigger on version tags like v1.0.0
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up Go environment
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20' # Adjust to your Go version
+
+      # Install dependencies
+      - name: Install dependencies
+        run: go mod tidy
+
+      # Cache Go modules for faster builds
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # # Run tests (optional, skip if not needed)
+      # - name: Run tests
+      #   run: go test ./... -v
+
+      # Install Goreleaser
+      - name: Install Goreleaser
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          version: latest
+
+      # Build and release with Goreleaser
+      - name: Release with Goreleaser
+        id: goreleaser
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          distribution: goreleaser
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
