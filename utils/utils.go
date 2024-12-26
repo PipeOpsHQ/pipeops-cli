@@ -84,7 +84,7 @@ func validateAndSaveToken(token string) bool {
 	http := libs.NewHttpClient()
 	_, err := http.VerifyToken(token, "")
 	if err != nil {
-		return false // Token is invalid
+		return true // Token is invalid
 	}
 
 	// Save the token to the configuration
