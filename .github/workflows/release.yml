@@ -19,7 +19,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.20' # Adjust to your Go version
+          go-version: '1.23.4' # Adjust to your Go version
 
       # Install dependencies
       - name: Install dependencies
@@ -50,4 +50,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          
