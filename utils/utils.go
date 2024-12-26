@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/PipeOpsHQ/pipeops-cli/libs"
 	"github.com/spf13/viper"
 )
 
@@ -58,32 +59,43 @@ func ValidateOrPrompt() {
 		fmt.Fprintln(os.Stderr, "Warning: Unable to read config file. Proceeding to create or update it.")
 	}
 
-	// Check if the token exists in the config or environment
 	token := viper.GetString("service_account_token")
+
 	if token == "" {
+		// Token is not found, prompt the user
+		fmt.Println("No service token found. Let's fix that!")
 		token = promptForToken()
+	}
 
-		// Save the token to the configuration
-		viper.Set("service_account_token", token)
-
-		// Write the updated configuration
-		err := viper.WriteConfig()
-		if err != nil {
-			// Handle the case where the configuration file doesn't exist yet
-			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-				err = viper.SafeWriteConfig()
-			}
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Error saving token to config file:", err)
-				os.Exit(1)
+	// Validate the token
+	if !validateAndSaveToken(token) {
+		for {
+			fmt.Println("Invalid service token. Please try again.")
+			token = promptForToken()
+			if validateAndSaveToken(token) {
+				break
 			}
 		}
-
-		fmt.Println("Token saved successfully to config file.")
-	} else {
-		// Token already exists, validate or use it
-		// validateToken(token) // Uncomment if token validation is implemented
 	}
+}
+
+// validateAndSaveToken validates the token and saves it to the configuration if valid
+func validateAndSaveToken(token string) bool {
+	http := libs.NewHttpClient()
+	_, err := http.VerifyToken(token, "")
+	if err != nil {
+		return false // Token is invalid
+	}
+
+	// Save the token to the configuration
+	viper.Set("service_account_token", token)
+	if err := saveConfig(); err != nil {
+		fmt.Fprintln(os.Stderr, "Error saving token to config file:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Token validated and saved successfully to the config file.")
+	return true
 }
 
 // promptForToken prompts the user to input their service account token
@@ -96,4 +108,16 @@ func promptForToken() string {
 		os.Exit(1)
 	}
 	return strings.TrimSpace(token)
+}
+
+// saveConfig writes the configuration to the file, handling potential missing file errors
+func saveConfig() error {
+	err := viper.WriteConfig()
+	if err != nil {
+		// Handle the case where the configuration file doesn't exist yet
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			err = viper.SafeWriteConfig()
+		}
+	}
+	return err
 }
