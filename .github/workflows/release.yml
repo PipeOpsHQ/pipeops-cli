@@ -37,6 +37,9 @@ jobs:
       # Install Goreleaser
       - name: Install Goreleaser
         uses: goreleaser/goreleaser-action@v4
+        with:
+          # distribution: goreleaser
+          args: release --clean
 
 
       # Build and release with Goreleaser
