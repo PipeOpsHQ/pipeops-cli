@@ -19,7 +19,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.20' # Adjust to your Go version
+          go-version: '1.23' # Adjust to your Go version
 
       # Install dependencies
       - name: Install dependencies
@@ -34,15 +34,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      # # Run tests (optional, skip if not needed)
-      # - name: Run tests
-      #   run: go test ./... -v
-
       # Install Goreleaser
       - name: Install Goreleaser
         uses: goreleaser/goreleaser-action@v4
-        with:
-          version: latest
+
 
       # Build and release with Goreleaser
       - name: Release with Goreleaser
@@ -53,3 +48,4 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
