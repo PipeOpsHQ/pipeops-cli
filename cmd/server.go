@@ -1,21 +1,29 @@
 package cmd
 
 import (
-	"github.com/PipeOpsHQ/pipeops-cli/cmd/k3s"
+	cmd "github.com/PipeOpsHQ/pipeops-cli/cmd/k3s"
 	"github.com/spf13/cobra"
 )
 
 var serverCmd = &cobra.Command{
-    Use:   "server",
-    Short: "Server related commands",
+	Use:   "server",
+	Short: "Manage server-related operations.",
+	Long: `The server command provides a set of subcommands for managing
+server-related operations, such as provisioning, configurations and interactions
+with servers on PipeOps`,
 }
 
-
 func init() {
-	// Register the server command
+	// Add the server command as a subcommand of the root command
 	rootCmd.AddCommand(serverCmd)
 
-	// Use the serverCmd to group k3s related commands under server
+	// Register subcommands under the server command
+	registerServerSubcommands()
+}
+
+// registerServerSubcommands initializes and registers subcommands for the server command
+func registerServerSubcommands() {
+	// Initialize K3s-related commands under the server command
 	k3sCmd := cmd.NewK3s(serverCmd)
 	k3sCmd.Register()
 }
