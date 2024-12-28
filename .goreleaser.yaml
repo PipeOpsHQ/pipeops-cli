@@ -16,6 +16,7 @@ before:
     - go generate ./...
 
 builds:
+  - binary: "pipeops"    # <--- Add your desired binary name here
   - env:
       - CGO_ENABLED=0
     goos:
