@@ -1,65 +1,32 @@
-name: CI Release Workflow
+name: new_release
 
 on:
   push:
-    branches:
-      - main # Trigger when changes are pushed to the main branch
-  workflow_dispatch: # Allow manual triggers
-
-permissions: read-all
+    branches: [ main ]
 
 jobs:
-  release:
+  create_release:
+    name: Create release
     runs-on: ubuntu-latest
-
     steps:
-      # Step 1: Checkout the repository
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
 
-      # Step 2: Set up Go environment
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: 1.20 # Replace with your Go version
+    - name: Read release.json
+      uses: notiz-dev/github-action-json-property@release
+      id: package_info
+      with:
+        path: 'release.json'
+        prop_path: 'version'
 
-      # Step 3: Install semantic-release dependencies
-      - name: Install dependencies for semantic-release
-        uses: actions/setup-node@v3
-        with:
-          node-version: "20.8.1"
+    - name: Show version number
+      run: echo "Version is ${{ steps.package_info.outputs.prop }}"
 
-      - run: npm install semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github
-
-      # Step 4: Generate semantic version tag
-      - name: Generate release version
-        id: semantic_version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release --branches main --ci
-
-      # Step 5: Build CLI for multiple platforms
-      # Step 3: Build CLI for multiple platforms
-      - name: Build CLI for ${{ matrix.goos }}/${{ matrix.goarch }}
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-        run: |
-          mkdir -p dist
-          go build -o dist/pipeops-cli-${{ matrix.goos }}-${{ matrix.goarch }}
-        shell: bash
-
-      # Step 6: Upload build artifacts
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: pipeops-cli
-          path: dist/
-
-      # Step 7: Publish GitHub Release
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: dist/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.TOKEN }}
+      with:
+        tag_name: "v${{ steps.package_info.outputs.prop }}"
+        release_name: Release v${{ steps.package_info.outputs.prop }}
