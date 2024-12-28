@@ -12,12 +12,12 @@ release:
   draft: true
   name_template: "PipeOps CLI {{.Version}}"
 
-before:
-  hooks:
-    # On Windows, 'make' might not be available, so skip with 'echo'
-    - >-
-      {{ if eq .Runtime.Goos "windows" }}echo{{ else }}make{{ end }}
-      completions
+# before:
+  # hooks:
+    # # On Windows, 'make' might not be available, so skip with 'echo'
+    # - >-
+    #   {{ if eq .Runtime.Goos "windows" }}echo{{ else }}make{{ end }}
+    #   completions
 
 builds:
   # -------------------- macOS Build -----------------------
@@ -25,15 +25,15 @@ builds:
     goos: [darwin]
     goarch: [amd64, arm64]
     binary: bin/pipeops
-    main: ./cmd/pipeops
+    main: ./
     ldflags:
       - -s -w \
         -X github.com/PipeOpsHQ/pipeops-cli/internal/build.Version={{.Version}} \
         -X github.com/PipeOpsHQ/pipeops-cli/internal/build.Date={{ time "2006-01-02" }}
-    hooks:
-      post:
-        - cmd: ./script/sign '{{ .Path }}'
-          output: true
+    # hooks:
+    #   post:
+    #     - cmd: ./script/sign '{{ .Path }}'
+    #       output: true
 
   # -------------------- Linux Build -----------------------
   - id: linux
@@ -42,7 +42,7 @@ builds:
     env:
       - CGO_ENABLED=0
     binary: bin/pipeops
-    main: ./cmd/pipeops
+    main: ./
     ldflags:
       - -s -w \
         -X github.com/PipeOpsHQ/pipeops-cli/internal/build.Version={{.Version}} \
