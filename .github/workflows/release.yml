@@ -6,6 +6,8 @@ on:
       - main # Trigger when changes are pushed to the main branch
   workflow_dispatch: # Allow manual triggers
 
+permissions: read-all
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -25,7 +27,7 @@ jobs:
       - name: Install dependencies for semantic-release
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: "16"
 
       - run: npm install semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github
 
