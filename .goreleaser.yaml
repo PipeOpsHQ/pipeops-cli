@@ -1,5 +1,6 @@
 # .goreleaser.yml
 # Adapted from the GitHub CLI example, but switched to "pipeops" everywhere.
+version: 2
 
 project_name: pipeops
 
