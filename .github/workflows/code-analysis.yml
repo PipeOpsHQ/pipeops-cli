@@ -1,4 +1,4 @@
-name: code_analysis
+name: Code Analysis
 
 on:
   push:
@@ -6,32 +6,29 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: "0 18 * * 0"
+    - cron: "0 18 * * 0" # Weekly on Sundays at 18:00 UTC
 
 jobs:
   analyze:
-    name: Analyze
+    name: CodeQL Analysis
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ["go"]
     steps:
+      # Step 1: Checkout repository
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-          fetch-depth: 2
+          fetch-depth: 0 # Fetch full history for better analysis if needed
 
-      - run: git checkout HEAD^2
-        if: ${{ github.event_name == 'pull_request' }}
-
+      # Step 2: Initialize CodeQL for Go language
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
-          languages: ${{ matrix.language }}
+          languages: go
 
+      # Step 3: Autobuild (builds the code for analysis)
       - name: Autobuild
         uses: github/codeql-action/autobuild@v2
 
+      # Step 4: Perform CodeQL Analysis
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
