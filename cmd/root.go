@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -33,23 +32,38 @@ import (
 var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
+// rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "pipeops-cli",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Use:   "pipeops",
+	Short: "🚀 Your all-in-one CLI for managing and deploying with PipeOps.io 🌐",
+	Long: `🌟 Welcome to the PipeOps.io CLI! 🌟
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+PipeOps.io makes it simple to manage cloud-native environments and deploy your applications into them.
+It's your control plane for running servers anywhere! 🌍
+
+Key Features:
+- 🚀 Deploy servers with ease
+- ⚡ Streamline your deployments
+- 🔒 Secure and cloud-native by design
+
+Examples and Usage:
+
+🛠 Initialize your environment:
+  pipeops init
+
+🖥 Deploy a new server:
+  pipeops deploy server --name my-server --region us-east
+
+📂 Manage your deployments:
+  pipeops manage deployment --id 12345
+
+Get started and take control of your cloud operations today! 🚀`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: func(cmd *cobra.Command, args []string) {
-		utils.ValidateOrPrompt()
-	},
+	// Run: func(cmd *cobra.Command, args []string) {
+	// 	utils.ValidateOrPrompt()
+	// },
 }
-
-
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -67,7 +81,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.pipeops-cli.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.pipeops.yaml)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -87,7 +101,7 @@ func initConfig() {
 		// Search config in home directory with name ".pipeops-cli" (without extension).
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".pipeops-cli")
+		viper.SetConfigName(".pipeops")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match

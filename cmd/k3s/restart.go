@@ -1,5 +1,5 @@
 // cmd/restart.go
-package cmd
+package k3s
 
 import (
 	"log"
@@ -9,8 +9,8 @@ import (
 )
 
 var restartCmd = &cobra.Command{
-	Use:     "restart",
-	Short:   "Restart the k3s service",
+	Use:   "restart",
+	Short: "Restart the k3s service",
 	// GroupID: "server",
 	Long: `Restarts the k3s service, allowing the cluster to recover from any issues.`,
 	Run: func(cmd *cobra.Command, args []string) {
