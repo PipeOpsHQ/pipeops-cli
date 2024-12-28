@@ -39,11 +39,8 @@ jobs:
         run: npx semantic-release --branches main --ci
 
       # Step 5: Build CLI for multiple platforms
-      - name: Build CLI for multiple platforms
-        strategy:
-          matrix:
-            goos: [linux, windows, darwin] # Target platforms
-            goarch: [amd64, arm64] # Target architectures
+      # Step 3: Build CLI for multiple platforms
+      - name: Build CLI for ${{ matrix.goos }}/${{ matrix.goarch }}
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
