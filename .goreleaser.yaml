@@ -17,9 +17,6 @@ before:
     # On Windows, 'make' might not be available, so skip with 'echo'
     - >-
       {{ if eq .Runtime.Goos "windows" }}echo{{ else }}make{{ end }}
-      manpages PIPEOPS_VERSION={{.Version}}
-    - >-
-      {{ if eq .Runtime.Goos "windows" }}echo{{ else }}make{{ end }}
       completions
 
 builds:
@@ -78,7 +75,7 @@ archives:
     # rlcp: true
     files:
       - LICENSE
-      - ./share/man/man1/pipeops*.1
+      # - ./share/man/man1/pipeops*.1
 
   - id: macos-archive
     builds: [macos]
@@ -88,7 +85,7 @@ archives:
     # rlcp: true
     files:
       - LICENSE
-      - ./share/man/man1/pipeops*.1
+      # - ./share/man/man1/pipeops*.1
 
   - id: windows-archive
     builds: [windows]
