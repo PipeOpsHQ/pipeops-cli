@@ -16,8 +16,9 @@ before:
     - go generate ./...
 
 builds:
-  - binary: "pipeops"    # <--- Add your desired binary name here
-  - env:
+  - id: pipeops         # <--- Single build definition with a unique id
+    binary: pipeops     # <--- The actual name of the generated binary <--- Add your desired binary name here
+    env:
       - CGO_ENABLED=0
     goos:
       - freebsd
