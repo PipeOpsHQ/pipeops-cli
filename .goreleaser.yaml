@@ -80,7 +80,3 @@ release:
     - [Discord](https://discord.gg/pipeops)
 
     **Thank you for using {{ .ProjectName }}!** ❤️
-
-  # Custom release name.
-  # Provides a clean and descriptive name for each release.
-  name_template: "{{ .ProjectName }} v{{ .Version }} (by {{ .Env.USER | default \"PipeOps\" }})"
