@@ -37,7 +37,7 @@ jobs:
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           default_bump: patch
-          release_branches: main
+          release_branches: develop
           create_annotated_tag: true
 
       - name: Run GoReleaser
