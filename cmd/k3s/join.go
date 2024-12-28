@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/PipeOpsHQ/pipeops-cli/config"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var joinCmd = &cobra.Command{
-	Use:     "join [server-url]",
-	Short:   "Join a worker node to the k3s cluster",
+	Use:   "join [server-url]",
+	Short: "Join a worker node to the k3s cluster",
 	// GroupID: "server",
 	Long: `Joins the current node as a worker to an existing k3s cluster using the provided server URL.`,
 	Args: cobra.ExactArgs(1),
@@ -21,12 +21,7 @@ var joinCmd = &cobra.Command{
 			log.Fatalf("Invalid server URL: %s", serverURL)
 		}
 
-		cfg, err := config.LoadConfig()
-		if err != nil {
-			log.Fatalf("Error loading config: %v", err)
-		}
-
-		joinCommand := fmt.Sprintf("curl -sfL https://get.k3s.io | K3S_URL=%s K3S_TOKEN=%s sh -", serverURL, cfg.ServiceAccountToken)
+		joinCommand := fmt.Sprintf("curl -sfL https://get.k3s.io | K3S_URL=%s K3S_TOKEN=%s sh -", serverURL, viper.Get("service_account_token"))
 		log.Println("Joining the k3s cluster...")
 		output, err := utils.RunCommand("sh", "-c", joinCommand)
 		if err != nil {
