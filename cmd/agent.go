@@ -7,10 +7,14 @@ import (
 
 var agentCmd = &cobra.Command{
 	Use:   "agent",
-	Short: "Manage agent-related commands and tasks.",
-	Long: `The agent command provides subcommands to manage various aspects
-of the PipeOps agent, such as setup, configuration, and interactions
-with supported environments like EKS,GKE,AKS,DKS & K3s.`,
+	Short: "⚙️ Manage agent-related commands and tasks",
+	Long: `⚙️ The "agent" command provides subcommands to manage various aspects
+of the PipeOps agent. These include setup, configuration, and interactions 
+with supported environments like EKS, GKE, AKS, DKS, and K3s. 🌐
+
+Examples:
+  - Install the PipeOps agent:
+    pipeops agent install`,
 }
 
 func init() {
@@ -23,7 +27,7 @@ func init() {
 
 // registerAgentSubcommands initializes and registers subcommands for the agent command
 func registerAgentSubcommands() {
-	// Create a new K3s-related command under the agent command
-	k3sCmd := agent.NewAgent(agentCmd)
-	k3sCmd.Register()
+	// Create and register K3s-related commands under the agent command
+	agentSub := agent.NewAgent(agentCmd)
+	agentSub.Register()
 }

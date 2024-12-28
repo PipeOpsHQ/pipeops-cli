@@ -7,10 +7,20 @@ import (
 
 var serverCmd = &cobra.Command{
 	Use:   "server",
-	Short: "Manage server-related operations.",
-	Long: `The server command provides a set of subcommands for managing
-server-related operations, such as provisioning, configurations and interactions
-with servers on PipeOps`,
+	Short: "🖥️ Manage server-related operations.",
+	Long: `🖥️ The server command provides a set of subcommands for managing 
+server-related operations on PipeOps, such as provisioning, configuration, and 
+interactions with servers. 🌐
+
+Examples:
+  - Provision a new server:
+    pipeops server provision --name my-server --region us-east
+
+  - Configure an existing server:
+    pipeops server configure --id server-id --settings new-config
+
+  - Monitor server status:
+    pipeops server status --id server-id`,
 }
 
 func init() {
@@ -24,6 +34,6 @@ func init() {
 // registerServerSubcommands initializes and registers subcommands for the server command
 func registerServerSubcommands() {
 	// Initialize K3s-related commands under the server command
-	k3sCmd := k3s.NewK3s(serverCmd)
-	k3sCmd.Register()
+	k3sSub := k3s.NewK3s(serverCmd)
+	k3sSub.Register()
 }

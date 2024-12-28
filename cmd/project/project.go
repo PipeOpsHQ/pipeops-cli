@@ -12,5 +12,6 @@ func NewProject(rootCmd *cobra.Command) *projectModel {
 	}
 }
 
-func (k *projectModel) Register() {
+func (p *projectModel) Register() {
+	p.listProjects()
 }

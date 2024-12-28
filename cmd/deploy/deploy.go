@@ -13,4 +13,5 @@ func NewDeploy(rootCmd *cobra.Command) *deployModel {
 }
 
 func (k *deployModel) Register() {
+	k.newPipeline()
 }
