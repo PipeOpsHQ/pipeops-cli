@@ -16,6 +16,7 @@ before:
     - go generate ./...
 
 builds:
+  - binary: "pipeops"    # <--- Add your desired binary name here
   - env:
       - CGO_ENABLED=0
     goos:
@@ -80,7 +81,3 @@ release:
     - [Discord](https://discord.gg/pipeops)
 
     **Thank you for using {{ .ProjectName }}!** ❤️
-
-  # Custom release name.
-  # Provides a clean and descriptive name for each release.
-  name_template: "{{ .ProjectName }} v{{ .Version }} (by {{ .Env.USER | default \"PipeOps\" }})"
