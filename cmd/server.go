@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	cmd "github.com/PipeOpsHQ/pipeops-cli/cmd/k3s"
+	"github.com/PipeOpsHQ/pipeops-cli/cmd/k3s"
 	"github.com/spf13/cobra"
 )
 
@@ -24,6 +24,6 @@ func init() {
 // registerServerSubcommands initializes and registers subcommands for the server command
 func registerServerSubcommands() {
 	// Initialize K3s-related commands under the server command
-	k3sCmd := cmd.NewK3s(serverCmd)
+	k3sCmd := k3s.NewK3s(serverCmd)
 	k3sCmd.Register()
 }

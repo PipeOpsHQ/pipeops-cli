@@ -11,6 +11,7 @@ var projectCmd = &cobra.Command{
 	Long: `The server command provides a set of subcommands for managing
 project-related operations, such as deploying, configurations and interactions
 with projects on PipeOps`,
+	Aliases: []string{"projects", "p"},
 }
 
 func init() {
@@ -23,7 +24,7 @@ func init() {
 
 // registerProjectSubcommands initializes and registers subcommands for the server command
 func registerProjectSubcommands() {
-	// Initialize K3s-related commands under the server command
+	// Initialize project-related commands under the server command
 	k3sCmd := project.NewProject(projectCmd)
 	k3sCmd.Register()
 }

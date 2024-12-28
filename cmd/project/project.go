@@ -2,15 +2,15 @@ package project
 
 import "github.com/spf13/cobra"
 
-type k3sModel struct {
+type projectModel struct {
 	rootCmd *cobra.Command
 }
 
-func NewProject(rootCmd *cobra.Command) *k3sModel {
-	return &k3sModel{
+func NewProject(rootCmd *cobra.Command) *projectModel {
+	return &projectModel{
 		rootCmd: rootCmd,
 	}
 }
 
-func (k *k3sModel) Register() {
+func (k *projectModel) Register() {
 }

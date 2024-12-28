@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	cmd "github.com/PipeOpsHQ/pipeops-cli/cmd/agent"
+	"github.com/PipeOpsHQ/pipeops-cli/cmd/agent"
 	"github.com/spf13/cobra"
 )
 
@@ -24,6 +24,6 @@ func init() {
 // registerAgentSubcommands initializes and registers subcommands for the agent command
 func registerAgentSubcommands() {
 	// Create a new K3s-related command under the agent command
-	k3sCmd := cmd.NewAgent(agentCmd)
+	k3sCmd := agent.NewAgent(agentCmd)
 	k3sCmd.Register()
 }
