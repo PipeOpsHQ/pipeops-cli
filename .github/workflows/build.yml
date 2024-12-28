@@ -14,8 +14,8 @@ jobs:
         goarch: [amd64]
     steps:
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
-
+      uses: actions/checkout@v4
+      
     - name: Read version from release.json
       uses: notiz-dev/github-action-json-property@release
       id: gorkscrew_version
