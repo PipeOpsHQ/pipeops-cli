@@ -1,4 +1,4 @@
-package cmd
+package k3s
 
 import (
 	"fmt"

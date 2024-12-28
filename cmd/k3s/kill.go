@@ -1,5 +1,5 @@
 // cmd/kill.go
-package cmd
+package k3s
 
 import (
 	"log"

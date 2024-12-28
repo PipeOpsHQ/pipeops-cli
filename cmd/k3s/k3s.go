@@ -1,4 +1,4 @@
-package cmd
+package k3s
 
 import "github.com/spf13/cobra"
 
