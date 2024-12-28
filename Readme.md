@@ -1,16 +1,17 @@
 # PipeOps CLI 🚀
 
-[![Build Status](https://github.com/PipeOpsHQ/pipeops-cli/actions/workflows/release.yml/badge.svg)](https://github.com/PipeOpsHQ/pipeops-cli/actions)
+[![Build Status](https://github.com/PipeOpsHQ/pipeops-cli/actions/workflows/ci-release.yml/badge.svg)](https://github.com/PipeOpsHQ/pipeops-cli/actions)
 [![CodeQL Analysis](https://github.com/PipeOpsHQ/pipeops-cli/actions/workflows/code-analysis.yml/badge.svg)](https://github.com/PipeOpsHQ/pipeops-cli/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-PipeOps CLI is a powerful command-line interface designed to simplify managing cloud-native environments and interacting with the PipeOps platform. With PipeOps CLI, you can deploy, manage, and monitor your infrastructure seamlessly.
+PipeOps CLI is a powerful command-line interface designed to simplify managing cloud-native environments, deploying projects, and interacting with the PipeOps platform. With PipeOps CLI, you can provision servers, deploy applications, manage projects, and monitor your infrastructure seamlessly.
 
 ---
 
 ## Features ✨
 
 - **Server Management**: Provision and configure servers across multiple environments (e.g., K3s, EKS, GKE).
+- **Project Deployment**: Deploy your applications directly to servers with ease.
 - **Pipeline Management**: Create, manage, and deploy CI/CD pipelines.
 - **Agent Setup**: Install and configure PipeOps agents for various platforms.
 - **Authentication**: Securely log in and manage your PipeOps account.
@@ -47,6 +48,11 @@ pipeops auth login
 pipeops server deploy --name my-server --region us-east
 ```
 
+### Deploy a Project to a Server
+```bash
+pipeops project deploy --name my-project --server my-server
+```
+
 ### List Projects
 ```bash
 pipeops project list
@@ -65,7 +71,7 @@ pipeops help
 |-----------------------|--------------------------------------------------|
 | `pipeops auth`        | Manage authentication and user details.          |
 | `pipeops server`      | Manage server-related operations (e.g., K3s).    |
-| `pipeops project`     | Manage and list PipeOps projects.                |
+| `pipeops project`     | Manage, list, and deploy PipeOps projects.       |
 | `pipeops deploy`      | Manage and deploy CI/CD pipelines.               |
 
 ---
