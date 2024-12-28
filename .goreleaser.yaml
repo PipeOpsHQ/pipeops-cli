@@ -157,16 +157,3 @@ release:
   # Note: all GitHub releases start as drafts while artifacts are uploaded.
   # Available only for GitHub and Gitea.
   draft: true
-
-  # Whether to remove existing draft releases with the same name before creating
-  # a new one.
-  #
-  # Only effective if `draft` is set to true.
-  # Available only for GitHub.
-  replace_existing_draft: true
-
-  # Whether to use an existing draft release as the target release.
-  #
-  # Available only for GitHub.
-  # Since: v2.5.
-  use_existing_draft: true
