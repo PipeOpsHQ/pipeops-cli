@@ -1,52 +1,64 @@
-name: Publish CLI
+name: CI Release Workflow
 
 on:
   push:
-    tags:
-      - 'v*' # Triggers the workflow for version tags like v1.0.0
-  workflow_dispatch: # Allows manual triggering
+    branches:
+      - main # Trigger when changes are pushed to the main branch
+  workflow_dispatch: # Allow manual triggers
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        goos: [linux, windows, darwin] # Target platforms
-        goarch: [amd64, arm64] # Target architectures
+
     steps:
+      # Step 1: Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Step 2: Set up Go environment
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: 1.20 # Replace with your Go version
 
-      - name: Install dependencies
-        run: go mod tidy
+      # Step 3: Install semantic-release dependencies
+      - name: Install dependencies for semantic-release
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
 
-      - name: Build binary
+      - run: npm install semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github
+
+      # Step 4: Generate semantic version tag
+      - name: Generate release version
+        id: semantic_version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release --branches main --ci
+
+      # Step 5: Build CLI for multiple platforms
+      - name: Build CLI for multiple platforms
+        strategy:
+          matrix:
+            goos: [linux, windows, darwin] # Target platforms
+            goarch: [amd64, arm64] # Target architectures
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
           mkdir -p dist
           go build -o dist/pipeops-cli-${{ matrix.goos }}-${{ matrix.goarch }}
+        shell: bash
 
-      - name: Upload artifact
+      # Step 6: Upload build artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: pipeops-cli-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: dist/pipeops-cli-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: pipeops-cli
+          path: dist/
 
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v3
-
-      - name: Create GitHub Release
+      # Step 7: Publish GitHub Release
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: dist/*
