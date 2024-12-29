@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/PipeOpsHQ/pipeops-cli/utils"
 )
 
 var joinCmd = &cobra.Command{
