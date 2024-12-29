@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -31,11 +32,22 @@ import (
 
 var cfgFile string
 
+type Config struct {
+	Version VersionInfo
+}
+
+type VersionInfo struct {
+	Version string
+}
+
+var Conf Config
+
 // rootCmd represents the base command when called without any subcommands
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "pipeops",
-	Short: "🚀 Your all-in-one CLI for managing and deploying with PipeOps.io 🌐",
+	Use:     "pipeops",
+	Version: Conf.Version.Version,
+	Short:   "🚀 Your all-in-one CLI for managing and deploying with PipeOps.io 🌐",
 	Long: `🌟 Welcome to the PipeOps.io CLI! 🌟
 
 PipeOps.io makes it simple to manage cloud-native environments and deploy your applications into them.
@@ -63,6 +75,14 @@ Get started and take control of your cloud operations today! 🚀`,
 	// Run: func(cmd *cobra.Command, args []string) {
 	// 	utils.ValidateOrPrompt()
 	// },
+	Run: func(cmd *cobra.Command, args []string) {
+		if cmd.Flag("version").Changed {
+			fmt.Println("🚀 PipeOps CLI Version:", GetConfig().Version.Version)
+			return
+		}
+
+		cmd.Help()
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -75,6 +95,7 @@ func Execute() {
 }
 
 func init() {
+	SaveConfig()
 	cobra.OnInitialize(initConfig)
 
 	// Here you will define your flags and configuration settings.
@@ -86,6 +107,7 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.Flags().BoolP("version", "v", false, "Prints out the current version")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -109,5 +131,67 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	}
+}
+
+func GetConfig() Config {
+	var filename string
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	filename = fmt.Sprintf("%s/%s", home, ".pipepops.json")
+
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		fmt.Println("Config file does not exist")
+		os.Exit(1)
+	}
+
+	dataBytes, err := os.ReadFile(filename)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	err = json.Unmarshal(dataBytes, &Conf)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	return Conf
+}
+
+func SaveConfig() {
+	var filename string
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	filename = fmt.Sprintf("%s/%s", home, ".pipepops.json")
+
+	Conf.Version.Version = "v0.0.4"
+
+	dataBytes, err := json.Marshal(Conf)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	err = os.WriteFile(filename, dataBytes, 0600)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	if err := os.Chmod(filename, 0600); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
