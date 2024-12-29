@@ -97,12 +97,3 @@ nfpms:
     formats:
       - deb
       - rpm
-    contents:
-      - src: "./share/man/man1/pipeops*.1"
-        dst: "/usr/share/man/man1"
-      - src: "./share/bash-completion/completions/pipeops"
-        dst: "/usr/share/bash-completion/completions/pipeops"
-      - src: "./share/fish/vendor_completions.d/pipeops.fish"
-        dst: "/usr/share/fish/vendor_completions.d/pipeops.fish"
-      - src: "./share/zsh/site-functions/_pipeops"
-        dst: "/usr/share/zsh/site-functions/_pipeops"
