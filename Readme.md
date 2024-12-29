@@ -1,6 +1,6 @@
 # PipeOps CLI 🚀
 
-[![Build Status](https://github.com/PipeOpsHQ/pipeops-cli/actions/workflows/ci-release.yml/badge.svg)](https://github.com/PipeOpsHQ/pipeops-cli/actions)
+[![Release](https://github.com/PipeOpsHQ/pipeops-cli/actions/workflows/release.yml/badge.svg)](https://github.com/PipeOpsHQ/pipeops-cli/actions/workflows/release.yml)
 [![CodeQL Analysis](https://github.com/PipeOpsHQ/pipeops-cli/actions/workflows/code-analysis.yml/badge.svg)](https://github.com/PipeOpsHQ/pipeops-cli/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
