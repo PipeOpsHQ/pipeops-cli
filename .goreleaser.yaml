@@ -1,119 +1,84 @@
-# .goreleaser.yml
-# Adapted from the GitHub CLI example, but switched to "pipeops" everywhere.
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+
+# The lines below are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/need to use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
 version: 2
 
-project_name: pipeops
-
-release:
-  # If your semver tag has a pre-release suffix (e.g. v1.2.3-beta),
-  # GoReleaser marks the release as a prerelease automatically.
-  prerelease: auto
-  # Keep the release in 'draft' mode so you can check artifacts before publishing.
-  draft: true
-  name_template: "PipeOps CLI {{.Version}}"
-
-# before:
-  # hooks:
-    # # On Windows, 'make' might not be available, so skip with 'echo'
-    # - >-
-    #   {{ if eq .Runtime.Goos "windows" }}echo{{ else }}make{{ end }}
-    #   completions
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    # you may remove this if you don't need go generate
+    - go generate ./...
 
 builds:
-  # -------------------- macOS Build -----------------------
-  - id: macos
-    goos: [darwin]
-    goarch: [amd64, arm64]
-    # binary: bin/pipeops
-    main: .
-    ldflags:
-      - -s -w \
-        -X github.com/PipeOpsHQ/pipeops-cli/internal/build.Version={{.Version}} \
-        -X github.com/PipeOpsHQ/pipeops-cli/internal/build.Date={{ time "2006-01-02" }}
-    # hooks:
-    #   post:
-    #     - cmd: ./script/sign '{{ .Path }}'
-    #       output: true
-
-  # -------------------- Linux Build -----------------------
-  - id: linux
-    goos: [linux]
-    goarch: ["386", arm, amd64, arm64]
+  - id: pipeops         # <--- Single build definition with a unique id
+    binary: pipeops     # <--- The actual name of the generated binary <--- Add your desired binary name here
     env:
       - CGO_ENABLED=0
-    # binary: bin/pipeops
-    main: .
-    ldflags:
-      - -s -w \
-        -X github.com/PipeOpsHQ/pipeops-cli/internal/build.Version={{.Version}} \
-        -X github.com/PipeOpsHQ/pipeops-cli/internal/build.Date={{ time "2006-01-02" }}
+    goos:
+      - freebsd
+      - linux
+      - windows
+      - darwin
+      
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
 
-  # -------------------- Windows Build ---------------------
-  - id: windows
-    goos: [windows]
-    goarch: ["386", amd64, arm64]
-    # binary/: bin/pipeops
-    main: .
-    ldflags:
-      - -s -w \
-        -X github.com/PipeOpsHQ/pipeops-cli/internal/build.Version={{.Version}} \
-        -X github.com/PipeOpsHQ/pipeops-cli/internal/build.Date={{ time "2006-01-02" }}
-    hooks:
-      post:
-        - cmd: >-
-            {{ if eq .Runtime.Goos "windows" }}pwsh .\script\sign.ps1{{ else }}./script/sign{{ end }}
-            '{{ .Path }}'
-          output: true
-
-# ----------------------- Archives -------------------------
 archives:
-  - id: linux-archive
-    builds: [linux]
-    name_template: "pipeops_{{ .Version }}_linux_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
-    format: tar.gz
-    wrap_in_directory: true
-    # rlcp: true
-    files:
-      - LICENSE
-      # - ./share/man/man1/pipeops*.1
+  - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
 
-  - id: macos-archive
-    builds: [macos]
-    name_template: "pipeops_{{ .Version }}_macOS_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
-    format: zip
-    wrap_in_directory: true
-    # rlcp: true
-    files:
-      - LICENSE
-      # - ./share/man/man1/pipeops*.1
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
 
-  - id: windows-archive
-    builds: [windows]
-    name_template: "pipeops_{{ .Version }}_windows_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
-    format: zip
-    wrap_in_directory: false
-    # rlcp: true
-    files:
-      - LICENSE
+release:
+  
+    # Header for the release body.
+  # Adds a custom, friendly introduction to each release.
+  header: |
+    ---
+    ## 🚀 New Release: {{ .ProjectName }} v{{ .Version }} ({{ .Date }})
 
-# -------------------- Linux Packages (.deb, .rpm) ---------
-nfpms:
-  - license: MIT
-    maintainer: PipeOps
-    homepage: https://github.com/PipeOpsHQ/pipeops-cli
-    bindir: /usr
-    dependencies:
-      - git
-    description: PipeOps CLI - Official command line tool for PipeOps.
-    formats:
-      - deb
-      - rpm
-    contents:
-      - src: "./share/man/man1/pipeops*.1"
-        dst: "/usr/share/man/man1"
-      - src: "./share/bash-completion/completions/pipeops"
-        dst: "/usr/share/bash-completion/completions/pipeops"
-      - src: "./share/fish/vendor_completions.d/pipeops.fish"
-        dst: "/usr/share/fish/vendor_completions.d/pipeops.fish"
-      - src: "./share/zsh/site-functions/_pipeops"
-        dst: "/usr/share/zsh/site-functions/_pipeops"
+    We’re excited to announce the release of **{{ .ProjectName }} v{{ .Version }}**!
+    This update brings the latest features, improvements, and fixes to help you get the best out of PipeOps CLI.
+
+  # Footer for the release body.
+  # Adds a custom closing message to thank contributors or point to further resources.
+  footer: |
+    ---
+    ## 📝 Additional Information
+
+    - **Download**: You can find platform-specific binaries below.
+    - **Contribute**: Got feedback or ideas? Open an issue or a PR on [GitHub](https://github.com/PipeOpsHQ/pipeops-cli).
+    - **Documentation**: Check out our [docs](https://docs.pipeops.io).
+
+    ## 💬 Stay Connected
+
+    Join our community to stay updated:
+    - [Twitter](https://twitter.com/pipeops)  
+    - [Discord](https://discord.gg/pipeops)
+
+    **Thank you for using {{ .ProjectName }}!** ❤️
