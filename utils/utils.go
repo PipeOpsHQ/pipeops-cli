@@ -16,21 +16,22 @@ import (
 	"github.com/spf13/viper"
 )
 
-// RunCommand executes a shell command and returns its output or an error.
 func RunCommand(name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
-
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-
 	err := cmd.Run()
 	outStr := strings.TrimSpace(stdout.String())
 	errStr := strings.TrimSpace(stderr.String())
 
 	log.Printf("Command executed: %s %s", name, strings.Join(args, " "))
-	log.Printf("stdout: %s", outStr)
-	log.Printf("stderr: %s", errStr)
+	if outStr != "" {
+		log.Printf("stdout: %s", outStr)
+	}
+	if errStr != "" {
+		log.Printf("stderr: %s", errStr)
+	}
 
 	if err != nil {
 		if errStr != "" {
