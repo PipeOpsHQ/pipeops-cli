@@ -2,10 +2,10 @@
 package k3s
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
-	"github.com/spf13/cobra"
 )
 
 var restartCmd = &cobra.Command{
@@ -14,12 +14,14 @@ var restartCmd = &cobra.Command{
 	// GroupID: "server",
 	Long: `Restarts the k3s service, allowing the cluster to recover from any issues.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("Restarting k3s service...")
+		log.Info("Restarting k3s service...")
+
 		output, err := utils.RunCommand("systemctl", "restart", "k3s")
 		if err != nil {
 			log.Fatalf("Error restarting k3s: %v\nOutput: %s", err, output)
 		}
-		log.Println("k3s service restarted.")
+
+		log.Info("k3s service restarted.")
 	},
 }
 

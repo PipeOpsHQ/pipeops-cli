@@ -2,8 +2,8 @@ package k3s
 
 import (
 	"fmt"
-	"log"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -28,7 +28,8 @@ var joinCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Error joining k3s cluster: %v\nOutput: %s", err, output)
 		}
-		log.Println("Successfully joined the k3s cluster.")
+
+		log.Info("Successfully joined the k3s cluster.")
 	},
 }
 

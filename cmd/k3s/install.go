@@ -2,10 +2,12 @@ package k3s
 
 import (
 	// "fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
+
+	"github.com/spf13/cobra"
 
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
-	"github.com/spf13/cobra"
 )
 
 var installCmd = &cobra.Command{
@@ -24,13 +26,14 @@ using your service account token.`,
 		// token := args[0]
 
 		// Install k3s
-		log.Println("Installing k3s...")
+		log.Info("Installing k3s...")
 		installCmd := "curl -sfL https://get.k3s.io | sh -s -"
 		output, err := utils.RunCommand("sh", "-c", installCmd)
 		if err != nil {
 			log.Fatalf("Error installing k3s: %v\nOutput: %s", err, output)
 		}
-		log.Println("k3s installed successfully.")
+
+		log.Info("k3s installed successfully.")
 	},
 	Args: func(cmd *cobra.Command, args []string) error {
 		// Ensure token is provided

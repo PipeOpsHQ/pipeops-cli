@@ -12,8 +12,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/PipeOpsHQ/pipeops-cli/libs"
 	"github.com/spf13/viper"
+
+	"github.com/PipeOpsHQ/pipeops-cli/libs"
 )
 
 // RunCommand executes a shell command and returns its output or an error.
