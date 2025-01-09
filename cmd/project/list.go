@@ -1,10 +1,11 @@
 package project
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // listCmd represents the command to list all projects
@@ -19,7 +20,7 @@ Examples:
     pipeops project list`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Mock data to simulate fetching project details
-		fmt.Printf("🔍 Fetching all projects...\n")
+		log.Info("🔍 Fetching all projects...\n")
 
 		// Example project data
 		projects := []struct {
@@ -33,15 +34,15 @@ Examples:
 		}
 
 		// Display header
-		fmt.Printf("%-15s | %-30s | %-10s\n", "PROJECT ID", "PROJECT NAME", "STATUS")
-		fmt.Println(strings.Repeat("-", 60))
+		log.Infof("%-15s | %-30s | %-10s\n", "PROJECT ID", "PROJECT NAME", "STATUS")
+		log.Info(strings.Repeat("-", 60))
 
 		// Display project details
 		for _, project := range projects {
-			fmt.Printf("%-15s | %-30s | %-10s\n", project.ID, project.Name, project.Status)
+			log.Infof("%-15s | %-30s | %-10s\n", project.ID, project.Name, project.Status)
 		}
 
-		fmt.Println("\n✅ Projects listed successfully.")
+		log.Info("\n✅ Projects listed successfully.")
 	},
 	Args: cobra.NoArgs, // This command does not accept arguments
 }

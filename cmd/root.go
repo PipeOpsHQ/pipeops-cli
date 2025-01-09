@@ -28,6 +28,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/PipeOpsHQ/pipeops-cli/cmd/cli"
+	log "github.com/sirupsen/logrus"
 )
 
 var cfgFile string
@@ -83,6 +86,9 @@ Get started and take control of your cloud operations today! 🚀`,
 
 		cmd.Help()
 	},
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		initLog()
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -90,8 +96,12 @@ Get started and take control of your cloud operations today! 🚀`,
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		os.Exit(1)
+		log.Fatal(err)
 	}
+}
+
+var cmdArgs struct {
+	Verbose bool
 }
 
 func init() {
@@ -107,7 +117,8 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	rootCmd.Flags().BoolP("version", "v", false, "Prints out the current version")
+	rootCmd.Flags().Bool("version", false, "Prints out the current version")
+	rootCmd.PersistentFlags().BoolVar(&cmdArgs.Verbose, "v", false, "Enables verbose logs")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -130,7 +141,7 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+		log.WithField("config_file", viper.ConfigFileUsed()).Info("Using config file")
 	}
 }
 
@@ -193,5 +204,15 @@ func SaveConfig() {
 	if err := os.Chmod(filename, 0600); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+}
+
+func initLog() {
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.InfoLevel)
+
+	if cli.Settings.Verbose {
+		log.SetLevel(log.DebugLevel)
+		log.Debug("Verbose logging enabled")
 	}
 }

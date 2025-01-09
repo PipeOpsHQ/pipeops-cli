@@ -2,10 +2,11 @@ package agent
 
 import (
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
-	"github.com/spf13/cobra"
 )
 
 var installCmd = &cobra.Command{
@@ -26,26 +27,30 @@ This command automates the installation process for k3s and ensures the server i
 		token := args[0]
 
 		// Log the installation start
-		log.Println("🔧 Installing k3s...")
-		
+		log.Info("🔧 Installing k3s...")
+
 		// Command to install k3s
 		installCmd := "curl -sfL https://get.k3s.io | sh -s -"
 		output, err := utils.RunCommand("sh", "-c", installCmd)
 		if err != nil {
 			log.Fatalf("❌ Error installing k3s: %v\nOutput: %s", err, output)
 		}
-		log.Println("✅ k3s installed successfully.")
+
+		log.Info("✅ k3s installed successfully.")
 
 		// Simulate connecting to PipeOps using the token
-		log.Printf("🔗 Connecting to PipeOps using token: %s\n", token)
+		log.Infof("🔗 Connecting to PipeOps using token: %s\n", token)
 		// Placeholder for the actual connection logic
-		log.Println("✅ Connected to PipeOps successfully.")
+		log.Info("✅ Connected to PipeOps successfully.")
 	},
 	Args: func(cmd *cobra.Command, args []string) error {
 		// Ensure token is provided
 		if len(args) < 1 {
-			return fmt.Errorf("❌ token is required as the first argument")
+			err := fmt.Errorf("❌ token is required as the first argument")
+			log.Error(err)
+			return err
 		}
+
 		return nil
 	},
 }

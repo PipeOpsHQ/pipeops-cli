@@ -1,8 +1,7 @@
 package deploy
 
 import (
-	"fmt"
-
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +20,7 @@ Examples:
     pipeops deploy pipeline create --name my-pipeline`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Mock implementation of the pipeline command
-		fmt.Println("Pipeline management coming soon! 🚧")
+		log.Info("Pipeline management coming soon! 🚧")
 	},
 }
 
@@ -44,7 +43,7 @@ func (p *deployModel) RegisterPipelineSubcommands() {
 Example:
   pipeops deploy pipeline list`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("Listing all pipelines... 🚀")
+			log.Info("Listing all pipelines... 🚀")
 		},
 	})
 
@@ -56,7 +55,7 @@ Example:
 Example:
   pipeops deploy pipeline create --name my-pipeline`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("Creating a new pipeline... 🚧")
+			log.Info("Creating a new pipeline... 🚧")
 		},
 	})
 
@@ -68,7 +67,7 @@ Example:
 Example:
   pipeops deploy pipeline delete --id pipeline-id`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("Deleting a pipeline... 🗑️")
+			log.Info("Deleting a pipeline... 🗑️")
 		},
 	})
 }
