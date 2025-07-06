@@ -2,9 +2,9 @@ package project
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
+	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -12,63 +12,81 @@ import (
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "📜 List all projects",
-	Long: `📜 The "list" command displays all the projects associated with your PipeOps account.
-You can use this command to quickly view project details like name, ID, and status.
+	Long: `📜 List all projects in your PipeOps account.
 
 Examples:
   - List all projects:
-    pipeops project list`,
+    pipeops project list
+
+  - List projects in JSON format:
+    pipeops project list --json`,
 	Run: func(cmd *cobra.Command, args []string) {
+		opts := utils.GetOutputOptions(cmd)
 		client := pipeops.NewClient()
 
 		// Load configuration
 		if err := client.LoadConfig(); err != nil {
-			fmt.Printf("❌ Error loading configuration: %v\n", err)
+			utils.HandleError(err, "Error loading configuration", opts)
 			return
 		}
 
 		// Check if user is authenticated
-		if !client.IsAuthenticated() {
-			fmt.Println("❌ You are not logged in. Please run 'pipeops auth login' first.")
+		if !utils.RequireAuth(client, opts) {
 			return
 		}
 
 		// Fetch projects from API
-		fmt.Printf("🔍 Fetching all projects...\n")
+		utils.PrintInfo("Fetching all projects...", opts)
 
 		projectsResp, err := client.GetProjects()
 		if err != nil {
-			fmt.Printf("❌ Error fetching projects: %v\n", err)
+			utils.HandleError(err, "Error fetching projects", opts)
 			return
 		}
 
 		if len(projectsResp.Projects) == 0 {
-			fmt.Println("📭 No projects found. Create your first project to get started!")
+			if opts.Format == utils.OutputFormatJSON {
+				utils.PrintJSON([]interface{}{})
+			} else {
+				utils.PrintWarning("No projects found. Create your first project to get started!", opts)
+			}
 			return
 		}
 
-		// Display header
-		fmt.Printf("%-15s | %-30s | %-10s | %-12s\n", "PROJECT ID", "PROJECT NAME", "STATUS", "CREATED")
-		fmt.Println(strings.Repeat("-", 80))
+		// Format output
+		if opts.Format == utils.OutputFormatJSON {
+			utils.PrintJSON(projectsResp.Projects)
+		} else {
+			// Prepare table data
+			headers := []string{"PROJECT ID", "PROJECT NAME", "STATUS", "CREATED"}
+			var rows [][]string
 
-		// Display project details
-		for _, project := range projectsResp.Projects {
-			// Truncate long names to fit in table
-			name := project.Name
-			if len(name) > 30 {
-				name = name[:27] + "..."
+			for _, project := range projectsResp.Projects {
+				name := utils.TruncateString(project.Name, 30)
+				status := utils.GetStatusIcon(project.Status) + " " + project.Status
+				created := utils.FormatDateShort(project.CreatedAt)
+
+				rows = append(rows, []string{
+					project.ID,
+					name,
+					status,
+					created,
+				})
 			}
 
-			// Format created date
-			createdDate := project.CreatedAt.Format("2006-01-02")
+			utils.PrintTable(headers, rows, opts)
+			utils.PrintSuccess(fmt.Sprintf("Found %d projects", len(projectsResp.Projects)), opts)
 
-			fmt.Printf("%-15s | %-30s | %-10s | %-12s\n",
-				project.ID, name, project.Status, createdDate)
+			// Show helpful tips
+			if !opts.Quiet {
+				fmt.Printf("\n💡 TIPS\n")
+				fmt.Printf("├─ Link a project: pipeops link <project-id>\n")
+				fmt.Printf("├─ Create project: pipeops create <project-name>\n")
+				fmt.Printf("└─ View project: pipeops status <project-id>\n")
+			}
 		}
-
-		fmt.Printf("\n✅ Found %d projects.\n", len(projectsResp.Projects))
 	},
-	Args: cobra.NoArgs, // This command does not accept arguments
+	Args: cobra.NoArgs,
 }
 
 // NewList initializes and returns the list command

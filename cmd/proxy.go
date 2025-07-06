@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/PipeOpsHQ/pipeops-cli/internal/proxy"
 	"github.com/PipeOpsHQ/pipeops-cli/internal/validation"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
+	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -25,11 +25,14 @@ services, making them accessible on your local machine. This is useful for debug
 development, and accessing services that aren't publicly exposed.
 
 Examples:
-  - Start a proxy to a project service:
+  - Start a proxy to a service in linked project:
+    pipeops proxy start web-service --port 8080
+
+  - Start a proxy to a specific project service:
     pipeops proxy start proj-123 web-service --port 8080
 
   - Start a proxy to an addon service:
-    pipeops proxy start proj-123 redis --addon addon-456 --port 6379
+    pipeops proxy start web-service --addon addon-456 --port 6379
 
   - List active proxies:
     pipeops proxy list
@@ -43,33 +46,54 @@ Examples:
 }
 
 var proxyStartCmd = &cobra.Command{
-	Use:   "start <project-id> <service-name>",
+	Use:   "start [project-id] <service-name>",
 	Short: "🚀 Start a proxy to a service",
 	Long: `🚀 Start a local proxy connection to a deployed service. The service will be
 accessible on your local machine through the specified port.
 
+If no project ID is provided, uses the linked project from the current directory.
+
 Examples:
-  - Proxy to a web service on local port 8080:
+  - Proxy to a service in linked project:
+    pipeops proxy start web-service --port 8080
+
+  - Proxy to a service in specific project:
     pipeops proxy start proj-123 web-service --port 8080
 
   - Auto-assign local port:
-    pipeops proxy start proj-123 api-service
+    pipeops proxy start api-service
 
   - Proxy to an addon service:
-    pipeops proxy start proj-123 redis --addon addon-456 --port 6379`,
+    pipeops proxy start redis --addon addon-456 --port 6379`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 2 {
-			fmt.Println("❌ Project ID and service name are required")
-			fmt.Println("Usage: pipeops proxy start <project-id> <service-name>")
+		opts := utils.GetOutputOptions(cmd)
+		var projectID, serviceName string
+		var err error
+
+		switch len(args) {
+		case 1:
+			// Only service name provided, try to get linked project
+			serviceName = args[0]
+			projectID, err = utils.GetProjectIDOrLinked("")
+			if err != nil {
+				utils.PrintError(err.Error(), opts)
+				utils.PrintInfo("Use 'pipeops link <project-id>' to link a project to this directory", opts)
+				utils.PrintInfo("Or provide both: pipeops proxy start <project-id> <service-name>", opts)
+				return
+			}
+		case 2:
+			// Both project ID and service name provided
+			projectID = args[0]
+			serviceName = args[1]
+		default:
+			utils.PrintError("Service name is required", opts)
+			utils.PrintInfo("Usage: pipeops proxy start [project-id] <service-name>", opts)
 			return
 		}
 
-		projectID := args[0]
-		serviceName := args[1]
-
 		// Validate project ID
 		if err := validation.ValidateProjectID(projectID); err != nil {
-			fmt.Printf("❌ Invalid project ID: %v\n", err)
+			utils.PrintError(fmt.Sprintf("Invalid project ID: %v", err), opts)
 			return
 		}
 
@@ -77,15 +101,17 @@ Examples:
 
 		// Load configuration
 		if err := client.LoadConfig(); err != nil {
-			fmt.Printf("❌ Error loading configuration: %v\n", err)
+			utils.HandleError(err, "Error loading configuration", opts)
 			return
 		}
 
 		// Check if user is authenticated
-		if !client.IsAuthenticated() {
-			fmt.Println("❌ You are not logged in. Please run 'pipeops auth login' first.")
+		if !utils.RequireAuth(client, opts) {
 			return
 		}
+
+		// Show project context
+		utils.PrintProjectContextWithOptions(projectID, opts)
 
 		// Parse flags
 		portStr, _ := cmd.Flags().GetString("port")
@@ -96,20 +122,20 @@ Examples:
 		// Parse local port
 		localPort, err := proxy.GetPortFromString(portStr)
 		if err != nil {
-			fmt.Printf("❌ Invalid local port: %v\n", err)
+			utils.PrintError(fmt.Sprintf("Invalid local port: %v", err), opts)
 			return
 		}
 
 		// Parse target port
 		targetPort, err := proxy.GetPortFromString(targetPortStr)
 		if err != nil {
-			fmt.Printf("❌ Invalid target port: %v\n", err)
+			utils.PrintError(fmt.Sprintf("Invalid target port: %v", err), opts)
 			return
 		}
 
 		// Check if local port is available
 		if localPort > 0 && !proxy.IsPortAvailable(localPort) {
-			fmt.Printf("❌ Local port %d is already in use\n", localPort)
+			utils.PrintError(fmt.Sprintf("Local port %d is already in use", localPort), opts)
 			return
 		}
 
@@ -125,15 +151,15 @@ Examples:
 		}
 
 		// Get proxy connection details from API
-		fmt.Printf("🔍 Getting connection details for service '%s'", serviceName)
+		message := fmt.Sprintf("Getting connection details for service '%s'", serviceName)
 		if addonID != "" {
-			fmt.Printf(" (addon: %s)", addonID)
+			message += fmt.Sprintf(" (addon: %s)", addonID)
 		}
-		fmt.Println("...")
+		utils.PrintInfo(message, opts)
 
 		proxyResp, err := client.StartProxy(req)
 		if err != nil {
-			fmt.Printf("❌ Error starting proxy: %v\n", err)
+			utils.HandleError(err, "Error starting proxy", opts)
 			return
 		}
 
@@ -145,22 +171,28 @@ Examples:
 			proxyResp.RemotePort,
 		)
 		if err != nil {
-			fmt.Printf("❌ Error starting local proxy: %v\n", err)
+			utils.HandleError(err, "Error starting local proxy", opts)
 			return
 		}
 
-		fmt.Printf("✅ Proxy started successfully!\n")
+		// Output result
+		if opts.Format == utils.OutputFormatJSON {
+			utils.PrintJSON(localProxyResp)
+			return
+		}
+
+		utils.PrintSuccess("Proxy started successfully!", opts)
 		fmt.Printf("🆔 Proxy ID: %s\n", localProxyResp.ProxyID)
 		fmt.Printf("🌐 Local: http://localhost:%d\n", localProxyResp.LocalPort)
 		fmt.Printf("🎯 Remote: %s:%d\n", localProxyResp.RemoteHost, localProxyResp.RemotePort)
 
 		if daemon {
-			fmt.Println("🔄 Running in daemon mode. Use 'pipeops proxy stop' to stop.")
+			utils.PrintInfo("Running in daemon mode. Use 'pipeops proxy stop' to stop.", opts)
 			return
 		}
 
 		// Run in foreground mode
-		fmt.Println("🔄 Proxy is running... (Press Ctrl+C to stop)")
+		utils.PrintInfo("Proxy is running... (Press Ctrl+C to stop)", opts)
 
 		// Set up signal handling
 		sigChan := make(chan os.Signal, 1)
@@ -170,49 +202,66 @@ Examples:
 		<-sigChan
 
 		// Stop the proxy
-		fmt.Println("\n🛑 Stopping proxy...")
+		utils.PrintInfo("Stopping proxy...", opts)
 		if err := proxyManager.StopProxy(localProxyResp.ProxyID); err != nil {
-			fmt.Printf("❌ Error stopping proxy: %v\n", err)
+			utils.PrintError(fmt.Sprintf("Error stopping proxy: %v", err), opts)
 		} else {
-			fmt.Println("✅ Proxy stopped successfully.")
+			utils.PrintSuccess("Proxy stopped successfully.", opts)
 		}
 	},
-	Args: cobra.ExactArgs(2),
+	Args: cobra.RangeArgs(1, 2),
 }
 
 var proxyListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "📋 List active proxy connections",
 	Long: `📋 List all currently active proxy connections, showing their status,
-local and remote endpoints, and connection statistics.`,
+local and remote endpoints, and connection statistics.
+
+Examples:
+  - List all active proxies:
+    pipeops proxy list
+
+  - List proxies in JSON format:
+    pipeops proxy list --json`,
 	Run: func(cmd *cobra.Command, args []string) {
+		opts := utils.GetOutputOptions(cmd)
 		proxies := proxyManager.ListProxies()
 
 		if len(proxies.Proxies) == 0 {
-			fmt.Println("📭 No active proxy connections.")
+			if opts.Format == utils.OutputFormatJSON {
+				utils.PrintJSON([]interface{}{})
+			} else {
+				utils.PrintWarning("No active proxy connections.", opts)
+			}
 			return
 		}
 
-		// Display header
-		fmt.Printf("%-15s | %-10s | %-15s | %-20s | %-10s | %-15s\n",
-			"PROXY ID", "STATUS", "LOCAL PORT", "REMOTE", "CONNECTIONS", "STARTED")
-		fmt.Println(strings.Repeat("-", 100))
+		// Format output
+		if opts.Format == utils.OutputFormatJSON {
+			utils.PrintJSON(proxies.Proxies)
+		} else {
+			// Prepare table data
+			headers := []string{"PROXY ID", "STATUS", "LOCAL PORT", "REMOTE", "CONNECTIONS", "STARTED"}
+			var rows [][]string
 
-		// Display proxy details
-		for _, proxy := range proxies.Proxies {
-			startTime, _ := time.Parse(time.RFC3339, proxy.StartedAt)
-			timeAgo := time.Since(startTime).Round(time.Second)
+			for _, proxy := range proxies.Proxies {
+				startTime, _ := time.Parse(time.RFC3339, proxy.StartedAt)
+				timeAgo := time.Since(startTime).Round(time.Second)
 
-			fmt.Printf("%-15s | %-10s | %-15d | %-20s | %-10d | %-15s\n",
-				proxy.ProxyID,
-				proxy.Status,
-				proxy.LocalPort,
-				fmt.Sprintf("%s:%d", proxy.RemoteHost, proxy.RemotePort),
-				proxy.ConnectionsIn,
-				timeAgo.String()+" ago")
+				rows = append(rows, []string{
+					proxy.ProxyID,
+					utils.GetStatusIcon(proxy.Status) + " " + proxy.Status,
+					fmt.Sprintf("%d", proxy.LocalPort),
+					fmt.Sprintf("%s:%d", proxy.RemoteHost, proxy.RemotePort),
+					fmt.Sprintf("%d", proxy.ConnectionsIn),
+					timeAgo.String() + " ago",
+				})
+			}
+
+			utils.PrintTable(headers, rows, opts)
+			utils.PrintSuccess(fmt.Sprintf("Found %d active proxies", len(proxies.Proxies)), opts)
 		}
-
-		fmt.Printf("\n✅ Found %d active proxies.\n", len(proxies.Proxies))
 	},
 	Args: cobra.NoArgs,
 }
@@ -221,22 +270,39 @@ var proxyStopCmd = &cobra.Command{
 	Use:   "stop <proxy-id>",
 	Short: "🛑 Stop a proxy connection",
 	Long: `🛑 Stop a specific proxy connection by its ID. You can get proxy IDs
-using the 'pipeops proxy list' command.`,
+using the 'pipeops proxy list' command.
+
+Examples:
+  - Stop a specific proxy:
+    pipeops proxy stop proxy-123456
+
+  - Stop with JSON output:
+    pipeops proxy stop proxy-123456 --json`,
 	Run: func(cmd *cobra.Command, args []string) {
+		opts := utils.GetOutputOptions(cmd)
+
 		if len(args) != 1 {
-			fmt.Println("❌ Proxy ID is required")
-			fmt.Println("Usage: pipeops proxy stop <proxy-id>")
+			utils.PrintError("Proxy ID is required", opts)
+			utils.PrintInfo("Usage: pipeops proxy stop <proxy-id>", opts)
 			return
 		}
 
 		proxyID := args[0]
 
 		if err := proxyManager.StopProxy(proxyID); err != nil {
-			fmt.Printf("❌ Error stopping proxy: %v\n", err)
+			utils.HandleError(err, "Error stopping proxy", opts)
 			return
 		}
 
-		fmt.Printf("✅ Proxy %s stopped successfully.\n", proxyID)
+		if opts.Format == utils.OutputFormatJSON {
+			result := map[string]interface{}{
+				"proxy_id": proxyID,
+				"status":   "stopped",
+			}
+			utils.PrintJSON(result)
+		} else {
+			utils.PrintSuccess(fmt.Sprintf("Proxy %s stopped successfully", proxyID), opts)
+		}
 	},
 	Args: cobra.ExactArgs(1),
 }
@@ -244,42 +310,89 @@ using the 'pipeops proxy list' command.`,
 var proxyStopAllCmd = &cobra.Command{
 	Use:   "stop-all",
 	Short: "🛑 Stop all proxy connections",
-	Long:  `🛑 Stop all currently active proxy connections.`,
+	Long: `🛑 Stop all currently active proxy connections.
+
+Examples:
+  - Stop all proxies:
+    pipeops proxy stop-all
+
+  - Stop all with JSON output:
+    pipeops proxy stop-all --json`,
 	Run: func(cmd *cobra.Command, args []string) {
+		opts := utils.GetOutputOptions(cmd)
 		proxies := proxyManager.ListProxies()
 
 		if len(proxies.Proxies) == 0 {
-			fmt.Println("📭 No active proxy connections to stop.")
+			if opts.Format == utils.OutputFormatJSON {
+				result := map[string]interface{}{
+					"stopped_count": 0,
+					"message":       "No active proxy connections to stop",
+				}
+				utils.PrintJSON(result)
+			} else {
+				utils.PrintWarning("No active proxy connections to stop.", opts)
+			}
 			return
 		}
 
 		if err := proxyManager.StopAllProxies(); err != nil {
-			fmt.Printf("❌ Error stopping proxies: %v\n", err)
+			utils.HandleError(err, "Error stopping proxies", opts)
 			return
 		}
 
-		fmt.Printf("✅ Stopped %d proxy connections.\n", len(proxies.Proxies))
+		if opts.Format == utils.OutputFormatJSON {
+			result := map[string]interface{}{
+				"stopped_count": len(proxies.Proxies),
+				"status":        "success",
+			}
+			utils.PrintJSON(result)
+		} else {
+			utils.PrintSuccess(fmt.Sprintf("Stopped %d proxy connections", len(proxies.Proxies)), opts)
+		}
 	},
 	Args: cobra.NoArgs,
 }
 
 var proxyServicesCmd = &cobra.Command{
-	Use:   "services <project-id>",
+	Use:   "services [project-id]",
 	Short: "📋 List available services for a project",
 	Long: `📋 List all services available for proxying in a specific project or addon.
-This shows you what services you can connect to using the proxy command.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 1 {
-			fmt.Println("❌ Project ID is required")
-			fmt.Println("Usage: pipeops proxy services <project-id>")
-			return
-		}
+This shows you what services you can connect to using the proxy command.
 
-		projectID := args[0]
+If no project ID is provided, uses the linked project from the current directory.
+
+Examples:
+  - List services for linked project:
+    pipeops proxy services
+
+  - List services for specific project:
+    pipeops proxy services proj-123
+
+  - List addon services:
+    pipeops proxy services --addon addon-456
+
+  - List services in JSON format:
+    pipeops proxy services --json`,
+	Run: func(cmd *cobra.Command, args []string) {
+		opts := utils.GetOutputOptions(cmd)
+		var projectID string
+		var err error
+
+		if len(args) == 1 {
+			projectID = args[0]
+		} else {
+			projectID, err = utils.GetProjectIDOrLinked("")
+			if err != nil {
+				utils.PrintError(err.Error(), opts)
+				utils.PrintInfo("Use 'pipeops link <project-id>' to link a project to this directory", opts)
+				utils.PrintInfo("Or provide: pipeops proxy services <project-id>", opts)
+				return
+			}
+		}
 
 		// Validate project ID
 		if err := validation.ValidateProjectID(projectID); err != nil {
-			fmt.Printf("❌ Invalid project ID: %v\n", err)
+			utils.PrintError(fmt.Sprintf("Invalid project ID: %v", err), opts)
 			return
 		}
 
@@ -287,61 +400,77 @@ This shows you what services you can connect to using the proxy command.`,
 
 		// Load configuration
 		if err := client.LoadConfig(); err != nil {
-			fmt.Printf("❌ Error loading configuration: %v\n", err)
+			utils.HandleError(err, "Error loading configuration", opts)
 			return
 		}
 
 		// Check if user is authenticated
-		if !client.IsAuthenticated() {
-			fmt.Println("❌ You are not logged in. Please run 'pipeops auth login' first.")
+		if !utils.RequireAuth(client, opts) {
 			return
 		}
+
+		// Show project context
+		utils.PrintProjectContextWithOptions(projectID, opts)
 
 		// Parse flags
 		addonID, _ := cmd.Flags().GetString("addon")
 
 		// Get services
-		fmt.Printf("🔍 Fetching services for project %s", projectID)
+		message := fmt.Sprintf("Fetching services for project %s", projectID)
 		if addonID != "" {
-			fmt.Printf(" (addon: %s)", addonID)
+			message += fmt.Sprintf(" (addon: %s)", addonID)
 		}
-		fmt.Println("...")
+		utils.PrintInfo(message, opts)
 
 		services, err := client.GetServices(projectID, addonID)
 		if err != nil {
-			fmt.Printf("❌ Error fetching services: %v\n", err)
+			utils.HandleError(err, "Error fetching services", opts)
 			return
 		}
 
 		if len(services.Services) == 0 {
-			fmt.Println("📭 No services found.")
+			if opts.Format == utils.OutputFormatJSON {
+				utils.PrintJSON([]interface{}{})
+			} else {
+				utils.PrintWarning("No services found.", opts)
+			}
 			return
 		}
 
-		// Display header
-		fmt.Printf("%-20s | %-10s | %-8s | %-10s | %-10s | %-30s\n",
-			"SERVICE NAME", "TYPE", "PORT", "PROTOCOL", "HEALTH", "DESCRIPTION")
-		fmt.Println(strings.Repeat("-", 110))
+		// Format output
+		if opts.Format == utils.OutputFormatJSON {
+			utils.PrintJSON(services.Services)
+		} else {
+			// Prepare table data
+			headers := []string{"SERVICE NAME", "TYPE", "PORT", "PROTOCOL", "HEALTH", "DESCRIPTION"}
+			var rows [][]string
 
-		// Display service details
-		for _, service := range services.Services {
-			description := service.Description
-			if len(description) > 30 {
-				description = description[:27] + "..."
+			for _, service := range services.Services {
+				description := utils.TruncateString(service.Description, 30)
+				health := utils.GetStatusIcon(service.Health) + " " + service.Health
+
+				rows = append(rows, []string{
+					service.Name,
+					service.Type,
+					fmt.Sprintf("%d", service.Port),
+					service.Protocol,
+					health,
+					description,
+				})
 			}
 
-			fmt.Printf("%-20s | %-10s | %-8d | %-10s | %-10s | %-30s\n",
-				service.Name,
-				service.Type,
-				service.Port,
-				service.Protocol,
-				service.Health,
-				description)
-		}
+			utils.PrintTable(headers, rows, opts)
+			utils.PrintSuccess(fmt.Sprintf("Found %d services", len(services.Services)), opts)
 
-		fmt.Printf("\n✅ Found %d services.\n", len(services.Services))
+			// Show helpful tips
+			if !opts.Quiet {
+				fmt.Printf("\n💡 TIPS\n")
+				fmt.Printf("├─ Start proxy: pipeops proxy start <service-name> --port <local-port>\n")
+				fmt.Printf("└─ List proxies: pipeops proxy list\n")
+			}
+		}
 	},
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 }
 
 func init() {

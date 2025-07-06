@@ -2,89 +2,156 @@ package project
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
 	"github.com/PipeOpsHQ/pipeops-cli/internal/validation"
+	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
 
+// createCmd represents the command to create a project
 var createCmd = &cobra.Command{
-	Use:   "create",
-	Short: "✨ Create a new project",
-	Long: `✨ The "create" command creates a new project in your PipeOps account.
-You can specify the project name and optionally provide a description.
+	Use:   "create [project-name]",
+	Short: "🏗️ Create a new project",
+	Long: `🏗️ Create a new project in your PipeOps account.
 
 Examples:
-  - Create a project with just a name:
-    pipeops project create --name "My New Project"
+  - Create a project interactively:
+    pipeops project create
 
-  - Create a project with name and description:
-    pipeops project create --name "My New Project" --description "A sample project"`,
+  - Create a project with a name:
+    pipeops project create my-awesome-project
+
+  - Create a project with description:
+    pipeops project create my-project --description "My awesome project"
+
+  - Create and immediately link to current directory:
+    pipeops project create my-project --link`,
 	Run: func(cmd *cobra.Command, args []string) {
+		opts := utils.GetOutputOptions(cmd)
 		client := pipeops.NewClient()
 
 		// Load configuration
 		if err := client.LoadConfig(); err != nil {
-			fmt.Printf("❌ Error loading configuration: %v\n", err)
+			utils.HandleError(err, "Error loading configuration", opts)
 			return
 		}
 
 		// Check if user is authenticated
-		if !client.IsAuthenticated() {
-			fmt.Println("❌ You are not logged in. Please run 'pipeops auth login' first.")
+		if !utils.RequireAuth(client, opts) {
 			return
 		}
 
-		// Get flags
-		name, _ := cmd.Flags().GetString("name")
-		description, _ := cmd.Flags().GetString("description")
-
-		if name == "" {
-			fmt.Println("❌ Project name is required. Use --name flag to specify the name.")
-			return
+		// Get project name
+		var projectName string
+		if len(args) == 1 {
+			projectName = args[0]
+		} else {
+			if opts.Format == utils.OutputFormatJSON {
+				utils.PrintError("Project name is required for JSON output", opts)
+				return
+			}
+			// Interactive mode
+			name, err := utils.PromptUser("🎯 Enter project name: ")
+			if err != nil {
+				utils.HandleError(err, "Error reading input", opts)
+				return
+			}
+			projectName = name
 		}
 
 		// Validate project name
-		if err := validation.ValidateProjectName(name); err != nil {
-			fmt.Printf("❌ Invalid project name: %v\n", err)
+		if err := validation.ValidateProjectName(projectName); err != nil {
+			utils.PrintError(fmt.Sprintf("Invalid project name: %v", err), opts)
 			return
 		}
 
-		// Validate project description if provided
+		// Get description from flag or prompt
+		description, _ := cmd.Flags().GetString("description")
+		if description == "" && opts.Format != utils.OutputFormatJSON {
+			description = utils.PromptUserWithDefault("📝 Enter project description (optional)", "")
+		}
+
+		// Validate description if provided
 		if description != "" {
 			if err := validation.ValidateProjectDescription(description); err != nil {
-				fmt.Printf("❌ Invalid project description: %v\n", err)
+				utils.PrintError(fmt.Sprintf("Invalid project description: %v", err), opts)
 				return
 			}
 		}
 
 		// Create project
-		fmt.Printf("🔍 Creating project '%s'...\n", name)
+		utils.PrintInfo("Creating project...", opts)
 
-		project, err := client.CreateProject(name, description)
+		project, err := client.CreateProject(projectName, description)
 		if err != nil {
-			fmt.Printf("❌ Error creating project: %v\n", err)
+			utils.HandleError(err, "Error creating project", opts)
 			return
 		}
 
-		fmt.Println("✅ Project created successfully!")
-		fmt.Printf("🆔 Project ID: %s\n", project.ID)
-		fmt.Printf("📝 Name: %s\n", project.Name)
-		if project.Description != "" {
-			fmt.Printf("📄 Description: %s\n", project.Description)
+		// Output result
+		if opts.Format == utils.OutputFormatJSON {
+			utils.PrintJSON(project)
+		} else {
+			utils.PrintSuccess(fmt.Sprintf("Created project '%s' with ID: %s", project.Name, project.ID), opts)
+
+			// Show project details
+			fmt.Printf("\n📂 PROJECT DETAILS\n")
+			fmt.Printf("├─ Name: %s\n", project.Name)
+			fmt.Printf("├─ ID: %s\n", project.ID)
+			fmt.Printf("├─ Status: %s%s\n", utils.GetStatusIcon(project.Status), project.Status)
+			if project.Description != "" {
+				fmt.Printf("└─ Description: %s\n", project.Description)
+			} else {
+				fmt.Printf("└─ Description: (none)\n")
+			}
 		}
-		fmt.Printf("📊 Status: %s\n", project.Status)
-		fmt.Printf("📅 Created: %s\n", project.CreatedAt.Format("2006-01-02 15:04:05"))
+
+		// Handle linking
+		shouldLink, _ := cmd.Flags().GetBool("link")
+		if !shouldLink && opts.Format != utils.OutputFormatJSON {
+			shouldLink = utils.ConfirmAction("🔗 Link this project to the current directory?")
+		}
+
+		if shouldLink {
+			if err := linkProjectLocal(project.ID, opts); err != nil {
+				utils.PrintWarning(fmt.Sprintf("Failed to link project: %v", err), opts)
+			} else {
+				utils.PrintSuccess("Project linked to current directory!", opts)
+				if opts.Format != utils.OutputFormatJSON {
+					fmt.Printf("\n🎉 You can now use simplified commands:\n")
+					fmt.Printf("  - pipeops logs\n")
+					fmt.Printf("  - pipeops shell <service-name>\n")
+					fmt.Printf("  - pipeops status\n")
+				}
+			}
+		}
 	},
-	Args: cobra.NoArgs,
+	Args: cobra.MaximumNArgs(1),
 }
 
-func init() {
-	createCmd.Flags().StringP("name", "n", "", "Name of the project (required)")
-	createCmd.Flags().StringP("description", "d", "", "Description of the project (optional)")
-	createCmd.MarkFlagRequired("name")
+// linkProjectLocal creates a .pipeops file in the current directory
+func linkProjectLocal(projectID string, opts utils.OutputOptions) error {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("error getting current directory: %w", err)
+	}
+
+	pipeopsFile := filepath.Join(currentDir, ".pipeops")
+	content := fmt.Sprintf("project_id=%s\n", projectID)
+
+	return os.WriteFile(pipeopsFile, []byte(content), 0644)
 }
 
-func (p *projectModel) createProject() {
+// NewCreate initializes and returns the create command
+func (p *projectModel) createProject() *cobra.Command {
 	p.rootCmd.AddCommand(createCmd)
+
+	// Add flags
+	createCmd.Flags().StringP("description", "d", "", "Project description")
+	createCmd.Flags().BoolP("link", "l", false, "Link the project to the current directory after creation")
+
+	return createCmd
 }
