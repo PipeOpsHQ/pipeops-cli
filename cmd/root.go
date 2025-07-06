@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -31,6 +32,9 @@ import (
 )
 
 var cfgFile string
+
+// Version is set at build time
+var Version = "dev"
 
 type Config struct {
 	Version VersionInfo
@@ -43,44 +47,26 @@ type VersionInfo struct {
 var Conf Config
 
 // rootCmd represents the base command when called without any subcommands
-// rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "pipeops",
-	Version: Conf.Version.Version,
-	Short:   "🚀 Your all-in-one CLI for managing and deploying with PipeOps.io 🌐",
-	Long: `🌟 Welcome to the PipeOps.io CLI! 🌟
-
-PipeOps.io makes it simple to manage cloud-native environments and deploy your applications into them.
-It's your control plane for running servers anywhere! 🌍
-
-Key Features:
-- 🚀 Deploy servers with ease
-- ⚡ Streamline your deployments
-- 🔒 Secure and cloud-native by design
-
-Examples and Usage:
-
-🛠 Initialize your environment:
-  pipeops init
-
-🖥 Deploy a new server:
-  pipeops deploy server --name my-server --region us-east
-
-📂 Manage your deployments:
-  pipeops manage deployment --id 12345
-
-Get started and take control of your cloud operations today! 🚀`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) {
-	// 	utils.ValidateOrPrompt()
-	// },
+	Short:   "🚀 PipeOps CLI - Manage your cloud-native environment",
+	Long:    `🚀 PipeOps CLI is a command-line interface for managing your cloud-native environment and deployments.`,
+	Version: Version,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// Set global JSON output flag
+		jsonOutput, _ := cmd.Flags().GetBool("json")
+		if jsonOutput {
+			// Set a global flag that other commands can check
+			cmd.Root().SetContext(context.WithValue(cmd.Root().Context(), "json", true))
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if cmd.Flag("version").Changed {
-			fmt.Println("🚀 PipeOps CLI Version:", GetConfig().Version.Version)
+			fmt.Println("🚀 PipeOps CLI Version:", Version)
 			return
 		}
 
+		// Show help by default
 		cmd.Help()
 	},
 }
@@ -98,9 +84,10 @@ func init() {
 	SaveConfig()
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	// Global flags
+	rootCmd.PersistentFlags().Bool("json", false, "Output in JSON format")
+	rootCmd.PersistentFlags().Bool("verbose", false, "Enable verbose output")
+	rootCmd.PersistentFlags().Bool("quiet", false, "Suppress non-essential output")
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.pipeops.yaml)")
 
@@ -143,7 +130,7 @@ func GetConfig() Config {
 		os.Exit(1)
 	}
 
-	filename = fmt.Sprintf("%s/%s", home, ".pipepops.json")
+	filename = fmt.Sprintf("%s/%s", home, ".pipeops.json")
 
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		fmt.Println("Config file does not exist")
@@ -174,9 +161,9 @@ func SaveConfig() {
 		os.Exit(1)
 	}
 
-	filename = fmt.Sprintf("%s/%s", home, ".pipepops.json")
+	filename = fmt.Sprintf("%s/%s", home, ".pipeops.json")
 
-	Conf.Version.Version = "v0.0.4"
+	Conf.Version.Version = Version
 
 	dataBytes, err := json.Marshal(Conf)
 	if err != nil {

@@ -54,7 +54,7 @@ func IsValidURL(testURL string) bool {
 	return true
 }
 
-func ValidateOrPrompt() {
+func ValidateOrPrompt() error {
 	// Ensure the configuration is loaded before proceeding
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Fprintln(os.Stderr, "Warning: Unable to read config file. Proceeding to create or update it.")
@@ -65,19 +65,29 @@ func ValidateOrPrompt() {
 	if token == "" {
 		// Token is not found, prompt the user
 		fmt.Println("No service token found. Let's fix that!")
-		token = promptForToken()
+		var err error
+		token, err = promptForToken()
+		if err != nil {
+			return fmt.Errorf("failed to get token from user: %w", err)
+		}
 	}
 
 	// Validate the token
 	if !validateAndSaveToken(token) {
 		for {
 			fmt.Println("Invalid service token. Please try again.")
-			token = promptForToken()
+			var err error
+			token, err = promptForToken()
+			if err != nil {
+				return fmt.Errorf("failed to get token from user: %w", err)
+			}
 			if validateAndSaveToken(token) {
 				break
 			}
 		}
 	}
+
+	return nil
 }
 
 // validateAndSaveToken validates the token and saves it to the configuration if valid
@@ -92,7 +102,7 @@ func validateAndSaveToken(token string) bool {
 	viper.Set("service_account_token", token)
 	if err := saveConfig(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error saving token to config file:", err)
-		os.Exit(1)
+		return false // Return false but don't exit - let caller handle it
 	}
 
 	fmt.Println("Token validated and saved successfully to the config file.")
@@ -100,15 +110,14 @@ func validateAndSaveToken(token string) bool {
 }
 
 // promptForToken prompts the user to input their service account token
-func promptForToken() string {
+func promptForToken() (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter your PipeOps Service Account Token: ")
 	token, err := reader.ReadString('\n')
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error reading token:", err)
-		os.Exit(1)
+		return "", fmt.Errorf("error reading token: %w", err)
 	}
-	return strings.TrimSpace(token)
+	return strings.TrimSpace(token), nil
 }
 
 // saveConfig writes the configuration to the file, handling potential missing file errors

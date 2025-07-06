@@ -14,4 +14,6 @@ func NewProject(rootCmd *cobra.Command) *projectModel {
 
 func (p *projectModel) Register() {
 	p.listProjects()
+	p.createProject()
+	p.logs()
 }

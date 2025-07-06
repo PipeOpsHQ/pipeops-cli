@@ -8,7 +8,7 @@ DIST_DIR := $(BUILD_DIR)/dist
 # Go settings
 GO := go
 GOFLAGS := -mod=readonly
-GO_LDFLAGS := -X main.Version=$(VERSION)
+GO_LDFLAGS := -X github.com/PipeOpsHQ/pipeops-cli/cmd.Version=$(VERSION)
 
 # Default target
 .PHONY: all
