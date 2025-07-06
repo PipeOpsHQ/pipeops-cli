@@ -22,7 +22,7 @@ var (
 func init() {
 	PIPEOPS_CONTROL_PLANE_API = os.Getenv("PIPEOPS_API_URL")
 	if PIPEOPS_CONTROL_PLANE_API == "" {
-		PIPEOPS_CONTROL_PLANE_API = "https://api.pipeops.io" // Default API URL
+		PIPEOPS_CONTROL_PLANE_API = "https://api.pipeops.sh" // Default API URL
 	}
 }
 
@@ -40,6 +40,13 @@ type HttpClients interface {
 	GetContainers(token string, projectID string, addonID string) (*models.ListContainersResponse, error)
 	StartExec(token string, req *models.ExecRequest) (*models.ExecResponse, error)
 	StartShell(token string, req *models.ShellRequest) (*models.ShellResponse, error)
+
+	// Addon Management
+	GetAddons(token string) (*models.AddonListResponse, error)
+	GetAddon(token string, addonID string) (*models.Addon, error)
+	DeployAddon(token string, req *models.AddonDeployRequest) (*models.AddonDeployResponse, error)
+	GetAddonDeployments(token string, projectID string) ([]models.AddonDeployment, error)
+	DeleteAddonDeployment(token string, deploymentID string) error
 }
 
 type HttpClient struct {
@@ -709,4 +716,174 @@ func (h *HttpClient) StartShell(token string, req *models.ShellRequest) (*models
 	}
 
 	return shellResp, nil
+}
+
+// GetAddons retrieves a list of addons
+func (h *HttpClient) GetAddons(token string) (*models.AddonListResponse, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		Get("/addons")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get addons: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		return nil, ErrInvalidToken
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	var addonsResp *models.AddonListResponse
+	if err := json.Unmarshal(resp.Body(), &addonsResp); err != nil {
+		return nil, fmt.Errorf("failed to parse addons response: %w", err)
+	}
+
+	return addonsResp, nil
+}
+
+// GetAddon retrieves a specific addon by ID
+func (h *HttpClient) GetAddon(token string, addonID string) (*models.Addon, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	if strings.TrimSpace(addonID) == "" {
+		return nil, errors.New("addon ID is empty")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		Get("/addons/" + addonID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get addon: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		return nil, ErrInvalidToken
+	}
+
+	if resp.StatusCode() == 404 {
+		return nil, fmt.Errorf("addon not found")
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	var addon *models.Addon
+	if err := json.Unmarshal(resp.Body(), &addon); err != nil {
+		return nil, fmt.Errorf("failed to parse addon response: %w", err)
+	}
+
+	return addon, nil
+}
+
+// DeployAddon deploys an addon
+func (h *HttpClient) DeployAddon(token string, req *models.AddonDeployRequest) (*models.AddonDeployResponse, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	if req == nil {
+		return nil, errors.New("request is nil")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		SetBody(req).
+		Post("/addons/deploy")
+	if err != nil {
+		return nil, fmt.Errorf("failed to deploy addon: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		return nil, ErrInvalidToken
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	var deployResp *models.AddonDeployResponse
+	if err := json.Unmarshal(resp.Body(), &deployResp); err != nil {
+		return nil, fmt.Errorf("failed to parse deploy response: %w", err)
+	}
+
+	return deployResp, nil
+}
+
+// GetAddonDeployments retrieves a list of addon deployments
+func (h *HttpClient) GetAddonDeployments(token string, projectID string) ([]models.AddonDeployment, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	if strings.TrimSpace(projectID) == "" {
+		return nil, errors.New("project ID is required")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		Get("/addons/deployments")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get addon deployments: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		return nil, ErrInvalidToken
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	var deploymentsResp *models.AddonDeploymentsResponse
+	if err := json.Unmarshal(resp.Body(), &deploymentsResp); err != nil {
+		return nil, fmt.Errorf("failed to parse deployments response: %w", err)
+	}
+
+	return deploymentsResp.Deployments, nil
+}
+
+// DeleteAddonDeployment deletes an addon deployment
+func (h *HttpClient) DeleteAddonDeployment(token string, deploymentID string) error {
+	if strings.TrimSpace(token) == "" {
+		return errors.New("token is empty")
+	}
+
+	if strings.TrimSpace(deploymentID) == "" {
+		return errors.New("deployment ID is empty")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		Delete("/addons/deployments/" + deploymentID)
+	if err != nil {
+		return fmt.Errorf("failed to delete addon deployment: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		return ErrInvalidToken
+	}
+
+	if resp.StatusCode() == 404 {
+		return fmt.Errorf("deployment not found")
+	}
+
+	if resp.IsError() {
+		return fmt.Errorf("API error: %s", resp.String())
+	}
+
+	return nil
 }

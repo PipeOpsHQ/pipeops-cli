@@ -2,15 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
-	"github.com/PipeOpsHQ/pipeops-cli/internal/validation"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
@@ -18,9 +13,10 @@ import (
 
 var logsCmd = &cobra.Command{
 	Use:   "logs [project-id]",
-	Short: "📄 View logs for the current or specified project",
-	Long: `📄 View logs for a project. If no project ID is provided, uses the linked project
-from the current directory (set with 'pipeops link').
+	Short: "📋 View project logs",
+	Long: `📋 View and stream logs from your project services.
+
+This command allows you to view historical logs and stream real-time logs from your deployed services.
 
 Examples:
   - View logs for linked project:
@@ -29,90 +25,70 @@ Examples:
   - View logs for specific project:
     pipeops logs proj-123
 
-  - Follow logs in real-time:
+  - Stream logs in real-time:
     pipeops logs --follow
 
-  - Filter by log level:
-    pipeops logs --level error
+  - View last 100 lines:
+    pipeops logs --lines 100
 
-  - View addon logs:
-    pipeops logs --addon addon-456`,
+  - Filter logs by service:
+    pipeops logs --service web-service`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var projectID string
-		var err error
+		opts := utils.GetOutputOptions(cmd)
 
+		// Get project ID
+		var projectID string
 		if len(args) == 1 {
 			projectID = args[0]
 		} else {
-			// Try to get linked project
-			projectID, err = utils.GetLinkedProject()
+			projectContext, err := utils.LoadProjectContext()
 			if err != nil {
-				fmt.Printf("❌ %v\n", err)
-				fmt.Println("💡 Use 'pipeops link <project-id>' to link a project to this directory")
+				utils.HandleError(err, "Error loading project context", opts)
 				return
 			}
-		}
 
-		// Validate project ID
-		if err := validation.ValidateProjectID(projectID); err != nil {
-			fmt.Printf("❌ Invalid project ID: %v\n", err)
-			return
+			projectID = projectContext.ProjectID
+			if projectID == "" {
+				utils.HandleError(fmt.Errorf("project ID is required"), "Project ID is required. Use --project flag or link a project with 'pipeops link'", opts)
+				return
+			}
 		}
 
 		client := pipeops.NewClient()
 
 		// Load configuration
 		if err := client.LoadConfig(); err != nil {
-			fmt.Printf("❌ Error loading configuration: %v\n", err)
+			utils.HandleError(err, "Error loading configuration", opts)
 			return
 		}
 
 		// Check if user is authenticated
-		if !client.IsAuthenticated() {
-			fmt.Println("❌ You are not logged in. Please run 'pipeops auth login' first.")
+		if !utils.RequireAuth(client, opts) {
 			return
 		}
 
-		// Show project context
-		utils.PrintProjectContext(projectID)
-
 		// Parse flags
-		level, _ := cmd.Flags().GetString("level")
-		source, _ := cmd.Flags().GetString("source")
-		container, _ := cmd.Flags().GetString("container")
+		serviceName, _ := cmd.Flags().GetString("service")
+		containerName, _ := cmd.Flags().GetString("container")
+		follow, _ := cmd.Flags().GetBool("follow")
+		lines, _ := cmd.Flags().GetInt("lines")
 		sinceStr, _ := cmd.Flags().GetString("since")
 		untilStr, _ := cmd.Flags().GetString("until")
-		limitStr, _ := cmd.Flags().GetString("limit")
-		tail, _ := cmd.Flags().GetInt("tail")
-		follow, _ := cmd.Flags().GetBool("follow")
-		addonID, _ := cmd.Flags().GetString("addon")
 
 		// Build logs request
 		req := &models.LogsRequest{
 			ProjectID: projectID,
-			AddonID:   addonID,
-			Tail:      tail,
+			Source:    serviceName,
+			Container: containerName,
+			Tail:      lines,
 			Follow:    follow,
-		}
-
-		// Parse level
-		if level != "" {
-			req.Level = models.LogLevel(level)
-		}
-
-		// Parse source and container
-		if source != "" {
-			req.Source = source
-		}
-		if container != "" {
-			req.Container = container
 		}
 
 		// Parse time filters
 		if sinceStr != "" {
 			since, err := time.Parse(time.RFC3339, sinceStr)
 			if err != nil {
-				fmt.Printf("❌ Invalid since time format. Use RFC3339 format (e.g., 2024-01-01T10:00:00Z): %v\n", err)
+				utils.HandleError(fmt.Errorf("invalid since time format. Use RFC3339 format: %v", err), "Invalid time format", opts)
 				return
 			}
 			req.Since = &since
@@ -121,85 +97,55 @@ Examples:
 		if untilStr != "" {
 			until, err := time.Parse(time.RFC3339, untilStr)
 			if err != nil {
-				fmt.Printf("❌ Invalid until time format. Use RFC3339 format (e.g., 2024-01-01T10:00:00Z): %v\n", err)
+				utils.HandleError(fmt.Errorf("invalid until time format. Use RFC3339 format: %v", err), "Invalid time format", opts)
 				return
 			}
 			req.Until = &until
 		}
 
-		// Parse limit
-		if limitStr != "" {
-			limit, err := strconv.Atoi(limitStr)
-			if err != nil {
-				fmt.Printf("❌ Invalid limit: %v\n", err)
-				return
-			}
-			req.Limit = limit
-		}
-
 		if follow {
 			// Stream logs in real-time
-			fmt.Printf("🔄 Streaming logs")
-			if addonID != "" {
-				fmt.Printf(" (addon: %s)", addonID)
-			}
-			fmt.Println("... (Press Ctrl+C to stop)")
+			utils.PrintInfo("Starting log stream... (Press Ctrl+C to stop)", opts)
 
-			// Set up signal handling
-			sigChan := make(chan os.Signal, 1)
-			signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-
-			// Channel to signal completion
-			doneChan := make(chan error, 1)
-
-			// Start streaming in a goroutine
-			go func() {
-				doneChan <- client.StreamLogs(req, func(entry *models.StreamLogEntry) error {
-					printLogEntry(&entry.LogEntry)
-					return nil
-				})
-			}()
-
-			// Wait for completion or signal
-			select {
-			case err := <-doneChan:
-				if err != nil {
-					fmt.Printf("\n❌ Error streaming logs: %v\n", err)
+			err := client.StreamLogs(req, func(entry *models.StreamLogEntry) error {
+				if opts.Format == utils.OutputFormatJSON {
+					utils.PrintJSON(entry)
 				} else {
-					fmt.Println("\n✅ Log stream ended.")
+					timestamp := entry.Timestamp.Format("2006-01-02 15:04:05")
+					fmt.Printf("%s [%s] %s\n", timestamp, entry.Level, entry.Message)
 				}
-			case <-sigChan:
-				fmt.Println("\n🛑 Log streaming stopped by user.")
+				return nil
+			})
+
+			if err != nil {
+				utils.HandleError(err, "Error streaming logs", opts)
+				return
 			}
 		} else {
-			// Get logs once
-			fmt.Printf("🔍 Fetching logs")
-			if addonID != "" {
-				fmt.Printf(" (addon: %s)", addonID)
-			}
-			fmt.Println("...")
+			// Get historical logs
+			utils.PrintInfo("Fetching logs...", opts)
 
-			resp, err := client.GetLogs(req)
+			logsResp, err := client.GetLogs(req)
 			if err != nil {
-				fmt.Printf("❌ Error fetching logs: %v\n", err)
+				utils.HandleError(err, "Error fetching logs", opts)
 				return
 			}
 
-			if len(resp.Logs) == 0 {
-				fmt.Println("📭 No logs found for the specified criteria.")
-				return
-			}
+			if opts.Format == utils.OutputFormatJSON {
+				utils.PrintJSON(logsResp)
+			} else {
+				if len(logsResp.Logs) == 0 {
+					utils.PrintWarning("No logs found", opts)
+					return
+				}
 
-			// Display logs
-			for _, entry := range resp.Logs {
-				printLogEntry(&entry)
-			}
+				for _, log := range logsResp.Logs {
+					timestamp := log.Timestamp.Format("2006-01-02 15:04:05")
+					fmt.Printf("%s [%s] %s\n", timestamp, log.Level, log.Message)
+				}
 
-			fmt.Printf("\n✅ Found %d log entries", len(resp.Logs))
-			if resp.HasMore {
-				fmt.Printf(" (more available - use --limit to get more or --follow to stream)")
+				utils.PrintSuccess(fmt.Sprintf("Found %d log entries", len(logsResp.Logs)), opts)
 			}
-			fmt.Println()
 		}
 	},
 	Args: cobra.MaximumNArgs(1),
@@ -242,13 +188,10 @@ func init() {
 	rootCmd.AddCommand(logsCmd)
 
 	// Add flags
-	logsCmd.Flags().StringP("level", "l", "", "Filter by log level (debug, info, warn, error, fatal)")
-	logsCmd.Flags().StringP("source", "s", "", "Filter by log source")
-	logsCmd.Flags().StringP("container", "c", "", "Filter by container name")
-	logsCmd.Flags().String("since", "", "Show logs since timestamp (RFC3339 format)")
-	logsCmd.Flags().String("until", "", "Show logs until timestamp (RFC3339 format)")
-	logsCmd.Flags().String("limit", "", "Maximum number of logs to retrieve")
-	logsCmd.Flags().IntP("tail", "t", 100, "Number of recent log lines to show")
+	logsCmd.Flags().StringP("service", "s", "", "Filter logs by service name")
+	logsCmd.Flags().StringP("container", "c", "", "Filter logs by container name")
 	logsCmd.Flags().BoolP("follow", "f", false, "Stream logs in real-time")
-	logsCmd.Flags().StringP("addon", "a", "", "Get logs for a specific addon")
+	logsCmd.Flags().IntP("lines", "n", 100, "Number of lines to show")
+	logsCmd.Flags().String("since", "", "Show logs since timestamp (RFC3339)")
+	logsCmd.Flags().String("until", "", "Show logs until timestamp (RFC3339)")
 }

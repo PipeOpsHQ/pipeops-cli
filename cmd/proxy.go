@@ -2,14 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
 	"github.com/PipeOpsHQ/pipeops-cli/internal/proxy"
-	"github.com/PipeOpsHQ/pipeops-cli/internal/validation"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
@@ -46,54 +42,32 @@ Examples:
 }
 
 var proxyStartCmd = &cobra.Command{
-	Use:   "start [project-id] <service-name>",
-	Short: "🚀 Start a proxy to a service",
-	Long: `🚀 Start a local proxy connection to a deployed service. The service will be
-accessible on your local machine through the specified port.
+	Use:   "start <service-name>",
+	Short: "🔗 Start a proxy to a service",
+	Long: `🔗 Start a proxy to a service in your project.
 
-If no project ID is provided, uses the linked project from the current directory.
+This command creates a local proxy connection to a service, allowing you to access it as if it were running locally.
 
 Examples:
-  - Proxy to a service in linked project:
-    pipeops proxy start web-service --port 8080
+  - Start a proxy to a project service:
+    pipeops proxy start web-service --project proj-123 --port 8080
 
-  - Proxy to a service in specific project:
-    pipeops proxy start proj-123 web-service --port 8080
-
-  - Auto-assign local port:
-    pipeops proxy start api-service
-
-  - Proxy to an addon service:
-    pipeops proxy start redis --addon addon-456 --port 6379`,
+  - Start a proxy to a specific service:
+    pipeops proxy start database --project proj-123 --port 5432`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
-		var projectID, serviceName string
-		var err error
 
-		switch len(args) {
-		case 1:
-			// Only service name provided, try to get linked project
-			serviceName = args[0]
-			projectID, err = utils.GetProjectIDOrLinked("")
-			if err != nil {
-				utils.PrintError(err.Error(), opts)
-				utils.PrintInfo("Use 'pipeops link <project-id>' to link a project to this directory", opts)
-				utils.PrintInfo("Or provide both: pipeops proxy start <project-id> <service-name>", opts)
-				return
-			}
-		case 2:
-			// Both project ID and service name provided
-			projectID = args[0]
-			serviceName = args[1]
-		default:
-			utils.PrintError("Service name is required", opts)
-			utils.PrintInfo("Usage: pipeops proxy start [project-id] <service-name>", opts)
+		if len(args) == 0 {
+			utils.HandleError(fmt.Errorf("service name is required"), "Service name is required", opts)
 			return
 		}
 
-		// Validate project ID
-		if err := validation.ValidateProjectID(projectID); err != nil {
-			utils.PrintError(fmt.Sprintf("Invalid project ID: %v", err), opts)
+		serviceName := args[0]
+
+		// Get project context
+		projectContext, err := utils.LoadProjectContext()
+		if err != nil {
+			utils.HandleError(err, "Error loading project context", opts)
 			return
 		}
 
@@ -110,51 +84,37 @@ Examples:
 			return
 		}
 
-		// Show project context
-		utils.PrintProjectContextWithOptions(projectID, opts)
-
-		// Parse flags
-		portStr, _ := cmd.Flags().GetString("port")
-		targetPortStr, _ := cmd.Flags().GetString("target-port")
-		addonID, _ := cmd.Flags().GetString("addon")
-		daemon, _ := cmd.Flags().GetBool("daemon")
-
-		// Parse local port
-		localPort, err := proxy.GetPortFromString(portStr)
-		if err != nil {
-			utils.PrintError(fmt.Sprintf("Invalid local port: %v", err), opts)
-			return
+		// Get flags
+		projectID := projectContext.ProjectID
+		if projectID == "" {
+			flagProjectID, _ := cmd.Flags().GetString("project")
+			if flagProjectID == "" {
+				utils.HandleError(fmt.Errorf("project ID is required"), "Project ID is required. Use --project flag or link a project with 'pipeops link'", opts)
+				return
+			}
+			projectID = flagProjectID
 		}
 
-		// Parse target port
-		targetPort, err := proxy.GetPortFromString(targetPortStr)
-		if err != nil {
-			utils.PrintError(fmt.Sprintf("Invalid target port: %v", err), opts)
-			return
+		localPort, _ := cmd.Flags().GetInt("port")
+		if localPort == 0 {
+			localPort = 8080 // default port
 		}
 
-		// Check if local port is available
-		if localPort > 0 && !proxy.IsPortAvailable(localPort) {
-			utils.PrintError(fmt.Sprintf("Local port %d is already in use", localPort), opts)
-			return
-		}
-
-		// Build proxy request
+		// Create proxy request
 		req := &models.ProxyRequest{
 			Target: models.ProxyTarget{
 				ProjectID:   projectID,
-				AddonID:     addonID,
 				ServiceName: serviceName,
-				Port:        targetPort,
+				Port:        0, // Use service's default port
 			},
 			LocalPort: localPort,
 		}
 
-		// Get proxy connection details from API
-		message := fmt.Sprintf("Getting connection details for service '%s'", serviceName)
-		if addonID != "" {
-			message += fmt.Sprintf(" (addon: %s)", addonID)
-		}
+		// Start proxy
+		utils.PrintInfo(fmt.Sprintf("Starting proxy to service '%s' on port %d...", serviceName, localPort), opts)
+
+		message := fmt.Sprintf("Starting proxy to service '%s' in project '%s'", serviceName, projectID)
+
 		utils.PrintInfo(message, opts)
 
 		proxyResp, err := client.StartProxy(req)
@@ -163,53 +123,15 @@ Examples:
 			return
 		}
 
-		// Start local proxy
-		localProxyResp, err := proxyManager.StartProxy(
-			req.Target,
-			proxyResp.LocalPort,
-			proxyResp.RemoteHost,
-			proxyResp.RemotePort,
-		)
-		if err != nil {
-			utils.HandleError(err, "Error starting local proxy", opts)
-			return
-		}
-
-		// Output result
 		if opts.Format == utils.OutputFormatJSON {
-			utils.PrintJSON(localProxyResp)
-			return
-		}
-
-		utils.PrintSuccess("Proxy started successfully!", opts)
-		fmt.Printf("🆔 Proxy ID: %s\n", localProxyResp.ProxyID)
-		fmt.Printf("🌐 Local: http://localhost:%d\n", localProxyResp.LocalPort)
-		fmt.Printf("🎯 Remote: %s:%d\n", localProxyResp.RemoteHost, localProxyResp.RemotePort)
-
-		if daemon {
-			utils.PrintInfo("Running in daemon mode. Use 'pipeops proxy stop' to stop.", opts)
-			return
-		}
-
-		// Run in foreground mode
-		utils.PrintInfo("Proxy is running... (Press Ctrl+C to stop)", opts)
-
-		// Set up signal handling
-		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-
-		// Wait for signal
-		<-sigChan
-
-		// Stop the proxy
-		utils.PrintInfo("Stopping proxy...", opts)
-		if err := proxyManager.StopProxy(localProxyResp.ProxyID); err != nil {
-			utils.PrintError(fmt.Sprintf("Error stopping proxy: %v", err), opts)
+			utils.PrintJSON(proxyResp)
 		} else {
-			utils.PrintSuccess("Proxy stopped successfully.", opts)
+			utils.PrintSuccess(fmt.Sprintf("Proxy started successfully on port %d", localPort), opts)
+			utils.PrintInfo(fmt.Sprintf("Remote endpoint: %s:%d", proxyResp.RemoteHost, proxyResp.RemotePort), opts)
+			utils.PrintInfo("Press Ctrl+C to stop the proxy", opts)
 		}
 	},
-	Args: cobra.RangeArgs(1, 2),
+	Args: cobra.ExactArgs(1),
 }
 
 var proxyListCmd = &cobra.Command{
@@ -354,45 +276,25 @@ Examples:
 }
 
 var proxyServicesCmd = &cobra.Command{
-	Use:   "services [project-id]",
-	Short: "📋 List available services for a project",
-	Long: `📋 List all services available for proxying in a specific project or addon.
-This shows you what services you can connect to using the proxy command.
+	Use:   "services",
+	Short: "📋 List available services for proxying",
+	Long: `📋 List all services available for proxying in a specific project.
 
-If no project ID is provided, uses the linked project from the current directory.
+This command shows all the services you can proxy to in your project.
 
 Examples:
-  - List services for linked project:
-    pipeops proxy services
+  - List project services:
+    pipeops proxy services --project proj-123
 
-  - List services for specific project:
-    pipeops proxy services proj-123
-
-  - List addon services:
-    pipeops proxy services --addon addon-456
-
-  - List services in JSON format:
-    pipeops proxy services --json`,
+  - List services (with linked project):
+    pipeops proxy services`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
-		var projectID string
-		var err error
 
-		if len(args) == 1 {
-			projectID = args[0]
-		} else {
-			projectID, err = utils.GetProjectIDOrLinked("")
-			if err != nil {
-				utils.PrintError(err.Error(), opts)
-				utils.PrintInfo("Use 'pipeops link <project-id>' to link a project to this directory", opts)
-				utils.PrintInfo("Or provide: pipeops proxy services <project-id>", opts)
-				return
-			}
-		}
-
-		// Validate project ID
-		if err := validation.ValidateProjectID(projectID); err != nil {
-			utils.PrintError(fmt.Sprintf("Invalid project ID: %v", err), opts)
+		// Get project context
+		projectContext, err := utils.LoadProjectContext()
+		if err != nil {
+			utils.HandleError(err, "Error loading project context", opts)
 			return
 		}
 
@@ -409,68 +311,53 @@ Examples:
 			return
 		}
 
-		// Show project context
-		utils.PrintProjectContextWithOptions(projectID, opts)
-
-		// Parse flags
-		addonID, _ := cmd.Flags().GetString("addon")
-
-		// Get services
-		message := fmt.Sprintf("Fetching services for project %s", projectID)
-		if addonID != "" {
-			message += fmt.Sprintf(" (addon: %s)", addonID)
+		// Get project ID
+		projectID := projectContext.ProjectID
+		if projectID == "" {
+			flagProjectID, _ := cmd.Flags().GetString("project")
+			if flagProjectID == "" {
+				utils.HandleError(fmt.Errorf("project ID is required"), "Project ID is required. Use --project flag or link a project with 'pipeops link'", opts)
+				return
+			}
+			projectID = flagProjectID
 		}
+
+		message := fmt.Sprintf("Fetching services for project '%s'...", projectID)
+
 		utils.PrintInfo(message, opts)
 
-		services, err := client.GetServices(projectID, addonID)
+		services, err := client.GetServices(projectID, "")
 		if err != nil {
 			utils.HandleError(err, "Error fetching services", opts)
 			return
 		}
 
-		if len(services.Services) == 0 {
-			if opts.Format == utils.OutputFormatJSON {
-				utils.PrintJSON([]interface{}{})
-			} else {
-				utils.PrintWarning("No services found.", opts)
-			}
-			return
-		}
-
-		// Format output
 		if opts.Format == utils.OutputFormatJSON {
-			utils.PrintJSON(services.Services)
+			utils.PrintJSON(services)
 		} else {
-			// Prepare table data
-			headers := []string{"SERVICE NAME", "TYPE", "PORT", "PROTOCOL", "HEALTH", "DESCRIPTION"}
+			if len(services.Services) == 0 {
+				utils.PrintWarning("No services found for this project", opts)
+				return
+			}
+
+			headers := []string{"SERVICE NAME", "TYPE", "PORT", "PROTOCOL", "HEALTH"}
 			var rows [][]string
 
 			for _, service := range services.Services {
-				description := utils.TruncateString(service.Description, 30)
-				health := utils.GetStatusIcon(service.Health) + " " + service.Health
-
 				rows = append(rows, []string{
 					service.Name,
 					service.Type,
 					fmt.Sprintf("%d", service.Port),
 					service.Protocol,
-					health,
-					description,
+					service.Health,
 				})
 			}
 
 			utils.PrintTable(headers, rows, opts)
 			utils.PrintSuccess(fmt.Sprintf("Found %d services", len(services.Services)), opts)
-
-			// Show helpful tips
-			if !opts.Quiet {
-				fmt.Printf("\n💡 TIPS\n")
-				fmt.Printf("├─ Start proxy: pipeops proxy start <service-name> --port <local-port>\n")
-				fmt.Printf("└─ List proxies: pipeops proxy list\n")
-			}
 		}
 	},
-	Args: cobra.MaximumNArgs(1),
+	Args: cobra.NoArgs,
 }
 
 func init() {
@@ -485,11 +372,9 @@ func init() {
 	proxyCmd.AddCommand(proxyServicesCmd)
 
 	// Add flags to start command
-	proxyStartCmd.Flags().StringP("port", "p", "", "Local port to bind to (auto-assign if not specified)")
-	proxyStartCmd.Flags().String("target-port", "", "Target port on the service (default: service's default port)")
-	proxyStartCmd.Flags().StringP("addon", "a", "", "Addon ID if connecting to an addon service")
-	proxyStartCmd.Flags().BoolP("daemon", "d", false, "Run in daemon mode (background)")
+	proxyStartCmd.Flags().StringP("project", "p", "", "Project ID")
+	proxyStartCmd.Flags().IntP("port", "", 8080, "Local port for the proxy")
 
 	// Add flags to services command
-	proxyServicesCmd.Flags().StringP("addon", "a", "", "List services for a specific addon")
+	proxyServicesCmd.Flags().StringP("project", "p", "", "Project ID")
 }

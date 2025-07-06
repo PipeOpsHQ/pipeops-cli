@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/PipeOpsHQ/pipeops-cli/libs"
@@ -130,4 +131,9 @@ func saveConfig() error {
 		}
 	}
 	return err
+}
+
+// GetBaseName returns the base name of a directory path
+func GetBaseName(path string) string {
+	return filepath.Base(path)
 }

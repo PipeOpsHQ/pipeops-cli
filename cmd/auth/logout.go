@@ -3,7 +3,7 @@ package auth
 import (
 	"fmt"
 
-	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
+	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
@@ -12,7 +12,12 @@ import (
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
 	Short: "🚪 Logout from your PipeOps account",
-	Long: `🚪 Logout from your PipeOps account and clear your authentication token.
+	Long: `🚪 Logout from your PipeOps account and clear stored authentication tokens.
+
+This command will:
+1. Remove stored access and refresh tokens
+2. Clear cached user information
+3. Require re-authentication for future API calls
 
 Examples:
   - Logout:
@@ -25,16 +30,16 @@ Examples:
     pipeops auth logout --force`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
-		client := pipeops.NewClient()
 
 		// Load configuration
-		if err := client.LoadConfig(); err != nil {
-			utils.HandleError(err, "Error loading configuration", opts)
+		cfg, err := config.Load()
+		if err != nil {
+			utils.HandleError(err, "Failed to load configuration", opts)
 			return
 		}
 
 		// Check if user is authenticated
-		if !client.IsAuthenticated() {
+		if !cfg.IsAuthenticated() {
 			if opts.Format == utils.OutputFormatJSON {
 				result := map[string]interface{}{
 					"success": true,
@@ -57,9 +62,9 @@ Examples:
 		}
 
 		// Clear authentication
-		client.SetToken("")
-		if err := client.SaveConfig(); err != nil {
-			utils.HandleError(err, "Error saving configuration", opts)
+		cfg.ClearAuth()
+		if err := config.Save(cfg); err != nil {
+			utils.HandleError(err, "Failed to save configuration", opts)
 			return
 		}
 

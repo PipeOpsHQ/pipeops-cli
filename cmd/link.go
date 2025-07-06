@@ -6,114 +6,130 @@ import (
 	"path/filepath"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
-	"github.com/PipeOpsHQ/pipeops-cli/internal/validation"
+	"github.com/PipeOpsHQ/pipeops-cli/models"
+	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
 
+// linkCmd represents the link command
 var linkCmd = &cobra.Command{
 	Use:   "link [project-id]",
-	Short: "🔗 Link a project to the current directory",
-	Long: `🔗 Associate an existing PipeOps project with the current directory.
-This allows you to run commands without specifying the project ID each time.
+	Short: "🔗 Link current directory to a PipeOps project",
+	Long: `🔗 Link the current directory to a PipeOps project.
+
+This command creates a local context file that associates your current directory
+with a specific PipeOps project, enabling project-aware commands like deploy, logs, and status.
 
 Examples:
-  - Link a project to current directory:
-    pipeops link proj-123
+  - Link to a specific project:
+    pipeops link my-project-id
 
-  - Link with interactive selection:
+  - Interactive project selection:
     pipeops link
 
-After linking, you can use simplified commands:
-  - pipeops logs (instead of pipeops project logs proj-123)
-  - pipeops shell web-service (instead of pipeops shell proj-123 web-service)`,
+  - Link and set custom name:
+    pipeops link my-project-id --name "My Local App"`,
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		opts := utils.GetOutputOptions(cmd)
 		client := pipeops.NewClient()
 
 		// Load configuration
 		if err := client.LoadConfig(); err != nil {
-			fmt.Printf("❌ Error loading configuration: %v\n", err)
+			utils.HandleError(err, "Error loading configuration", opts)
 			return
 		}
 
 		// Check if user is authenticated
-		if !client.IsAuthenticated() {
-			fmt.Println("❌ You are not logged in. Please run 'pipeops auth login' first.")
+		if !utils.RequireAuth(client, opts) {
 			return
 		}
 
 		var projectID string
+		var selectedProject *models.Project
 
-		if len(args) == 1 {
+		if len(args) > 0 {
 			// Project ID provided as argument
 			projectID = args[0]
-			if err := validation.ValidateProjectID(projectID); err != nil {
-				fmt.Printf("❌ Invalid project ID: %v\n", err)
+
+			// Verify project exists
+			utils.PrintInfo(fmt.Sprintf("Verifying project %s...", projectID), opts)
+			project, err := client.GetProject(projectID)
+			if err != nil {
+				utils.HandleError(err, "Error fetching project", opts)
 				return
 			}
+			selectedProject = project
 		} else {
 			// Interactive project selection
-			fmt.Println("🔍 Fetching your projects...")
+			utils.PrintInfo("Fetching your projects...", opts)
 			projectsResp, err := client.GetProjects()
 			if err != nil {
-				fmt.Printf("❌ Error fetching projects: %v\n", err)
+				utils.HandleError(err, "Error fetching projects", opts)
 				return
 			}
 
 			if len(projectsResp.Projects) == 0 {
-				fmt.Println("📭 No projects found. Create a project first with 'pipeops project create'.")
+				utils.PrintWarning("No projects found. Create a project first at https://app.pipeops.io", opts)
 				return
 			}
 
-			// Display projects
-			fmt.Println("\n📂 Available projects:")
+			// Show projects and let user select
+			fmt.Printf("\n📋 Available Projects:\n")
 			for i, project := range projectsResp.Projects {
-				fmt.Printf("  %d. %s (%s) - %s\n", i+1, project.Name, project.ID, project.Status)
+				status := utils.GetStatusIcon(project.Status)
+				fmt.Printf("  %d. %s %s (%s)\n", i+1, status, project.Name, project.ID)
 			}
 
 			// Get user selection
-			fmt.Print("\n🎯 Select a project (1-", len(projectsResp.Projects), "): ")
 			var selection int
-			if _, err := fmt.Scanln(&selection); err != nil || selection < 1 || selection > len(projectsResp.Projects) {
-				fmt.Println("❌ Invalid selection.")
+			fmt.Printf("\nSelect a project (1-%d): ", len(projectsResp.Projects))
+			_, err = fmt.Scanf("%d", &selection)
+			if err != nil || selection < 1 || selection > len(projectsResp.Projects) {
+				utils.HandleError(fmt.Errorf("invalid selection"), "Invalid project selection", opts)
 				return
 			}
 
-			projectID = projectsResp.Projects[selection-1].ID
+			selectedProject = &projectsResp.Projects[selection-1]
+			projectID = selectedProject.ID
 		}
 
-		// Verify project exists
-		fmt.Printf("🔍 Verifying project %s...\n", projectID)
-		project, err := client.GetProject(projectID)
-		if err != nil {
-			fmt.Printf("❌ Error accessing project: %v\n", err)
-			return
-		}
-
-		// Create .pipeops file in current directory
+		// Get current directory
 		currentDir, err := os.Getwd()
 		if err != nil {
-			fmt.Printf("❌ Error getting current directory: %v\n", err)
+			utils.HandleError(err, "Error getting current directory", opts)
 			return
 		}
 
-		pipeopsFile := filepath.Join(currentDir, ".pipeops")
+		// Create project context
+		context := &utils.ProjectContext{
+			ProjectID:   projectID,
+			ProjectName: selectedProject.Name,
+			Directory:   currentDir,
+		}
 
-		// Write project ID to .pipeops file
-		content := fmt.Sprintf("project_id=%s\n", projectID)
-		if err := os.WriteFile(pipeopsFile, []byte(content), 0644); err != nil {
-			fmt.Printf("❌ Error creating .pipeops file: %v\n", err)
+		// Save context to .pipeops directory
+		if err := utils.SaveProjectContext(context); err != nil {
+			utils.HandleError(err, "Error saving project context", opts)
 			return
 		}
 
-		fmt.Printf("✅ Successfully linked project '%s' (%s) to current directory!\n", project.Name, projectID)
-		fmt.Printf("📁 Created %s\n", pipeopsFile)
-		fmt.Println("\n🎉 You can now use simplified commands:")
-		fmt.Println("  - pipeops logs")
-		fmt.Println("  - pipeops shell web-service")
-		fmt.Println("  - pipeops proxy start web-service")
-		fmt.Println("\n💡 Tip: Add .pipeops to your .gitignore to keep it local.")
+		// Success message
+		utils.PrintSuccess(fmt.Sprintf("Successfully linked directory to project '%s' (%s)", selectedProject.Name, projectID), opts)
+
+		if !opts.Quiet {
+			fmt.Printf("\n📁 PROJECT CONTEXT\n")
+			fmt.Printf("├─ Project: %s (%s)\n", selectedProject.Name, projectID)
+			fmt.Printf("├─ Directory: %s\n", currentDir)
+			fmt.Printf("└─ Context file: %s\n", filepath.Join(currentDir, ".pipeops", "project.json"))
+
+			fmt.Printf("\n💡 NEXT STEPS\n")
+			fmt.Printf("├─ Deploy: pipeops deploy\n")
+			fmt.Printf("├─ View logs: pipeops logs\n")
+			fmt.Printf("├─ Check status: pipeops status\n")
+			fmt.Printf("└─ Manage env vars: pipeops env\n")
+		}
 	},
-	Args: cobra.MaximumNArgs(1),
 }
 
 var unlinkCmd = &cobra.Command{

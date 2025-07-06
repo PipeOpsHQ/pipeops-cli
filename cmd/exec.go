@@ -2,11 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
 	"github.com/PipeOpsHQ/pipeops-cli/internal/terminal"
-	"github.com/PipeOpsHQ/pipeops-cli/internal/validation"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
@@ -36,50 +34,68 @@ Examples:
 }
 
 var execRunCmd = &cobra.Command{
-	Use:   "run <project-id> <service-name> -- <command>",
+	Use:   "run [project-id] <container-name> -- <command>",
 	Short: "🚀 Execute a command in a container",
-	Long: `🚀 Execute a specific command in a deployed container. Use -- to separate
-the command from the flags.
+	Long: `🚀 Execute a command in a container within your project.
+
+This command allows you to run arbitrary commands inside containers, useful for debugging, maintenance, or data operations.
 
 Examples:
-  - List files in a project container:
-    pipeops exec run proj-123 web-service -- ls -la
+  - Execute a command in a container:
+    pipeops exec run proj-123 web-container -- ls -la
 
-  - Check application logs:
-    pipeops exec run proj-123 web-service -- cat /app/logs/app.log
-
-  - Run a script in an addon container:
-    pipeops exec run proj-123 redis --addon addon-456 -- redis-cli info`,
+  - Run a script in a container:
+    pipeops exec run proj-123 web-container -- node script.js`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 3 {
-			fmt.Println("❌ Project ID, service name, and command are required")
-			fmt.Println("Usage: pipeops exec run <project-id> <service-name> -- <command>")
-			return
-		}
+		opts := utils.GetOutputOptions(cmd)
 
-		projectID := args[0]
-		serviceName := args[1]
+		// Parse arguments
+		var projectID, containerName string
+		var command []string
 
-		// Find the separator
-		separatorIndex := -1
+		// Find the -- separator
+		dashIndex := -1
 		for i, arg := range args {
 			if arg == "--" {
-				separatorIndex = i
+				dashIndex = i
 				break
 			}
 		}
 
-		if separatorIndex == -1 || separatorIndex == len(args)-1 {
-			fmt.Println("❌ Command is required after --")
-			fmt.Println("Usage: pipeops exec run <project-id> <service-name> -- <command>")
+		if dashIndex == -1 {
+			utils.HandleError(fmt.Errorf("command separator missing"), "Command separator '--' is required", opts)
 			return
 		}
 
-		command := args[separatorIndex+1:]
+		// Parse based on argument structure
+		if dashIndex == 2 {
+			// Both project ID and container name provided
+			projectID = args[0]
+			containerName = args[1]
+			command = args[dashIndex+1:]
+		} else if dashIndex == 1 {
+			// Only container name provided, use linked project
+			projectContext, err := utils.LoadProjectContext()
+			if err != nil {
+				utils.HandleError(err, "Error loading project context", opts)
+				return
+			}
 
-		// Validate project ID
-		if err := validation.ValidateProjectID(projectID); err != nil {
-			fmt.Printf("❌ Invalid project ID: %v\n", err)
+			projectID = projectContext.ProjectID
+			if projectID == "" {
+				utils.HandleError(fmt.Errorf("project ID is required"), "Project ID is required. Use format: pipeops exec run <project-id> <container> -- <command>", opts)
+				return
+			}
+
+			containerName = args[0]
+			command = args[dashIndex+1:]
+		} else {
+			utils.HandleError(fmt.Errorf("invalid arguments"), "Usage: pipeops exec run [project-id] <container> -- <command>", opts)
+			return
+		}
+
+		if len(command) == 0 {
+			utils.HandleError(fmt.Errorf("command is required"), "Command is required after '--'", opts)
 			return
 		}
 
@@ -87,129 +103,92 @@ Examples:
 
 		// Load configuration
 		if err := client.LoadConfig(); err != nil {
-			fmt.Printf("❌ Error loading configuration: %v\n", err)
+			utils.HandleError(err, "Error loading configuration", opts)
 			return
 		}
 
 		// Check if user is authenticated
-		if !client.IsAuthenticated() {
-			fmt.Println("❌ You are not logged in. Please run 'pipeops auth login' first.")
+		if !utils.RequireAuth(client, opts) {
 			return
 		}
 
-		// Parse flags
-		addonID, _ := cmd.Flags().GetString("addon")
-		container, _ := cmd.Flags().GetString("container")
+		// Get user input
 		user, _ := cmd.Flags().GetString("user")
-		workdir, _ := cmd.Flags().GetString("workdir")
-		interactive, _ := cmd.Flags().GetBool("interactive")
-
-		// Parse environment variables
-		envFlags, _ := cmd.Flags().GetStringArray("env")
-		environment := make(map[string]string)
-		for _, env := range envFlags {
-			parts := strings.SplitN(env, "=", 2)
-			if len(parts) == 2 {
-				environment[parts[0]] = parts[1]
-			}
-		}
 
 		// Build exec request
 		req := &models.ExecRequest{
 			ProjectID:   projectID,
-			AddonID:     addonID,
-			ServiceName: serviceName,
-			Container:   container,
+			ServiceName: containerName,
+			Container:   containerName,
 			Command:     command,
-			Interactive: interactive,
-			Environment: environment,
-			WorkingDir:  workdir,
+			Interactive: false,
 			User:        user,
 		}
 
-		// Start exec session
-		fmt.Printf("🚀 Starting exec session for service '%s'", serviceName)
-		if addonID != "" {
-			fmt.Printf(" (addon: %s)", addonID)
+		// Execute command
+		utils.PrintInfo(fmt.Sprintf("Executing command in container '%s'...", containerName), opts)
+
+		if containerName != "" {
+			fmt.Printf(" (container: %s)", containerName)
 		}
-		fmt.Printf(" with command: %s\n", strings.Join(command, " "))
 
 		execResp, err := client.StartExec(req)
 		if err != nil {
-			fmt.Printf("❌ Error starting exec session: %v\n", err)
+			utils.HandleError(err, "Error executing command", opts)
 			return
 		}
 
-		fmt.Printf("💻 Exec session started (ID: %s)\n", execResp.ExecID)
-
-		// Connect to terminal session
-		if interactive {
-			session, err := terminalManager.StartExecSession(execResp.ExecID, execResp.WebSocketURL, true)
-			if err != nil {
-				fmt.Printf("❌ Error connecting to terminal: %v\n", err)
-				return
-			}
-			defer session.Close()
-
-			fmt.Println("🔗 Connected to interactive terminal. Press Ctrl+C to exit.")
-			session.WaitForCompletion()
+		if opts.Format == utils.OutputFormatJSON {
+			utils.PrintJSON(execResp)
 		} else {
-			// Non-interactive execution
-			if err := terminalManager.ExecCommand(execResp.ExecID, execResp.WebSocketURL, command); err != nil {
-				fmt.Printf("❌ Error executing command: %v\n", err)
-				return
-			}
+			utils.PrintSuccess(fmt.Sprintf("Command executed successfully (ID: %s)", execResp.ExecID), opts)
+			utils.PrintInfo(fmt.Sprintf("WebSocket URL: %s", execResp.WebSocketURL), opts)
 		}
 	},
+	Args: cobra.MinimumNArgs(3),
 }
 
 var shellCmd = &cobra.Command{
-	Use:   "shell [project-id] <service-name>",
+	Use:   "shell [project-id] <container-name>",
 	Short: "🐚 Start an interactive shell in a container",
-	Long: `🐚 Start an interactive shell session in a deployed container. This gives you
-full access to the container's environment for debugging and exploration.
+	Long: `🐚 Start an interactive shell session in a container within your project.
 
-If no project ID is provided, uses the linked project from the current directory.
+This provides direct shell access to containers for debugging, maintenance, or interactive operations.
 
 Examples:
-  - Start a shell in linked project:
-    pipeops shell web-service
+  - Start a shell in a container:
+    pipeops shell proj-123 web-container
 
-  - Start a shell in specific project:
-    pipeops shell proj-123 web-service
-
-  - Start a shell in an addon container:
-    pipeops shell web-service --addon addon-456
-
-  - Start a specific shell:
-    pipeops shell web-service --shell zsh`,
+  - Start a shell (with linked project):
+    pipeops shell web-container`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var projectID, serviceName string
-		var err error
+		opts := utils.GetOutputOptions(cmd)
 
-		if len(args) == 1 {
-			// Only service name provided, try to get linked project
-			serviceName = args[0]
-			projectID, err = utils.GetLinkedProject()
+		// Parse arguments
+		var projectID, containerName string
+
+		switch len(args) {
+		case 1:
+			// Only container name provided, use linked project
+			projectContext, err := utils.LoadProjectContext()
 			if err != nil {
-				fmt.Printf("❌ %v\n", err)
-				fmt.Println("💡 Use 'pipeops link <project-id>' to link a project to this directory")
-				fmt.Println("   Or provide both: pipeops shell <project-id> <service-name>")
+				utils.HandleError(err, "Error loading project context", opts)
 				return
 			}
-		} else if len(args) == 2 {
-			// Both project ID and service name provided
-			projectID = args[0]
-			serviceName = args[1]
-		} else {
-			fmt.Println("❌ Service name is required")
-			fmt.Println("Usage: pipeops shell [project-id] <service-name>")
-			return
-		}
 
-		// Validate project ID
-		if err := validation.ValidateProjectID(projectID); err != nil {
-			fmt.Printf("❌ Invalid project ID: %v\n", err)
+			projectID = projectContext.ProjectID
+			if projectID == "" {
+				utils.HandleError(fmt.Errorf("project ID is required"), "Project ID is required. Use format: pipeops shell <project-id> <container>", opts)
+				return
+			}
+
+			containerName = args[0]
+		case 2:
+			// Both project ID and container name provided
+			projectID = args[0]
+			containerName = args[1]
+		default:
+			utils.HandleError(fmt.Errorf("invalid arguments"), "Usage: pipeops shell [project-id] <container>", opts)
 			return
 		}
 
@@ -217,170 +196,131 @@ Examples:
 
 		// Load configuration
 		if err := client.LoadConfig(); err != nil {
-			fmt.Printf("❌ Error loading configuration: %v\n", err)
+			utils.HandleError(err, "Error loading configuration", opts)
 			return
 		}
 
 		// Check if user is authenticated
-		if !client.IsAuthenticated() {
-			fmt.Println("❌ You are not logged in. Please run 'pipeops auth login' first.")
+		if !utils.RequireAuth(client, opts) {
 			return
 		}
 
-		// Show project context
-		utils.PrintProjectContext(projectID)
-
-		// Parse flags
-		addonID, _ := cmd.Flags().GetString("addon")
-		container, _ := cmd.Flags().GetString("container")
+		// Get user input
 		user, _ := cmd.Flags().GetString("user")
-		workdir, _ := cmd.Flags().GetString("workdir")
-		shell, _ := cmd.Flags().GetString("shell")
-
-		// Parse environment variables
-		envFlags, _ := cmd.Flags().GetStringArray("env")
-		environment := make(map[string]string)
-		for _, env := range envFlags {
-			parts := strings.SplitN(env, "=", 2)
-			if len(parts) == 2 {
-				environment[parts[0]] = parts[1]
-			}
-		}
-
-		// Get terminal size
-		cols, rows, err := terminal.GetTerminalSize()
-		if err != nil {
-			// Default size if we can't get it
-			cols, rows = 80, 24
-		}
 
 		// Build shell request
 		req := &models.ShellRequest{
 			ProjectID:   projectID,
-			AddonID:     addonID,
-			ServiceName: serviceName,
-			Container:   container,
-			Shell:       shell,
-			Environment: environment,
-			WorkingDir:  workdir,
+			ServiceName: containerName,
+			Container:   containerName,
 			User:        user,
-			Cols:        cols,
-			Rows:        rows,
 		}
 
 		// Start shell session
-		fmt.Printf("🐚 Starting shell session for service '%s'", serviceName)
-		if addonID != "" {
-			fmt.Printf(" (addon: %s)", addonID)
+		utils.PrintInfo(fmt.Sprintf("Starting shell in container '%s'...", containerName), opts)
+
+		if containerName != "" {
+			fmt.Printf(" (container: %s)", containerName)
 		}
-		fmt.Println("...")
 
 		shellResp, err := client.StartShell(req)
 		if err != nil {
-			fmt.Printf("❌ Error starting shell session: %v\n", err)
+			utils.HandleError(err, "Error starting shell", opts)
 			return
 		}
 
-		fmt.Printf("💻 Shell session started (ID: %s)\n", shellResp.SessionID)
-
-		// Connect to terminal session
-		session, err := terminalManager.StartShellSession(shellResp.SessionID, shellResp.WebSocketURL)
-		if err != nil {
-			fmt.Printf("❌ Error connecting to terminal: %v\n", err)
-			return
+		if opts.Format == utils.OutputFormatJSON {
+			utils.PrintJSON(shellResp)
+		} else {
+			utils.PrintSuccess(fmt.Sprintf("Shell session started (ID: %s)", shellResp.SessionID), opts)
+			utils.PrintInfo(fmt.Sprintf("WebSocket URL: %s", shellResp.WebSocketURL), opts)
 		}
-		defer session.Close()
-
-		fmt.Println("🔗 Connected to interactive shell. Press Ctrl+C to exit.")
-		session.WaitForCompletion()
 	},
 	Args: cobra.RangeArgs(1, 2),
 }
 
 var execContainersCmd = &cobra.Command{
-	Use:   "containers <project-id>",
-	Short: "📦 List available containers",
-	Long: `📦 List all containers available for exec access in a specific project or addon.
-This shows you what containers you can connect to.`,
+	Use:   "containers [project-id]",
+	Short: "📦 List containers available for exec",
+	Long: `📦 List all containers available for exec access in a specific project.
+
+This command shows all containers you can execute commands in or start shells within.
+
+Examples:
+  - List containers for linked project:
+    pipeops exec containers
+
+  - List containers for specific project:
+    pipeops exec containers proj-123`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 1 {
-			fmt.Println("❌ Project ID is required")
-			fmt.Println("Usage: pipeops exec containers <project-id>")
-			return
-		}
+		opts := utils.GetOutputOptions(cmd)
 
-		projectID := args[0]
+		// Get project ID
+		var projectID string
+		if len(args) == 1 {
+			projectID = args[0]
+		} else {
+			projectContext, err := utils.LoadProjectContext()
+			if err != nil {
+				utils.HandleError(err, "Error loading project context", opts)
+				return
+			}
 
-		// Validate project ID
-		if err := validation.ValidateProjectID(projectID); err != nil {
-			fmt.Printf("❌ Invalid project ID: %v\n", err)
-			return
+			projectID = projectContext.ProjectID
+			if projectID == "" {
+				utils.HandleError(fmt.Errorf("project ID is required"), "Project ID is required. Use format: pipeops exec containers <project-id>", opts)
+				return
+			}
 		}
 
 		client := pipeops.NewClient()
 
 		// Load configuration
 		if err := client.LoadConfig(); err != nil {
-			fmt.Printf("❌ Error loading configuration: %v\n", err)
+			utils.HandleError(err, "Error loading configuration", opts)
 			return
 		}
 
 		// Check if user is authenticated
-		if !client.IsAuthenticated() {
-			fmt.Println("❌ You are not logged in. Please run 'pipeops auth login' first.")
+		if !utils.RequireAuth(client, opts) {
 			return
 		}
-
-		// Parse flags
-		addonID, _ := cmd.Flags().GetString("addon")
 
 		// Get containers
-		fmt.Printf("🔍 Fetching containers for project %s", projectID)
-		if addonID != "" {
-			fmt.Printf(" (addon: %s)", addonID)
-		}
-		fmt.Println("...")
+		utils.PrintInfo(fmt.Sprintf("Fetching containers for project '%s'...", projectID), opts)
 
-		containers, err := client.GetContainers(projectID, addonID)
+		containers, err := client.GetContainers(projectID, "")
 		if err != nil {
-			fmt.Printf("❌ Error fetching containers: %v\n", err)
+			utils.HandleError(err, "Error fetching containers", opts)
 			return
 		}
 
-		if len(containers.Containers) == 0 {
-			fmt.Println("📭 No containers found.")
-			return
-		}
-
-		// Display header
-		fmt.Printf("%-20s | %-15s | %-20s | %-12s | %-8s | %-15s\n",
-			"CONTAINER NAME", "SERVICE", "IMAGE", "STATUS", "RESTARTS", "STARTED")
-		fmt.Println(strings.Repeat("-", 100))
-
-		// Display container details
-		for _, container := range containers.Containers {
-			image := container.Image
-			if len(image) > 20 {
-				image = image[:17] + "..."
+		if opts.Format == utils.OutputFormatJSON {
+			utils.PrintJSON(containers)
+		} else {
+			if len(containers.Containers) == 0 {
+				utils.PrintWarning("No containers found for this project", opts)
+				return
 			}
 
-			startedAt := "N/A"
-			if container.StartedAt != "" {
-				startedAt = container.StartedAt[:10] // Just the date part
+			headers := []string{"CONTAINER NAME", "SERVICE", "STATUS", "IMAGE", "CREATED"}
+			var rows [][]string
+
+			for _, container := range containers.Containers {
+				rows = append(rows, []string{
+					container.Name,
+					container.ServiceName,
+					container.Status,
+					container.Image,
+					container.CreatedAt,
+				})
 			}
 
-			fmt.Printf("%-20s | %-15s | %-20s | %-12s | %-8d | %-15s\n",
-				container.Name,
-				container.ServiceName,
-				image,
-				container.Status,
-				container.RestartCount,
-				startedAt)
+			utils.PrintTable(headers, rows, opts)
+			utils.PrintSuccess(fmt.Sprintf("Found %d containers", len(containers.Containers)), opts)
 		}
-
-		fmt.Printf("\n✅ Found %d containers.\n", len(containers.Containers))
 	},
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 }
 
 func init() {
@@ -395,21 +335,11 @@ func init() {
 	execCmd.AddCommand(execContainersCmd)
 
 	// Add flags to exec run command
-	execRunCmd.Flags().StringP("addon", "a", "", "Addon ID if connecting to an addon service")
-	execRunCmd.Flags().StringP("container", "c", "", "Specific container name")
 	execRunCmd.Flags().StringP("user", "u", "", "User to run command as")
-	execRunCmd.Flags().StringP("workdir", "w", "", "Working directory")
-	execRunCmd.Flags().BoolP("interactive", "i", false, "Run in interactive mode")
-	execRunCmd.Flags().StringArrayP("env", "e", nil, "Environment variables (KEY=VALUE)")
 
 	// Add flags to shell command
-	shellCmd.Flags().StringP("addon", "a", "", "Addon ID if connecting to an addon service")
-	shellCmd.Flags().StringP("container", "c", "", "Specific container name")
 	shellCmd.Flags().StringP("user", "u", "", "User to run shell as")
-	shellCmd.Flags().StringP("workdir", "w", "", "Working directory")
-	shellCmd.Flags().StringP("shell", "s", "", "Shell to use (bash, sh, zsh, etc.)")
-	shellCmd.Flags().StringArrayP("env", "e", nil, "Environment variables (KEY=VALUE)")
 
 	// Add flags to containers command
-	execContainersCmd.Flags().StringP("addon", "a", "", "List containers for a specific addon")
+	execContainersCmd.Flags().StringP("project", "p", "", "Project ID")
 }

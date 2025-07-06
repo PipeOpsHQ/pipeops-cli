@@ -3,90 +3,135 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/PipeOpsHQ/pipeops-cli/cmd/deploy"
-	"github.com/PipeOpsHQ/pipeops-cli/internal/validation"
+	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
+	"github.com/PipeOpsHQ/pipeops-cli/models"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
 
+// deployCmd represents the deploy command
 var deployCmd = &cobra.Command{
-	Use:   "deploy [project-id]",
-	Short: "🚀 Deploy to a project",
-	Long: `🚀 Deploy your application to a project. Uses the linked project if available.
-This command provides access to deployment operations.
+	Use:   "deploy",
+	Short: "🚀 Deploy addons to projects",
+	Long: `🚀 Deploy addons to projects.
+
+Project code deployment is temporarily disabled. You can deploy addons to existing projects.
 
 Examples:
-  - Deploy to linked project:
-    pipeops deploy
+  - Deploy an addon to a project:
+    pipeops deploy --addon postgres --project proj-123
 
-  - Deploy to specific project:
-    pipeops deploy proj-123
+  - Deploy addon with environment variables:
+    pipeops deploy --addon redis --project proj-123 --env REDIS_PASSWORD=secret
 
-  - Deploy pipeline:
-    pipeops deploy pipeline --source ./my-app
-
-Use 'pipeops deploy --help' to see all available deployment commands.`,
+  - Deploy addon to linked project:
+    pipeops deploy --addon postgres --env POSTGRES_DB=myapp`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
 
-		// Get project ID
-		var projectID string
-		var err error
+		// Parse flags
+		addonID, _ := cmd.Flags().GetString("addon")
+		projectID, _ := cmd.Flags().GetString("project")
+		envVars, _ := cmd.Flags().GetStringToString("env")
 
-		if len(args) == 1 {
-			projectID = args[0]
-		} else {
-			projectID, err = utils.GetProjectIDOrLinked("")
-			if err != nil {
-				utils.PrintError(err.Error(), opts)
-				fmt.Println("\n💡 Available deployment commands:")
-				fmt.Println("  - pipeops deploy pipeline    # Deploy a pipeline")
-				fmt.Println("  - pipeops link <project-id>  # Link a project to this directory")
-				return
-			}
-		}
+		client := pipeops.NewClient()
 
-		// Validate project ID
-		if err := validation.ValidateProjectID(projectID); err != nil {
-			utils.PrintError(fmt.Sprintf("Invalid project ID: %v", err), opts)
+		// Load configuration
+		if err := client.LoadConfig(); err != nil {
+			utils.HandleError(err, "Error loading configuration", opts)
 			return
 		}
 
-		// Show project context
-		utils.PrintProjectContextWithOptions(projectID, opts)
+		// Check if user is authenticated
+		if !utils.RequireAuth(client, opts) {
+			return
+		}
 
-		// Show deployment options
-		if opts.Format == utils.OutputFormatJSON {
-			deploymentInfo := map[string]interface{}{
-				"project_id": projectID,
-				"available_commands": []string{
-					"pipeline",
-				},
-			}
-			utils.PrintJSON(deploymentInfo)
+		if addonID != "" {
+			// Deploy addon
+			deployAddon(client, addonID, projectID, envVars, opts)
 		} else {
-			fmt.Printf("\n🚀 DEPLOYMENT OPTIONS for project %s\n", projectID)
-			fmt.Printf("├─ Pipeline deployment: pipeops deploy pipeline\n")
-			fmt.Printf("└─ Use --help for more information\n")
-
-			fmt.Printf("\n💡 QUICK START\n")
-			fmt.Printf("Deploy a pipeline from current directory:\n")
-			fmt.Printf("  pipeops deploy pipeline --source .\n")
+			// Project deployment is disabled
+			if opts.Format == utils.OutputFormatJSON {
+				utils.PrintJSON(map[string]string{
+					"status":  "disabled",
+					"message": "Project deployment is temporarily disabled",
+				})
+			} else {
+				utils.PrintWarning("🚧 Project deployment is temporarily disabled", opts)
+				fmt.Printf("\n💡 ALTERNATIVES\n")
+				fmt.Printf("├─ Deploy addons: pipeops deploy --addon <addon-id> --project <project-id>\n")
+				fmt.Printf("├─ List addons: pipeops list --addons\n")
+				fmt.Printf("└─ Use PipeOps web console for project deployment\n")
+			}
 		}
 	},
-	Args: cobra.MaximumNArgs(1),
+	Args: cobra.NoArgs,
+}
+
+func deployAddon(client *pipeops.Client, addonID, projectID string, envVars map[string]string, opts utils.OutputOptions) {
+	// Get project ID if not provided
+	if projectID == "" {
+		projectContext, err := utils.LoadProjectContext()
+		if err != nil || projectContext.ProjectID == "" {
+			utils.HandleError(fmt.Errorf("project ID is required"), "Project ID is required. Use --project flag or link a project with 'pipeops link'", opts)
+			return
+		}
+		projectID = projectContext.ProjectID
+	}
+
+	// Get addon information
+	utils.PrintInfo(fmt.Sprintf("Getting addon '%s' information...", addonID), opts)
+
+	addon, err := client.GetAddon(addonID)
+	if err != nil {
+		utils.HandleError(err, "Error fetching addon information", opts)
+		return
+	}
+
+	// Create deployment request
+	req := &models.AddonDeployRequest{
+		AddonID:   addonID,
+		ProjectID: projectID,
+		Name:      addon.Name,
+		EnvVars:   envVars,
+	}
+
+	// Deploy addon
+	utils.PrintInfo(fmt.Sprintf("Deploying addon '%s' to project '%s'...", addon.Name, projectID), opts)
+
+	deployResp, err := client.DeployAddon(req)
+	if err != nil {
+		utils.HandleError(err, "Error deploying addon", opts)
+		return
+	}
+
+	if opts.Format == utils.OutputFormatJSON {
+		utils.PrintJSON(deployResp)
+	} else {
+		utils.PrintSuccess(fmt.Sprintf("Addon '%s' deployed successfully!", addon.Name), opts)
+		utils.PrintInfo(fmt.Sprintf("Deployment ID: %s", deployResp.DeploymentID), opts)
+		utils.PrintInfo(fmt.Sprintf("Status: %s", deployResp.Status), opts)
+
+		if deployResp.Message != "" {
+			utils.PrintInfo(fmt.Sprintf("Message: %s", deployResp.Message), opts)
+		}
+
+		// Show helpful tips
+		if !opts.Quiet {
+			fmt.Printf("\n💡 NEXT STEPS\n")
+			fmt.Printf("├─ Check status: pipeops status --project %s\n", projectID)
+			fmt.Printf("├─ View logs: pipeops logs --project %s\n", projectID)
+			fmt.Printf("└─ List deployments: pipeops list --deployments --project %s\n", projectID)
+		}
+	}
 }
 
 func init() {
 	rootCmd.AddCommand(deployCmd)
 
-	// Register subcommands under the deploy command
-	registerDeploySubcommands()
-}
-
-// registerDeploySubcommands initializes and registers subcommands for the deploy command
-func registerDeploySubcommands() {
-	// Initialize and register deploy-related commands under the deploy command
-	deployCmd := deploy.NewDeploy(deployCmd)
-	deployCmd.Register()
+	// Add flags
+	deployCmd.Flags().StringP("addon", "a", "", "Addon ID to deploy")
+	deployCmd.Flags().StringP("project", "p", "", "Target project ID")
+	deployCmd.Flags().StringToStringP("env", "e", nil, "Environment variables (KEY=VALUE)")
 }

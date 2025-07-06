@@ -1,88 +1,80 @@
 package auth
 
 import (
+	"context"
 	"fmt"
+	"time"
 
-	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
+	"github.com/PipeOpsHQ/pipeops-cli/internal/auth"
+	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
 
 // meCmd represents the me command
 var meCmd = &cobra.Command{
-	Use:   "me",
-	Short: "👤 Show current user information",
+	Use:     "me",
+	Aliases: []string{"whoami"},
+	Short:   "👤 Show current user information",
 	Long: `👤 Display information about the currently authenticated user.
+
+This command shows:
+- User ID and username
+- Email address and name
+- Account creation date
+- Authentication status
 
 Examples:
   - Show user info:
     pipeops auth me
 
   - Show user info in JSON format:
-    pipeops auth me --json`,
+    pipeops auth me --json
+
+  - Alternative command:
+    pipeops auth whoami`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
-		client := pipeops.NewClient()
 
 		// Load configuration
-		if err := client.LoadConfig(); err != nil {
-			utils.HandleError(err, "Error loading configuration", opts)
+		cfg, err := config.Load()
+		if err != nil {
+			utils.HandleError(err, "Failed to load configuration", opts)
 			return
 		}
 
-		// Check if user is authenticated
-		if !utils.RequireAuth(client, opts) {
+		// Check authentication
+		if !cfg.IsAuthenticated() {
+			utils.PrintError("Not authenticated. Please run 'pipeops auth login' to authenticate.", opts)
 			return
 		}
 
-		// Get user information
+		// Create OAuth service and get user info
+		authService := auth.NewOAuthService(cfg.OAuth)
+		ctx := context.Background()
+
 		utils.PrintInfo("Fetching user information...", opts)
 
-		// Verify token to ensure it's valid
-		resp, err := client.VerifyToken()
+		userInfo, err := authService.GetUserInfo(ctx)
 		if err != nil {
-			utils.HandleError(err, "Error verifying token", opts)
+			utils.HandleError(err, "Failed to get user information", opts)
 			return
 		}
-
-		if !resp.Valid {
-			utils.PrintError("Invalid token. Please run 'pipeops auth login' to re-authenticate.", opts)
-			return
-		}
-
-		// Get config for user details
-		config := client.GetConfig()
 
 		// Output result
 		if opts.Format == utils.OutputFormatJSON {
-			userInfo := map[string]interface{}{
-				"token_valid":  resp.Valid,
-				"api_base_url": config.APIBaseURL,
-			}
-			if config.UserID != "" {
-				userInfo["user_id"] = config.UserID
-			}
-			if config.Username != "" {
-				userInfo["username"] = config.Username
-			}
-			if config.Email != "" {
-				userInfo["email"] = config.Email
-			}
 			utils.PrintJSON(userInfo)
 		} else {
 			utils.PrintSuccess("User information retrieved successfully", opts)
 
 			fmt.Printf("\n👤 USER INFORMATION\n")
-			if config.UserID != "" {
-				fmt.Printf("├─ User ID: %s\n", config.UserID)
-			}
-			if config.Username != "" {
-				fmt.Printf("├─ Username: %s\n", config.Username)
-			}
-			if config.Email != "" {
-				fmt.Printf("├─ Email: %s\n", config.Email)
-			}
-			fmt.Printf("├─ API Base URL: %s\n", config.APIBaseURL)
+			fmt.Printf("├─ ID: %d\n", userInfo.ID)
+			fmt.Printf("├─ Username: %s\n", userInfo.Username)
+			fmt.Printf("├─ Email: %s\n", userInfo.Email)
+			fmt.Printf("├─ Name: %s %s\n", userInfo.FirstName, userInfo.LastName)
+			fmt.Printf("├─ Created: %s\n", formatTime(userInfo.CreatedAt))
+			fmt.Printf("├─ Updated: %s\n", formatTime(userInfo.UpdatedAt))
+			fmt.Printf("├─ API Endpoint: %s\n", cfg.OAuth.BaseURL)
 			fmt.Printf("└─ Token Status: %s Valid\n", utils.GetStatusIcon("success"))
 
 			// Show helpful tips
@@ -90,6 +82,7 @@ Examples:
 				fmt.Printf("\n💡 TIPS\n")
 				fmt.Printf("├─ List projects: pipeops list\n")
 				fmt.Printf("├─ Create project: pipeops create <project-name>\n")
+				fmt.Printf("├─ Check auth status: pipeops auth status\n")
 				fmt.Printf("└─ Logout: pipeops auth logout\n")
 			}
 		}
@@ -99,4 +92,18 @@ Examples:
 
 func (k *authModel) me() {
 	k.rootCmd.AddCommand(meCmd)
+}
+
+// formatTime formats a time string for display
+func formatTime(timeStr string) string {
+	if timeStr == "" {
+		return "N/A"
+	}
+
+	t, err := time.Parse(time.RFC3339, timeStr)
+	if err != nil {
+		return timeStr
+	}
+
+	return t.Format("2006-01-02 15:04:05 MST")
 }

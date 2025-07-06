@@ -16,4 +16,5 @@ func (k *authModel) Register() {
 	k.me()
 	k.login()
 	k.logout()
+	k.status()
 }

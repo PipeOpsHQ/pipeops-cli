@@ -5,70 +5,31 @@ import (
 	"strings"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
-	"github.com/PipeOpsHQ/pipeops-cli/internal/validation"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
 
 var connectCmd = &cobra.Command{
-	Use:   "connect [project-id] [service-name]",
-	Short: "🔌 Connect to a database or service shell",
-	Long: `🔌 Connect to a database or service shell. Automatically detects the service type
-and launches the appropriate client (psql for PostgreSQL, mongosh for MongoDB, redis-cli for Redis, etc.).
+	Use:   "connect [service-name]",
+	Short: "🔗 Connect to a service",
+	Long: `🔗 Connect to a service in your project.
 
-If no arguments are provided, uses the linked project and prompts for service selection.
+This command helps you connect to various services like databases, caches, and other infrastructure components.
 
 Examples:
-  - Connect to a database in linked project (interactive):
-    pipeops connect
+  - Connect to a database:
+    pipeops connect postgres --project proj-123
 
-  - Connect to specific service in linked project:
-    pipeops connect postgres
-
-  - Connect to specific service in specific project:
-    pipeops connect proj-123 postgres
-
-  - Connect to addon database:
-    pipeops connect postgres --addon addon-456`,
+  - Connect to a service by name:
+    pipeops connect web-service --project proj-123`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var projectID, serviceName string
-		var err error
+		opts := utils.GetOutputOptions(cmd)
 
-		switch len(args) {
-		case 0:
-			// No arguments, use linked project and prompt for service
-			projectID, err = utils.GetLinkedProject()
-			if err != nil {
-				fmt.Printf("❌ %v\n", err)
-				fmt.Println("💡 Use 'pipeops link <project-id>' to link a project to this directory")
-				fmt.Println("   Or provide: pipeops connect <project-id> [service-name]")
-				return
-			}
-			serviceName = "" // Will prompt for selection
-		case 1:
-			// Only service name provided, use linked project
-			serviceName = args[0]
-			projectID, err = utils.GetLinkedProject()
-			if err != nil {
-				fmt.Printf("❌ %v\n", err)
-				fmt.Println("💡 Use 'pipeops link <project-id>' to link a project to this directory")
-				fmt.Println("   Or provide both: pipeops connect <project-id> <service-name>")
-				return
-			}
-		case 2:
-			// Both project ID and service name provided
-			projectID = args[0]
-			serviceName = args[1]
-		default:
-			fmt.Println("❌ Too many arguments")
-			fmt.Println("Usage: pipeops connect [project-id] [service-name]")
-			return
-		}
-
-		// Validate project ID
-		if err := validation.ValidateProjectID(projectID); err != nil {
-			fmt.Printf("❌ Invalid project ID: %v\n", err)
+		// Get project context
+		projectContext, err := utils.LoadProjectContext()
+		if err != nil {
+			utils.HandleError(err, "Error loading project context", opts)
 			return
 		}
 
@@ -76,81 +37,65 @@ Examples:
 
 		// Load configuration
 		if err := client.LoadConfig(); err != nil {
-			fmt.Printf("❌ Error loading configuration: %v\n", err)
+			utils.HandleError(err, "Error loading configuration", opts)
 			return
 		}
 
 		// Check if user is authenticated
-		if !client.IsAuthenticated() {
-			fmt.Println("❌ You are not logged in. Please run 'pipeops auth login' first.")
+		if !utils.RequireAuth(client, opts) {
 			return
 		}
 
-		// Show project context
-		utils.PrintProjectContext(projectID)
-
-		// Parse flags
-		addonID, _ := cmd.Flags().GetString("addon")
-
-		// If no service name provided, get available services and prompt
-		if serviceName == "" {
-			fmt.Printf("🔍 Fetching available services")
-			if addonID != "" {
-				fmt.Printf(" (addon: %s)", addonID)
+		// Get project ID
+		projectID := projectContext.ProjectID
+		if projectID == "" {
+			flagProjectID, _ := cmd.Flags().GetString("project")
+			if flagProjectID == "" {
+				utils.HandleError(fmt.Errorf("project ID is required"), "Project ID is required. Use --project flag or link a project with 'pipeops link'", opts)
+				return
 			}
-			fmt.Println("...")
+			projectID = flagProjectID
+		}
 
-			services, err := client.GetServices(projectID, addonID)
+		// Get service name
+		var serviceName string
+		if len(args) > 0 {
+			serviceName = args[0]
+		}
+
+		// If no service name provided, list available services
+		if serviceName == "" {
+			utils.PrintInfo("Fetching available services...", opts)
+
+			services, err := client.GetServices(projectID, "")
 			if err != nil {
-				fmt.Printf("❌ Error fetching services: %v\n", err)
+				utils.HandleError(err, "Error fetching services", opts)
 				return
 			}
 
 			if len(services.Services) == 0 {
-				fmt.Println("📭 No services found.")
+				utils.PrintWarning("No services found for this project", opts)
 				return
 			}
 
-			// Filter for database/connectable services
-			var connectableServices []models.ServiceInfo
+			utils.PrintInfo("Available services:", opts)
 			for _, service := range services.Services {
-				if isConnectableService(service.Type) {
-					connectableServices = append(connectableServices, service)
-				}
+				fmt.Printf("  - %s (%s)\n", service.Name, service.Type)
 			}
-
-			if len(connectableServices) == 0 {
-				fmt.Println("📭 No connectable services found.")
-				fmt.Println("💡 Connectable services include: database, postgres, mysql, mongodb, redis, etc.")
-				return
-			}
-
-			// Display connectable services
-			fmt.Println("\n🔌 Available services:")
-			for i, service := range connectableServices {
-				fmt.Printf("  %d. %s (%s) - %s\n", i+1, service.Name, service.Type, service.Description)
-			}
-
-			// Get user selection
-			fmt.Print("\n🎯 Select a service (1-", len(connectableServices), "): ")
-			var selection int
-			if _, err := fmt.Scanln(&selection); err != nil || selection < 1 || selection > len(connectableServices) {
-				fmt.Println("❌ Invalid selection.")
-				return
-			}
-
-			serviceName = connectableServices[selection-1].Name
-		}
-
-		// Get service details
-		fmt.Printf("🔍 Getting connection details for service '%s'...\n", serviceName)
-		services, err := client.GetServices(projectID, addonID)
-		if err != nil {
-			fmt.Printf("❌ Error fetching service details: %v\n", err)
+			utils.PrintInfo("Use: pipeops connect <service-name>", opts)
 			return
 		}
 
-		// Find the specific service
+		// Get service information
+		utils.PrintInfo(fmt.Sprintf("Connecting to service '%s'...", serviceName), opts)
+
+		services, err := client.GetServices(projectID, "")
+		if err != nil {
+			utils.HandleError(err, "Error fetching services", opts)
+			return
+		}
+
+		// Find the service
 		var targetService *models.ServiceInfo
 		for _, service := range services.Services {
 			if service.Name == serviceName {
@@ -160,56 +105,36 @@ Examples:
 		}
 
 		if targetService == nil {
-			fmt.Printf("❌ Service '%s' not found\n", serviceName)
+			utils.HandleError(fmt.Errorf("service not found"), fmt.Sprintf("Service '%s' not found in project", serviceName), opts)
 			return
 		}
 
-		// Determine the connection command based on service type
-		command := getConnectionCommand(targetService.Type)
-		if len(command) == 0 {
-			fmt.Printf("❌ Don't know how to connect to service type '%s'\n", targetService.Type)
-			fmt.Println("💡 Supported types: postgres, postgresql, mysql, mongodb, redis, memcached")
-			return
+		// Start proxy for the service
+		req := &models.ProxyRequest{
+			Target: models.ProxyTarget{
+				ProjectID:   projectID,
+				ServiceName: serviceName,
+				Port:        targetService.Port,
+			},
+			LocalPort: 0, // Auto-assign
 		}
 
-		// Parse additional flags
-		container, _ := cmd.Flags().GetString("container")
-		user, _ := cmd.Flags().GetString("user")
-
-		// Build exec request for interactive connection
-		req := &models.ExecRequest{
-			ProjectID:   projectID,
-			AddonID:     addonID,
-			ServiceName: serviceName,
-			Container:   container,
-			Command:     command,
-			Interactive: true,
-			User:        user,
-		}
-
-		// Start exec session
-		fmt.Printf("🚀 Connecting to %s service '%s'...\n", targetService.Type, serviceName)
-
-		execResp, err := client.StartExec(req)
+		proxyResp, err := client.StartProxy(req)
 		if err != nil {
-			fmt.Printf("❌ Error starting connection: %v\n", err)
+			utils.HandleError(err, "Error starting connection", opts)
 			return
 		}
 
-		fmt.Printf("💻 Connection session started (ID: %s)\n", execResp.ExecID)
-
-		// Connect to terminal session
-		session, err := terminalManager.StartExecSession(execResp.ExecID, execResp.WebSocketURL, true)
-		if err != nil {
-			fmt.Printf("❌ Error connecting to terminal: %v\n", err)
-			return
+		if opts.Format == utils.OutputFormatJSON {
+			utils.PrintJSON(proxyResp)
+		} else {
+			utils.PrintSuccess(fmt.Sprintf("Connected to %s service", serviceName), opts)
+			utils.PrintInfo(fmt.Sprintf("Local connection: localhost:%d", proxyResp.LocalPort), opts)
+			utils.PrintInfo(fmt.Sprintf("Remote endpoint: %s:%d", proxyResp.RemoteHost, proxyResp.RemotePort), opts)
+			utils.PrintInfo("Connection is active. Press Ctrl+C to disconnect", opts)
 		}
-		defer session.Close()
-
-		fmt.Printf("🔗 Connected to %s. Press Ctrl+C to exit.\n", targetService.Type)
-		session.WaitForCompletion()
 	},
-	Args: cobra.MaximumNArgs(2),
+	Args: cobra.MaximumNArgs(1),
 }
 
 // isConnectableService determines if a service type can be connected to
@@ -261,7 +186,5 @@ func init() {
 	rootCmd.AddCommand(connectCmd)
 
 	// Add flags
-	connectCmd.Flags().StringP("addon", "a", "", "Connect to service in a specific addon")
-	connectCmd.Flags().StringP("container", "c", "", "Specific container name")
-	connectCmd.Flags().StringP("user", "u", "", "User to run connection as")
+	connectCmd.Flags().StringP("project", "p", "", "Project ID")
 }

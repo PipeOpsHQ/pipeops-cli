@@ -13,5 +13,5 @@ func NewDeploy(rootCmd *cobra.Command) *deployModel {
 }
 
 func (k *deployModel) Register() {
-	k.newPipeline()
+	// k.newPipeline() // Temporarily disabled - project deployment disabled
 }

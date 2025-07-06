@@ -1,108 +1,101 @@
 package auth
 
 import (
+	"context"
 	"fmt"
-	"strings"
-	"syscall"
 
-	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
-	"github.com/PipeOpsHQ/pipeops-cli/internal/validation"
+	"github.com/PipeOpsHQ/pipeops-cli/internal/auth"
+	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 // loginCmd represents the login command
 var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "🔐 Login to your PipeOps account",
-	Long: `🔐 Login to your PipeOps account using your authentication token.
+	Long: `🔐 Login to your PipeOps account using OAuth 2.0 authentication.
+
+This command will:
+1. Open your default browser to the PipeOps login page
+2. After you authenticate, redirect back to the CLI
+3. Store your authentication token securely
+4. Verify the login by retrieving your user information
+
+The authentication uses OAuth 2.0 with PKCE (Proof Key for Code Exchange) for
+maximum security. Your credentials are never stored locally - only access tokens.
 
 Examples:
-  - Login interactively:
+  - Login to PipeOps:
     pipeops auth login
 
-  - Login with token:
-    pipeops auth login --token <your-token>
+  - Login with custom client ID:
+    PIPEOPS_CLIENT_ID=your-client-id pipeops auth login
 
-  - Login with JSON output:
-    pipeops auth login --json`,
+  - Login with custom API URL:
+    PIPEOPS_API_URL=https://api.example.com pipeops auth login`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
-		client := pipeops.NewClient()
+
+		fmt.Println("🚀 Starting PipeOps CLI authentication...")
 
 		// Load configuration
-		if err := client.LoadConfig(); err != nil {
-			utils.HandleError(err, "Error loading configuration", opts)
-			return
-		}
-
-		// Get token from flag or prompt
-		token, _ := cmd.Flags().GetString("token")
-		if token == "" {
-			if opts.Format == utils.OutputFormatJSON {
-				utils.PrintError("Token is required for JSON output", opts)
-				return
-			}
-
-			// Interactive mode
-			fmt.Print("🔑 Enter your PipeOps token: ")
-			tokenBytes, err := term.ReadPassword(int(syscall.Stdin))
-			if err != nil {
-				utils.HandleError(err, "Error reading token", opts)
-				return
-			}
-			token = strings.TrimSpace(string(tokenBytes))
-			fmt.Println() // Add newline after password input
-		}
-
-		// Validate token
-		if err := validation.ValidateToken(token); err != nil {
-			utils.PrintError(fmt.Sprintf("Invalid token: %v", err), opts)
-			return
-		}
-
-		// Verify token with API
-		utils.PrintInfo("Verifying token...", opts)
-
-		client.SetToken(token)
-		resp, err := client.VerifyToken()
+		cfg, err := config.Load()
 		if err != nil {
-			utils.HandleError(err, "Error verifying token", opts)
+			utils.HandleError(err, "Failed to load configuration", opts)
 			return
 		}
 
-		if !resp.Valid {
-			utils.PrintError("Invalid token. Please check your token and try again.", opts)
-			return
-		}
+		// Check if already authenticated
+		if cfg.IsAuthenticated() {
+			utils.PrintWarning("You are already logged in!", opts)
 
-		// Save configuration
-		if err := client.SaveConfig(); err != nil {
-			utils.HandleError(err, "Error saving configuration", opts)
-			return
-		}
-
-		// Output result
-		if opts.Format == utils.OutputFormatJSON {
-			result := map[string]interface{}{
-				"success":     true,
-				"token_valid": resp.Valid,
+			// Get current user info to display
+			authService := auth.NewOAuthService(cfg.OAuth)
+			userInfo, err := authService.GetUserInfo(context.Background())
+			if err == nil {
+				fmt.Printf("Current user: %s (%s)\n", userInfo.Username, userInfo.Email)
 			}
-			utils.PrintJSON(result)
-		} else {
-			utils.PrintSuccess("Login successful!", opts)
 
-			fmt.Printf("\n🎉 You're now logged in to PipeOps!\n")
+			fmt.Println("Use 'pipeops auth logout' to logout first if you want to login as a different user.")
+			return
+		}
 
-			// Show helpful tips
-			if !opts.Quiet {
-				fmt.Printf("\n💡 NEXT STEPS\n")
-				fmt.Printf("├─ View user info: pipeops auth me\n")
-				fmt.Printf("├─ List projects: pipeops list\n")
-				fmt.Printf("├─ Create project: pipeops create <project-name>\n")
-				fmt.Printf("└─ Get help: pipeops --help\n")
-			}
+		// Create OAuth service
+		authService := auth.NewOAuthService(cfg.OAuth)
+
+		// Perform login
+		ctx := context.Background()
+		if err := authService.Login(ctx); err != nil {
+			utils.HandleError(err, "Login failed", opts)
+			return
+		}
+
+		// Save updated configuration
+		if err := config.Save(cfg); err != nil {
+			utils.PrintWarning("Failed to save authentication: "+err.Error(), opts)
+			fmt.Println("You may need to login again when you restart the CLI.")
+		}
+
+		// Verify login by getting user info
+		userInfo, err := authService.GetUserInfo(ctx)
+		if err != nil {
+			utils.PrintWarning("Failed to verify login: "+err.Error(), opts)
+			return
+		}
+
+		// Display success message
+		utils.PrintSuccess("Successfully logged in!", opts)
+		fmt.Printf("👤 Welcome, %s!\n", userInfo.FirstName)
+		fmt.Printf("📧 Email: %s\n", userInfo.Email)
+		fmt.Printf("🆔 Username: %s\n", userInfo.Username)
+
+		if !opts.Quiet {
+			fmt.Printf("\n💡 TIPS\n")
+			fmt.Printf("├─ View your profile: pipeops auth me\n")
+			fmt.Printf("├─ List your projects: pipeops list\n")
+			fmt.Printf("├─ Check auth status: pipeops auth status\n")
+			fmt.Printf("└─ Get help: pipeops --help\n")
 		}
 	},
 	Args: cobra.NoArgs,
@@ -112,5 +105,5 @@ func (k *authModel) login() {
 	k.rootCmd.AddCommand(loginCmd)
 
 	// Add flags
-	loginCmd.Flags().StringP("token", "t", "", "Authentication token")
+	loginCmd.Flags().Bool("json", false, "Output in JSON format")
 }
