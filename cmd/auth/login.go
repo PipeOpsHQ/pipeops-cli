@@ -24,8 +24,6 @@ This command will:
 Examples:
   pipeops auth login`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("🚀 Starting PipeOps CLI authentication...")
-
 		// Load configuration
 		cfg, err := config.Load()
 		if err != nil {
@@ -38,8 +36,18 @@ Examples:
 
 		// Check if already authenticated
 		if oauthService.IsAuthenticated() {
-			fmt.Println("✅ You are already authenticated!")
-			fmt.Println("Run 'pipeops auth status' to see your authentication details.")
+			fmt.Println()
+			fmt.Println("🔐 Already Authenticated")
+			fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+			fmt.Println("✅ You are already authenticated with PipeOps!")
+			fmt.Printf("🔑 Your session expires: %s\n", cfg.OAuth.ExpiresAt.Format("2006-01-02 15:04:05 MST"))
+			fmt.Println()
+			fmt.Println("💡 Available commands:")
+			fmt.Println("   🔍 pipeops auth status    - Check authentication status")
+			fmt.Println("   👤 pipeops auth me        - Show user information")
+			fmt.Println("   📋 pipeops project list   - List your projects")
+			fmt.Println("   🚪 pipeops auth logout    - Sign out")
+			fmt.Println()
 			return
 		}
 
@@ -48,18 +56,25 @@ Examples:
 		defer cancel()
 
 		if err := oauthService.Login(ctx); err != nil {
-			fmt.Printf("❌ Login failed: %v\n", err)
+			fmt.Printf("\n❌ Authentication failed: %v\n", err)
+			fmt.Println()
+			fmt.Println("🔧 Troubleshooting:")
+			fmt.Println("   • Make sure your browser is working")
+			fmt.Println("   • Check your internet connection")
+			fmt.Println("   • Try running the command again")
+			fmt.Println("   • Contact support if the problem persists")
 			return
 		}
 
 		// Save updated configuration
+		fmt.Print("💾 Saving credentials... ")
 		if err := config.Save(cfg); err != nil {
-			fmt.Printf("❌ Failed to save authentication tokens: %v\n", err)
+			fmt.Println("❌ Failed")
+			fmt.Printf("⚠️  Failed to save authentication tokens: %v\n", err)
+			fmt.Println("You may need to authenticate again on next use.")
 			return
 		}
-
-		fmt.Println("✅ Login successful!")
-		fmt.Println("You can now use PipeOps CLI commands.")
+		fmt.Println("✅ Saved")
 	},
 }
 

@@ -81,7 +81,6 @@ func Execute() {
 }
 
 func init() {
-	SaveConfig()
 	cobra.OnInitialize(initConfig)
 
 	// Global flags
