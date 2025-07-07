@@ -11,23 +11,13 @@ import (
 // logoutCmd represents the logout command
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
-	Short: "🚪 Logout from your PipeOps account",
-	Long: `🚪 Logout from your PipeOps account and clear stored authentication tokens.
-
-This command will:
-1. Remove stored access and refresh tokens
-2. Clear cached user information
-3. Require re-authentication for future API calls
+	Short: "Logout from your PipeOps account",
+	Long: `Logout from your PipeOps account and clear stored authentication tokens.
 
 Examples:
-  - Logout:
-    pipeops auth logout
-
-  - Logout with JSON output:
-    pipeops auth logout --json
-
-  - Force logout without confirmation:
-    pipeops auth logout --force`,
+  pipeops auth logout
+  pipeops auth logout --json
+  pipeops auth logout --force`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
 
@@ -47,7 +37,7 @@ Examples:
 				}
 				utils.PrintJSON(result)
 			} else {
-				utils.PrintWarning("You are not currently logged in.", opts)
+				fmt.Println("Already logged out")
 			}
 			return
 		}
@@ -55,8 +45,8 @@ Examples:
 		// Confirm logout unless force flag is used
 		force, _ := cmd.Flags().GetBool("force")
 		if !force && opts.Format != utils.OutputFormatJSON {
-			if !utils.ConfirmAction("🔐 Are you sure you want to logout?") {
-				utils.PrintInfo("Logout cancelled.", opts)
+			if !utils.ConfirmAction("Are you sure you want to logout?") {
+				fmt.Println("Logout cancelled")
 				return
 			}
 		}
@@ -76,14 +66,7 @@ Examples:
 			}
 			utils.PrintJSON(result)
 		} else {
-			utils.PrintSuccess("Successfully logged out!", opts)
-
-			// Show helpful tips
-			if !opts.Quiet {
-				fmt.Printf("\n💡 NEXT STEPS\n")
-				fmt.Printf("├─ Login again: pipeops auth login\n")
-				fmt.Printf("└─ Get help: pipeops --help\n")
-			}
+			fmt.Println("Logged out successfully")
 		}
 	},
 	Args: cobra.NoArgs,

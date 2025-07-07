@@ -1,22 +1,33 @@
 package auth
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
+// authModel represents the auth command model
 type authModel struct {
 	rootCmd *cobra.Command
 }
 
-func NewAuth(rootCmd *cobra.Command) *authModel {
-	return &authModel{
-		rootCmd: rootCmd,
-	}
+// authCmd represents the auth command
+var authCmd = &cobra.Command{
+	Use:   "auth",
+	Short: "Manage authentication",
+	Long:  `Manage authentication and user account operations.`,
 }
 
-func (k *authModel) Register() {
-	k.me()
-	k.login()
-	k.logout()
-	k.status()
-	k.consent()
-	k.debug()
+// New initializes and returns auth command
+func New() *cobra.Command {
+	authModel := &authModel{
+		rootCmd: authCmd,
+	}
+
+	authModel.login()
+	authModel.logout()
+	authModel.status()
+	authModel.me()
+	authModel.debug()
+	authModel.consent()
+
+	return authCmd
 }

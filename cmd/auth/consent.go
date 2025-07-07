@@ -29,21 +29,13 @@ type ConsentInfo struct {
 // consentCmd represents the consent command
 var consentCmd = &cobra.Command{
 	Use:   "consent",
-	Short: "🛡️ View OAuth consent and permissions",
-	Long: `🛡️ View OAuth consent and permissions for your PipeOps CLI authentication.
-
-This command attempts to fetch consent information from the OAuth consent endpoint.
-Note: The consent endpoint may require web session authentication rather than CLI tokens.
+	Short: "View OAuth consent and permissions",
+	Long: `View OAuth consent and permissions for your PipeOps CLI authentication.
 
 Examples:
-  - View consent information:
-    pipeops auth consent
-
-  - View detailed consent information:
-    pipeops auth consent --verbose
-
-  - View consent in JSON format:
-    pipeops auth consent --json`,
+  pipeops auth consent
+  pipeops auth consent --verbose
+  pipeops auth consent --json`,
 	Run: func(cmd *cobra.Command, args []string) {
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		opts := utils.GetOutputOptions(cmd)
@@ -66,14 +58,7 @@ Examples:
 					"message": "You must be authenticated to view consent information",
 				})
 			} else {
-				fmt.Println()
-				fmt.Println("🔒 Not Authenticated")
-				fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-				fmt.Println("❌ You must be authenticated to view consent information")
-				fmt.Println()
-				fmt.Println("🚀 Get started:")
-				fmt.Println("   pipeops auth login")
-				fmt.Println()
+				fmt.Println("Not authenticated - run 'pipeops auth login'")
 			}
 			return
 		}
@@ -174,64 +159,34 @@ func getConsentInfo(cfg *config.Config, accessToken string) (*ConsentInfo, error
 
 // displayConsentInfo displays consent information in a formatted way
 func displayConsentInfo(consent *ConsentInfo, verbose bool) {
-	fmt.Println()
-	fmt.Println("🛡️ OAuth Consent & Permissions")
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Printf("🏷️  Application: %s\n", consent.ClientName)
-	fmt.Printf("🆔 Client ID: %s\n", consent.ClientID)
-	fmt.Printf("📅 Granted: %s\n", consent.GrantedAt.Format("January 2, 2006 15:04 MST"))
+	fmt.Printf("Application: %s\n", consent.ClientName)
+	fmt.Printf("Client ID: %s\n", consent.ClientID)
+	fmt.Printf("Granted: %s\n", consent.GrantedAt.Format("2006-01-02 15:04"))
 
 	if !consent.ExpiresAt.IsZero() {
 		timeUntilExpiry := time.Until(consent.ExpiresAt)
 		if timeUntilExpiry > 0 {
-			fmt.Printf("⏰ Expires: %s (%s remaining)\n", consent.ExpiresAt.Format("January 2, 2006 15:04 MST"), formatConsentDuration(timeUntilExpiry))
+			fmt.Printf("Expires: %s (%s remaining)\n", consent.ExpiresAt.Format("2006-01-02 15:04"), formatConsentDuration(timeUntilExpiry))
 		} else {
-			fmt.Printf("⏰ Expires: %s (⚠️ Expired)\n", consent.ExpiresAt.Format("January 2, 2006 15:04 MST"))
+			fmt.Printf("Expires: %s (expired)\n", consent.ExpiresAt.Format("2006-01-02 15:04"))
 		}
 	}
 
 	if consent.Description != "" {
-		fmt.Printf("📝 Description: %s\n", consent.Description)
+		fmt.Printf("Description: %s\n", consent.Description)
 	}
 
-	fmt.Println()
-	fmt.Println("🎯 Granted Scopes:")
-	for _, scope := range consent.Scopes {
-		scopeIcon := getScopeIcon(scope)
-		scopeDesc := getScopeDescription(scope)
-		fmt.Printf("   %s %s", scopeIcon, scope)
-		if verbose && scopeDesc != "" {
-			fmt.Printf(" - %s", scopeDesc)
-		}
-		fmt.Println()
+	if len(consent.Scopes) > 0 {
+		fmt.Printf("Scopes: %s\n", strings.Join(consent.Scopes, ", "))
 	}
 
-	if len(consent.Permissions) > 0 {
-		fmt.Println()
-		fmt.Println("🔑 Specific Permissions:")
-		for _, perm := range consent.Permissions {
-			fmt.Printf("   ✅ %s\n", perm)
-		}
+	if verbose && len(consent.Permissions) > 0 {
+		fmt.Printf("Permissions: %s\n", strings.Join(consent.Permissions, ", "))
 	}
 
 	if verbose && len(consent.RedirectURIs) > 0 {
-		fmt.Println()
-		fmt.Println("🔄 Redirect URIs:")
-		for _, uri := range consent.RedirectURIs {
-			fmt.Printf("   🌐 %s\n", uri)
-		}
+		fmt.Printf("Redirect URIs: %s\n", strings.Join(consent.RedirectURIs, ", "))
 	}
-
-	fmt.Println()
-	fmt.Println("🚀 Available Actions:")
-	fmt.Println("   📋 pipeops project list      - Use your permissions")
-	fmt.Println("   👤 pipeops auth me           - View user profile")
-	fmt.Println("   🔄 pipeops auth login        - Refresh authentication")
-	fmt.Println("   🚪 pipeops auth logout       - Revoke access")
-	fmt.Println()
-
-	fmt.Println("💡 TIP: To revoke consent, run 'pipeops auth logout' and re-authenticate")
-	fmt.Println()
 }
 
 // isAuthenticationMismatch checks if the error indicates an authentication method mismatch
@@ -255,28 +210,8 @@ func displayConsentUnavailableMessage(cfg *config.Config, opts utils.OutputOptio
 			"available_via": "web_interface",
 		})
 	} else {
-		fmt.Println()
-		fmt.Println("🛡️ OAuth Consent Information")
-		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-		fmt.Println("ℹ️  Consent information requires web session authentication")
-		fmt.Println()
-		fmt.Println("🌐 To view detailed consent information:")
-		fmt.Printf("   • Open: %s/oauth/consent\n", cfg.OAuth.BaseURL)
-		fmt.Println("   • Log in with your account credentials")
-		fmt.Println("   • View and manage your OAuth permissions")
-		fmt.Println()
-		fmt.Println("📋 Available via CLI:")
-		fmt.Println("   • User profile: pipeops auth me")
-		fmt.Println("   • Auth status: pipeops auth status")
-		fmt.Println("   • Token info: pipeops auth debug")
-		fmt.Println()
-		fmt.Println("🔒 Your CLI authentication uses OAuth bearer tokens")
-		fmt.Println("   The consent endpoint requires web session JWT tokens")
-		fmt.Println()
-		fmt.Println("💡 TIP: Both authentication methods are secure and serve different purposes:")
-		fmt.Println("   • CLI tokens: For API access and automation")
-		fmt.Println("   • Web sessions: For interactive consent management")
-		fmt.Println()
+		fmt.Println("Consent information requires web session authentication")
+		fmt.Printf("Visit: %s/oauth/consent\n", cfg.OAuth.BaseURL)
 	}
 }
 

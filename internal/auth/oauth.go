@@ -35,29 +35,17 @@ type OAuthCallbackResult struct {
 
 // Login performs OAuth2 authentication with PKCE
 func (s *PKCEOAuthService) Login(ctx context.Context) error {
-	// Print stylized header
-	fmt.Println("\n🔐 PipeOps CLI Authentication")
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("✨ Welcome! Let's get you authenticated with PipeOps")
-	fmt.Println()
-
-	// Step 1: Generate PKCE challenge
-	fmt.Print("🔧 Generating security challenge... ")
+	// Generate PKCE challenge
 	pkceChallenge, err := GeneratePKCEChallenge()
 	if err != nil {
-		fmt.Println("❌ Failed")
 		return fmt.Errorf("failed to generate PKCE challenge: %w", err)
 	}
-	fmt.Println("✅ Done")
 
-	// Step 2: Generate state parameter
-	fmt.Print("🛡️  Generating security state... ")
+	// Generate state parameter
 	state, err := GenerateRandomState()
 	if err != nil {
-		fmt.Println("❌ Failed")
 		return fmt.Errorf("failed to generate state: %w", err)
 	}
-	fmt.Println("✅ Done")
 
 	// Build authorization URL with PKCE
 	authURL := fmt.Sprintf("%s/oauth/authorize?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=%s&code_challenge=%s&code_challenge_method=%s",
@@ -70,25 +58,13 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 		url.QueryEscape(pkceChallenge.Method),
 	)
 
-	fmt.Println()
-	fmt.Println("🌐 Opening your browser for authentication...")
-	fmt.Println("┌─────────────────────────────────────────────────────────────────────────────────────┐")
-	fmt.Println("│                                                                                         │")
-	fmt.Println("│  🚀 Your browser should open automatically                                              │")
-	fmt.Println("│  📱 If not, please copy and paste the URL below:                                       │")
-	fmt.Println("│                                                                                         │")
-	fmt.Printf("│  🔗 %s\n", authURL)
-	fmt.Println("│                                                                                         │")
-	fmt.Println("│  ⏱️  You have 10 minutes to complete the authentication                                 │")
-	fmt.Println("│  🔒 Your session will be securely saved locally                                        │")
-	fmt.Println("│                                                                                         │")
-	fmt.Println("└─────────────────────────────────────────────────────────────────────────────────────┘")
-	fmt.Println()
+	fmt.Println("Opening browser for authentication...")
+	fmt.Printf("If browser doesn't open, visit: %s\n", authURL)
 
 	// Open browser
 	if err := OpenBrowser(authURL); err != nil {
-		fmt.Printf("⚠️  Could not open browser automatically: %v\n", err)
-		fmt.Println("Please copy the URL above and paste it in your browser.")
+		fmt.Printf("Could not open browser: %v\n", err)
+		fmt.Println("Please visit the URL above manually.")
 	}
 
 	// Start callback server
@@ -96,33 +72,12 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 	server := s.startCallbackServer(callbackChan, state)
 	defer server.Close()
 
-	// Show waiting animation
-	fmt.Print("⏳ Waiting for authentication")
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
+	// Wait for callback with simple status
+	fmt.Print("Waiting for authentication...")
 
-	dots := 0
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				fmt.Print(".")
-				dots++
-				if dots >= 3 {
-					fmt.Print("\r⏳ Waiting for authentication   \r⏳ Waiting for authentication")
-					dots = 0
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
-	// Wait for callback
 	select {
 	case result := <-callbackChan:
-		ticker.Stop()
-		fmt.Print("\r                                        \r") // Clear waiting line
+		fmt.Print("\r                                \r") // Clear line
 		if result.Error != nil {
 			if result.Error.Error() == "callback handled" {
 				return s.exchangeCodeForToken(ctx, result.Code, pkceChallenge.CodeVerifier)
@@ -131,14 +86,10 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 		}
 		return s.exchangeCodeForToken(ctx, result.Code, pkceChallenge.CodeVerifier)
 	case <-time.After(10 * time.Minute):
-		ticker.Stop()
-		fmt.Print("\r                                        \r") // Clear waiting line
-		fmt.Println("⏰ Authentication timeout after 10 minutes")
-		fmt.Println("Please try again with 'pipeops auth login'")
-		return fmt.Errorf("authentication timeout")
+		fmt.Print("\r                                \r") // Clear line
+		return fmt.Errorf("authentication timeout - please try again")
 	case <-ctx.Done():
-		ticker.Stop()
-		fmt.Print("\r                                        \r") // Clear waiting line
+		fmt.Print("\r                                \r") // Clear line
 		return ctx.Err()
 	}
 }
@@ -333,9 +284,6 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 
 // exchangeCodeForToken exchanges authorization code for access token using PKCE
 func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeVerifier string) error {
-	fmt.Println("🔗 Received authentication code!")
-	fmt.Print("🔄 Exchanging code for access token... ")
-
 	// Prepare token request with PKCE (no client secret needed for public clients)
 	tokenReq := map[string]string{
 		"grant_type":    "authorization_code",
@@ -348,14 +296,12 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 
 	jsonData, err := json.Marshal(tokenReq)
 	if err != nil {
-		fmt.Println("❌ Failed")
 		return fmt.Errorf("failed to marshal token request: %w", err)
 	}
 
 	// Make token request
 	req, err := http.NewRequestWithContext(ctx, "POST", s.config.OAuth.BaseURL+"/oauth/token", strings.NewReader(string(jsonData)))
 	if err != nil {
-		fmt.Println("❌ Failed")
 		return fmt.Errorf("failed to create token request: %w", err)
 	}
 
@@ -364,20 +310,16 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		fmt.Println("❌ Failed")
 		return fmt.Errorf("token request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("❌ Failed")
 		return fmt.Errorf("failed to read token response: %w", err)
 	}
 
 	if resp.StatusCode != 200 {
-		fmt.Println("❌ Failed")
-		fmt.Printf("🚫 Token exchange failed (status %d): %s\n", resp.StatusCode, string(body))
 		return fmt.Errorf("token exchange failed: %s", string(body))
 	}
 
@@ -390,19 +332,7 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 	}
 
 	if err := json.Unmarshal(body, &tokenResp); err != nil {
-		fmt.Println("❌ Failed")
 		return fmt.Errorf("failed to parse token response: %w", err)
-	}
-
-	fmt.Println("✅ Success")
-
-	// Debug: Analyze token format
-	tokenSegments := strings.Count(tokenResp.AccessToken, ".")
-	fmt.Printf("🔍 Token analysis: %d segments", tokenSegments)
-	if tokenSegments == 2 {
-		fmt.Println(" (JWT format)")
-	} else {
-		fmt.Println(" (opaque format)")
 	}
 
 	// Save tokens
@@ -410,20 +340,7 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 	s.config.OAuth.RefreshToken = tokenResp.RefreshToken
 	s.config.OAuth.ExpiresAt = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
 
-	// Display success message
-	fmt.Println()
-	fmt.Println("🎉 Authentication Complete!")
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("✅ Successfully authenticated with PipeOps")
-	fmt.Printf("🔑 Access token expires: %s\n", s.config.OAuth.ExpiresAt.Format("2006-01-02 15:04:05 MST"))
-	fmt.Printf("⏰ Token valid for: %d hours\n", tokenResp.ExpiresIn/3600)
-	fmt.Println("💾 Credentials saved securely to your local config")
-	fmt.Println()
-	fmt.Println("🚀 You can now use all PipeOps CLI commands!")
-	fmt.Println("   Try: pipeops auth me")
-	fmt.Println("   Or:  pipeops project list")
-	fmt.Println()
-
+	fmt.Println("Authentication successful")
 	return nil
 }
 
