@@ -142,8 +142,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/pipeopsiq/pipeops-cli:latest
-            ghcr.io/pipeopsiq/pipeops-cli:${{ needs.release.outputs.version }}
+            ghcr.io/pipeopshq/pipeops-cli:latest
+            ghcr.io/pipeopshq/pipeops-cli:${{ needs.release.outputs.version }}
           labels: |
             org.opencontainers.image.title=PipeOps CLI
             org.opencontainers.image.description=Official command line tool for PipeOps
@@ -196,7 +196,7 @@ jobs:
         run: |
           echo "🎉 Successfully released PipeOps CLI ${{ needs.release.outputs.version }}"
           echo "📦 Binaries: https://github.com/PipeOpsHQ/pipeops-cli/releases/tag/${{ needs.release.outputs.version }}"
-          echo "🐳 Docker: ghcr.io/pipeopsiq/pipeops-cli:${{ needs.release.outputs.version }}"
+          echo "🐳 Docker: ghcr.io/pipeopshq/pipeops-cli:${{ needs.release.outputs.version }}"
 
       - name: Notify failure
         if: failure()
