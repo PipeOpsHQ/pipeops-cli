@@ -58,13 +58,16 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 		url.QueryEscape(pkceChallenge.Method),
 	)
 
-	fmt.Println("Opening browser for authentication...")
-	fmt.Printf("If browser doesn't open, visit: %s\n", authURL)
+	fmt.Println("🔐 Starting secure authentication...")
+	fmt.Println("→ Opening your browser for PipeOps login")
+	fmt.Printf("  If it doesn't open automatically, visit:\n  %s\n", authURL)
+	fmt.Println()
 
 	// Open browser
 	if err := OpenBrowser(authURL); err != nil {
-		fmt.Printf("Could not open browser: %v\n", err)
-		fmt.Println("Please visit the URL above manually.")
+		fmt.Printf("⚠️  Browser didn't open automatically: %v\n", err)
+		fmt.Println("   No worries! Just copy the URL above and paste it in your browser")
+		fmt.Println()
 	}
 
 	// Start callback server
@@ -72,12 +75,12 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 	server := s.startCallbackServer(callbackChan, state)
 	defer server.Close()
 
-	// Wait for callback with simple status
-	fmt.Print("Waiting for authentication...")
+	// Wait for callback with encouraging feedback
+	fmt.Print("⏳ Waiting for you to complete authentication in your browser...")
 
 	select {
 	case result := <-callbackChan:
-		fmt.Print("\r                                \r") // Clear line
+		fmt.Print("\r                                                                \r") // Clear line
 		if result.Error != nil {
 			if result.Error.Error() == "callback handled" {
 				return s.exchangeCodeForToken(ctx, result.Code, pkceChallenge.CodeVerifier)
@@ -86,10 +89,12 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 		}
 		return s.exchangeCodeForToken(ctx, result.Code, pkceChallenge.CodeVerifier)
 	case <-time.After(10 * time.Minute):
-		fmt.Print("\r                                \r") // Clear line
-		return fmt.Errorf("authentication timeout - please try again")
+		fmt.Print("\r                                                                \r") // Clear line
+		fmt.Println("⏰ Authentication timed out after 10 minutes")
+		fmt.Println("   No problem! Just run 'pipeops auth login' again when ready")
+		return fmt.Errorf("authentication timeout")
 	case <-ctx.Done():
-		fmt.Print("\r                                \r") // Clear line
+		fmt.Print("\r                                                                \r") // Clear line
 		return ctx.Err()
 	}
 }
@@ -340,7 +345,8 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 	s.config.OAuth.RefreshToken = tokenResp.RefreshToken
 	s.config.OAuth.ExpiresAt = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
 
-	fmt.Println("Authentication successful")
+	fmt.Println("🎉 Authentication successful!")
+	fmt.Println("✅ You're now logged in to PipeOps")
 	return nil
 }
 

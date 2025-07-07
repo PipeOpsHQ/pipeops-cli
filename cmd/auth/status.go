@@ -69,16 +69,28 @@ Examples:
 			utils.PrintJSON(status)
 		} else {
 			if cfg.IsAuthenticated() {
-				fmt.Printf("Authenticated (%s remaining)\n", expiryStatus)
-
-				// Show warning if token expires soon
-				if timeUntilExpiry <= 0 {
-					fmt.Println("Token expired - run 'pipeops auth login'")
-				} else if timeUntilExpiry < 24*time.Hour {
-					fmt.Println("Token expires soon - run 'pipeops auth login' to refresh")
+				if timeUntilExpiry > 24*time.Hour {
+					fmt.Printf("✅ Authenticated (%s remaining)\n", expiryStatus)
+					fmt.Println()
+					fmt.Println("🚀 You're all set! Try these commands:")
+					fmt.Println("   pipeops project list    # View your projects")
+					fmt.Println("   pipeops auth me         # See your profile")
+				} else if timeUntilExpiry > time.Hour {
+					fmt.Printf("✅ Authenticated (%s remaining)\n", expiryStatus)
+					fmt.Println("💡 Your session is active and ready to use")
+				} else if timeUntilExpiry > 0 {
+					fmt.Printf("⚠️  Authenticated (%s remaining)\n", expiryStatus)
+					fmt.Println("🔄 Consider refreshing soon: pipeops auth login")
+				} else {
+					fmt.Println("❌ Token expired")
+					fmt.Println("🔑 Please login again: pipeops auth login")
 				}
 			} else {
-				fmt.Println("Not authenticated - run 'pipeops auth login'")
+				fmt.Println("❌ Not authenticated")
+				fmt.Println()
+				fmt.Println("👋 Welcome to PipeOps! Let's get you started:")
+				fmt.Println("   pipeops auth login      # Authenticate with your account")
+				fmt.Println("   pipeops --help          # Explore available commands")
 			}
 		}
 	},

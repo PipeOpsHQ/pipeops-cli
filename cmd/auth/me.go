@@ -42,7 +42,12 @@ Examples:
 					"error":         "not authenticated",
 				})
 			} else {
-				fmt.Println("Not authenticated - run 'pipeops auth login'")
+				fmt.Println("❌ Not authenticated")
+				fmt.Println()
+				fmt.Println("🔑 You need to log in first:")
+				fmt.Println("   pipeops auth login")
+				fmt.Println()
+				fmt.Println("💡 Need help? Run: pipeops auth --help")
 			}
 			return
 		}
@@ -67,7 +72,12 @@ Examples:
 					},
 				})
 			} else {
-				fmt.Printf("Failed to fetch user details: %v\n", err)
+				fmt.Printf("⚠️  Unable to fetch user details: %v\n", err)
+				fmt.Println()
+				fmt.Println("🔧 This might help:")
+				fmt.Println("   • Check your internet connection")
+				fmt.Println("   • Try: pipeops auth login")
+				fmt.Println("   • For debugging: pipeops auth debug")
 				showTokenInfo(cfg, authService, opts)
 			}
 			return
@@ -124,18 +134,31 @@ Examples:
 			}
 			utils.PrintJSON(result)
 		} else {
-			// Simple, clean output
-			fmt.Printf("User: %s (%s)\n", userInfo.GetDisplayName(), userInfo.Email)
+			// Friendly, informative output
+			fmt.Printf("👋 Hello, %s!\n", userInfo.GetDisplayName())
+			fmt.Printf("📧 %s", userInfo.Email)
 			if userInfo.Verified {
-				fmt.Println("Email verified")
+				fmt.Printf(" ✅\n")
+			} else {
+				fmt.Printf(" ⚠️  (unverified)\n")
 			}
-			fmt.Printf("Token expires in %s\n", expiryStatus)
 
-			// Show warning if token expires soon
+			fmt.Printf("⏰ Session expires in %s\n", expiryStatus)
+
+			// Show warnings and next steps based on token status
 			if timeUntilExpiry <= 0 {
-				fmt.Println("Token expired - run 'pipeops auth login'")
+				fmt.Println()
+				fmt.Println("❌ Your session has expired")
+				fmt.Println("🔑 Please login again: pipeops auth login")
 			} else if timeUntilExpiry < 24*time.Hour {
-				fmt.Println("Token expires soon - run 'pipeops auth login' to refresh")
+				fmt.Println()
+				fmt.Println("⚠️  Your session expires soon")
+				fmt.Println("🔄 Refresh it: pipeops auth login")
+			} else {
+				fmt.Println()
+				fmt.Println("🚀 Ready to go! Try these commands:")
+				fmt.Println("   pipeops project list    # View your projects")
+				fmt.Println("   pipeops auth status     # Check auth details")
 			}
 		}
 	},

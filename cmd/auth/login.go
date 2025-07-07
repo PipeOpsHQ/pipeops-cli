@@ -31,7 +31,8 @@ Examples:
 
 		// Check if already authenticated
 		if oauthService.IsAuthenticated() {
-			fmt.Println("Already authenticated")
+			fmt.Println("✅ You're already authenticated!")
+			fmt.Println("🚀 Ready to use PipeOps. Try: pipeops project list")
 			return
 		}
 
@@ -40,16 +41,28 @@ Examples:
 		defer cancel()
 
 		if err := oauthService.Login(ctx); err != nil {
-			fmt.Printf("Authentication failed: %v\n", err)
+			fmt.Printf("❌ Authentication failed: %v\n", err)
+			fmt.Println()
+			fmt.Println("🔧 Troubleshooting tips:")
+			fmt.Println("   • Check your internet connection")
+			fmt.Println("   • Make sure you complete the login in your browser")
+			fmt.Println("   • Try again: pipeops auth login")
 			return
 		}
 
 		// Save updated configuration
 		if err := config.Save(cfg); err != nil {
-			fmt.Printf("Failed to save credentials: %v\n", err)
-			fmt.Println("You may need to authenticate again on next use.")
+			fmt.Printf("⚠️  Failed to save credentials: %v\n", err)
+			fmt.Println("   You may need to authenticate again next time")
 			return
 		}
+
+		// Show helpful next steps
+		fmt.Println()
+		fmt.Println("🎯 What's next? Try these commands:")
+		fmt.Println("   pipeops project list     # See your projects")
+		fmt.Println("   pipeops auth me          # View your profile")
+		fmt.Println("   pipeops --help           # Explore all commands")
 	},
 }
 

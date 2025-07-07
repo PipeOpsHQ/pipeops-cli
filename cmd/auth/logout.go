@@ -37,7 +37,8 @@ Examples:
 				}
 				utils.PrintJSON(result)
 			} else {
-				fmt.Println("Already logged out")
+				fmt.Println("✅ You're already logged out")
+				fmt.Println("🔑 When ready to return: pipeops auth login")
 			}
 			return
 		}
@@ -45,8 +46,9 @@ Examples:
 		// Confirm logout unless force flag is used
 		force, _ := cmd.Flags().GetBool("force")
 		if !force && opts.Format != utils.OutputFormatJSON {
-			if !utils.ConfirmAction("Are you sure you want to logout?") {
-				fmt.Println("Logout cancelled")
+			if !utils.ConfirmAction("🚪 Are you sure you want to log out?") {
+				fmt.Println("✅ Staying logged in")
+				fmt.Println("🚀 Continue using PipeOps: pipeops project list")
 				return
 			}
 		}
@@ -66,7 +68,8 @@ Examples:
 			}
 			utils.PrintJSON(result)
 		} else {
-			fmt.Println("Logged out successfully")
+			fmt.Println("👋 Successfully logged out!")
+			fmt.Println("🔑 To log back in: pipeops auth login")
 		}
 	},
 	Args: cobra.NoArgs,
