@@ -117,6 +117,13 @@ Examples:
 		}
 
 		fmt.Println()
+		fmt.Println("📋 Endpoint Authentication Summary:")
+		fmt.Println("   ✅ /oauth/userinfo  - OAuth bearer tokens (CLI compatible)")
+		fmt.Println("   ⚠️  /oauth/consent   - JWT session tokens (web interface)")
+		fmt.Println("   ✅ /oauth/token     - Public endpoint")
+		fmt.Println("   ✅ /oauth/authorize - Browser redirect")
+
+		fmt.Println()
 		fmt.Println("💡 Troubleshooting Tips:")
 		fmt.Println("   • If endpoints return 404, the API might not support OAuth userinfo/consent yet")
 		fmt.Println("   • If you get 401 errors, try: pipeops auth logout && pipeops auth login")
@@ -140,7 +147,7 @@ func testUserInfoEndpoint(cfg *config.Config, authService *auth.PKCEOAuthService
 	}
 
 	fmt.Printf("   Result: ✅ Success\n")
-	fmt.Printf("   User ID: %s\n", userInfo.ID)
+	fmt.Printf("   User ID: %s\n", userInfo.GetIDString())
 	fmt.Printf("   Username: %s\n", userInfo.Username)
 	fmt.Printf("   Email: %s\n", userInfo.Email)
 
@@ -153,6 +160,18 @@ func testUserInfoEndpoint(cfg *config.Config, authService *auth.PKCEOAuthService
 func testConsentEndpoint(cfg *config.Config, authService *auth.PKCEOAuthService, verbose bool) {
 	consentInfo, err := getConsentInfo(cfg, authService.GetAccessToken())
 	if err != nil {
+		// Check if this is likely an authentication method mismatch
+		if isAuthenticationMismatch(err) {
+			fmt.Printf("   Result: ⚠️  Expected authentication method mismatch\n")
+			fmt.Printf("   Reason: Consent endpoint requires JWT session tokens, not OAuth bearer tokens\n")
+			fmt.Printf("   Access: Available via web interface at %s/oauth/consent\n", cfg.OAuth.BaseURL)
+			if verbose {
+				fmt.Printf("   Technical: CLI uses OAuth bearer tokens, consent endpoint expects JWT session tokens\n")
+				fmt.Printf("   Error Details: %v\n", err)
+			}
+			return
+		}
+
 		fmt.Printf("   Result: ❌ Failed\n")
 		fmt.Printf("   Error: %v\n", err)
 		return
