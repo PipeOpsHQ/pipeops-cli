@@ -18,4 +18,5 @@ func (k *authModel) Register() {
 	k.logout()
 	k.status()
 	k.consent()
+	k.debug()
 }

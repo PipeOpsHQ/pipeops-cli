@@ -343,6 +343,7 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 		"redirect_uri":  "http://localhost:8085/callback",
 		"client_id":     s.config.OAuth.ClientID,
 		"code_verifier": codeVerifier, // PKCE code verifier
+		"token_format":  "jwt",        // Request JWT tokens if server supports it
 	}
 
 	jsonData, err := json.Marshal(tokenReq)
@@ -394,6 +395,15 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 	}
 
 	fmt.Println("✅ Success")
+
+	// Debug: Analyze token format
+	tokenSegments := strings.Count(tokenResp.AccessToken, ".")
+	fmt.Printf("🔍 Token analysis: %d segments", tokenSegments)
+	if tokenSegments == 2 {
+		fmt.Println(" (JWT format)")
+	} else {
+		fmt.Println(" (opaque format)")
+	}
 
 	// Save tokens
 	s.config.OAuth.AccessToken = tokenResp.AccessToken
