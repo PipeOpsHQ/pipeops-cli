@@ -107,41 +107,41 @@ release:
     **Thanks for using PipeOps CLI!** 🙏
 
 # Homebrew
-brews:
-  - name: pipeops
-    repository:
-      owner: pipeops
-      name: homebrew-pipeops
-      branch: main
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    homepage: https://github.com/PipeOpsHQ/pipeops-cli
-    description: Official command line tool for PipeOps
-    license: MIT
-    commit_author:
-      name: pipeops-bot
-      email: bot@pipeops.io
-    install: |
-      bin.install "pipeops"
-    test: |
-      system "#{bin}/pipeops", "version"
+# brews:
+#   - name: pipeops
+#     repository:
+#       owner: pipeops
+#       name: homebrew-pipeops
+#       branch: main
+#       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+#     homepage: https://github.com/PipeOpsHQ/pipeops-cli
+#     description: Official command line tool for PipeOps
+#     license: MIT
+#     commit_author:
+#       name: pipeops-bot
+#       email: bot@pipeops.io
+#     install: |
+#       bin.install "pipeops"
+#     test: |
+#       system "#{bin}/pipeops", "version"
 
-# Linux packages (.deb, .rpm)
-nfpms:
-  - id: packages
-    package_name: pipeops
-    vendor: PipeOps
-    homepage: https://github.com/PipeOpsHQ/pipeops-cli
-    maintainer: PipeOps Team <support@pipeops.io>
-    description: Official command line tool for PipeOps
-    license: MIT
-    formats:
-      - deb
-      - rpm
-    bindir: /usr/bin
-    contents:
-      - src: ./LICENSE
-        dst: /usr/share/doc/pipeops/copyright
-      - src: ./Readme.md
-        dst: /usr/share/doc/pipeops/README.md
-    scripts:
-      postinstall: scripts/postinstall.sh
+# # Linux packages (.deb, .rpm)
+# nfpms:
+#   - id: packages
+#     package_name: pipeops
+#     vendor: PipeOps
+#     homepage: https://github.com/PipeOpsHQ/pipeops-cli
+#     maintainer: PipeOps Team <support@pipeops.io>
+#     description: Official command line tool for PipeOps
+#     license: MIT
+#     formats:
+#       - deb
+#       - rpm
+#     bindir: /usr/bin
+#     contents:
+#       - src: ./LICENSE
+#         dst: /usr/share/doc/pipeops/copyright
+#       - src: ./Readme.md
+#         dst: /usr/share/doc/pipeops/README.md
+#     scripts:
+#       postinstall: scripts/postinstall.sh
