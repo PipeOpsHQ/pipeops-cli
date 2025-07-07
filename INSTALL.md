@@ -72,10 +72,10 @@ go install github.com/PipeOpsHQ/pipeops-cli@latest
 #### Run directly
 ```bash
 # Run PipeOps CLI in Docker
-docker run --rm -it ghcr.io/pipeops/pipeops-cli:latest --help
+docker run --rm -it ghcr.io/pipeopsHQ/pipeops-cli:latest --help
 
 # With authentication (mount config)
-docker run --rm -it -v ~/.pipeops.json:/root/.pipeops.json ghcr.io/pipeops/pipeops-cli:latest auth status
+docker run --rm -it -v ~/.pipeops.json:/root/.pipeops.json ghcr.io/pipeopsHQ/pipeops-cli:latest auth status
 ```
 
 #### Docker Compose
@@ -83,7 +83,7 @@ docker run --rm -it -v ~/.pipeops.json:/root/.pipeops.json ghcr.io/pipeops/pipeo
 version: '3.8'
 services:
   pipeops-cli:
-    image: ghcr.io/pipeops/pipeops-cli:latest
+    image: ghcr.io/pipeopsHQ/pipeops-cli:latest
     volumes:
       - ~/.pipeops.json:/root/.pipeops.json
     command: ["--help"]
