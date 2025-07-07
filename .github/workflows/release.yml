@@ -167,10 +167,10 @@ jobs:
         run: |
           VERSION=${{ needs.release.outputs.version }}
           # Update installation URLs in README
-          sed -i "s|releases/download/v[0-9]*\.[0-9]*\.[0-9]*|releases/download/$VERSION|g" README.md
+          sed -i "s|releases/download/v[0-9]*\.[0-9]*\.[0-9]*|releases/download/$VERSION|g" Readme.md
 
           # Update version references
-          sed -i "s|pipeops-cli@v[0-9]*\.[0-9]*\.[0-9]*|pipeops-cli@$VERSION|g" README.md
+          sed -i "s|pipeops-cli@v[0-9]*\.[0-9]*\.[0-9]*|pipeops-cli@$VERSION|g" Readme.md
 
       - name: Commit documentation updates
         run: |
@@ -180,7 +180,7 @@ jobs:
           if git diff --quiet; then
             echo "No documentation changes to commit"
           else
-            git add README.md
+            git add Readme.md
             git commit -m "docs: update installation links for ${{ needs.release.outputs.version }}"
             git push
           fi
