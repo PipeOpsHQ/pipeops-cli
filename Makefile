@@ -4,7 +4,7 @@ VERSION := $(shell git describe --tags --always --dirty)
 BUILD_DIR := build
 BIN_DIR := $(BUILD_DIR)/bin
 DIST_DIR := $(BUILD_DIR)/dist
-DOCKER_IMAGE := ghcr.io/pipeopsHQ/pipeops-cli
+DOCKER_IMAGE := ghcr.io/pipeopsiq/pipeops-cli
 
 # Go settings
 GO := go
