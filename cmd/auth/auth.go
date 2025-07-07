@@ -1,22 +1,41 @@
 package auth
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
+// authModel represents the auth command model
 type authModel struct {
 	rootCmd *cobra.Command
 }
 
-func NewAuth(rootCmd *cobra.Command) *authModel {
-	return &authModel{
-		rootCmd: rootCmd,
-	}
+// authCmd represents the auth command
+var authCmd = &cobra.Command{
+	Use:   "auth",
+	Short: "Manage your PipeOps authentication",
+	Long: `Manage your PipeOps authentication and account access.
+
+Common commands:
+  pipeops auth login     Log in to your PipeOps account
+  pipeops auth me        View your profile information
+  pipeops auth status    Check your authentication status
+  pipeops auth logout    Log out of your account
+
+Get started by running: pipeops auth login`,
 }
 
-func (k *authModel) Register() {
-	k.me()
-	k.login()
-	k.logout()
-	k.status()
-	k.consent()
-	k.debug()
+// New initializes and returns auth command
+func New() *cobra.Command {
+	authModel := &authModel{
+		rootCmd: authCmd,
+	}
+
+	authModel.login()
+	authModel.logout()
+	authModel.status()
+	authModel.me()
+	authModel.debug()
+	authModel.consent()
+
+	return authCmd
 }

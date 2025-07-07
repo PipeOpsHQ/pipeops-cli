@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/auth"
@@ -16,26 +15,12 @@ import (
 var meCmd = &cobra.Command{
 	Use:     "me",
 	Aliases: []string{"whoami", "userinfo"},
-	Short:   "👤 Show current user information",
-	Long: `👤 Display detailed information about the currently authenticated user.
-
-This command fetches your profile information from PipeOps including:
-- User ID, username, and display name
-- Email address and verification status
-- Account creation and last login dates
-- User roles and permissions
-- Authentication token details
+	Short:   "Show current user information",
+	Long: `Display information about the currently authenticated user.
 
 Examples:
-  - Show user info:
-    pipeops auth me
-
-  - Show user info in JSON format:
-    pipeops auth me --json
-
-  - Alternative commands:
-    pipeops auth whoami
-    pipeops auth userinfo`,
+  pipeops auth me
+  pipeops auth me --json`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
 
@@ -57,17 +42,12 @@ Examples:
 					"error":         "not authenticated",
 				})
 			} else {
+				fmt.Println("❌ Not authenticated")
 				fmt.Println()
-				fmt.Println("🔒 Not Authenticated")
-				fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-				fmt.Println("❌ You are not authenticated with PipeOps")
-				fmt.Println()
-				fmt.Println("🚀 Get started:")
+				fmt.Println("🔑 You need to log in first:")
 				fmt.Println("   pipeops auth login")
 				fmt.Println()
-				fmt.Println("💡 Need help?")
-				fmt.Println("   pipeops auth --help")
-				fmt.Println()
+				fmt.Println("💡 Need help? Run: pipeops auth --help")
 			}
 			return
 		}
@@ -92,11 +72,12 @@ Examples:
 					},
 				})
 			} else {
+				fmt.Printf("⚠️  Unable to fetch user details: %v\n", err)
 				fmt.Println()
-				fmt.Println("⚠️  Failed to fetch user details from server")
-				fmt.Printf("Error: %v\n", err)
-				fmt.Println()
-				fmt.Println("Falling back to local token information...")
+				fmt.Println("🔧 This might help:")
+				fmt.Println("   • Check your internet connection")
+				fmt.Println("   • Try: pipeops auth login")
+				fmt.Println("   • For debugging: pipeops auth debug")
 				showTokenInfo(cfg, authService, opts)
 			}
 			return
@@ -108,22 +89,17 @@ Examples:
 
 		// Format remaining time
 		var expiryStatus string
-		var expiryColor string
 		if timeUntilExpiry > 24*time.Hour {
 			days := int(timeUntilExpiry.Hours() / 24)
 			expiryStatus = fmt.Sprintf("%d days", days)
-			expiryColor = "🟢"
 		} else if timeUntilExpiry > time.Hour {
 			hours := int(timeUntilExpiry.Hours())
 			expiryStatus = fmt.Sprintf("%d hours", hours)
-			expiryColor = "🟡"
 		} else if timeUntilExpiry > 0 {
 			minutes := int(timeUntilExpiry.Minutes())
 			expiryStatus = fmt.Sprintf("%d minutes", minutes)
-			expiryColor = "🟠"
 		} else {
-			expiryStatus = "Expired"
-			expiryColor = "🔴"
+			expiryStatus = "expired"
 		}
 
 		// Output result
@@ -158,34 +134,31 @@ Examples:
 			}
 			utils.PrintJSON(result)
 		} else {
-			fmt.Println()
-			fmt.Println("👤 User Profile")
-			fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-			fmt.Print(userInfo.FormatUserInfo())
-			fmt.Println()
+			// Friendly, informative output
+			fmt.Printf("👋 Hello, %s!\n", userInfo.GetDisplayName())
+			fmt.Printf("📧 %s", userInfo.Email)
+			if userInfo.Verified {
+				fmt.Printf(" ✅\n")
+			} else {
+				fmt.Printf(" ⚠️  (unverified)\n")
+			}
 
-			fmt.Println("🔐 Authentication Details")
-			fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-			fmt.Printf("✅ Status: %s Authenticated\n", expiryColor)
-			fmt.Printf("⏰ Token expires: %s (%s remaining)\n", expiresAt.Format("2006-01-02 15:04:05 MST"), expiryStatus)
-			fmt.Printf("🌐 API Endpoint: %s\n", cfg.OAuth.BaseURL)
-			fmt.Printf("🏷️  Client ID: %s\n", cfg.OAuth.ClientID)
-			fmt.Printf("🎯 Scopes: %s\n", strings.Join(cfg.OAuth.Scopes, ", "))
-			fmt.Println()
+			fmt.Printf("⏰ Session expires in %s\n", expiryStatus)
 
-			// Show quick actions
-			fmt.Println("🚀 Quick Actions:")
-			fmt.Println("   📋 pipeops project list      - List your projects")
-			fmt.Println("   📊 pipeops auth status        - Full authentication status")
-			fmt.Println("   🔄 pipeops auth login         - Refresh authentication")
-			fmt.Println("   🚪 pipeops auth logout        - Sign out")
-			fmt.Println()
-
-			// Show tips based on expiry
-			if timeUntilExpiry < 24*time.Hour && timeUntilExpiry > 0 {
-				fmt.Println("💡 TIP: Your token expires soon. Run 'pipeops auth login' to refresh it.")
-			} else if timeUntilExpiry <= 0 {
-				fmt.Println("❌ WARNING: Your token has expired. Run 'pipeops auth login' to authenticate again.")
+			// Show warnings and next steps based on token status
+			if timeUntilExpiry <= 0 {
+				fmt.Println()
+				fmt.Println("❌ Your session has expired")
+				fmt.Println("🔑 Please login again: pipeops auth login")
+			} else if timeUntilExpiry < 24*time.Hour {
+				fmt.Println()
+				fmt.Println("⚠️  Your session expires soon")
+				fmt.Println("🔄 Refresh it: pipeops auth login")
+			} else {
+				fmt.Println()
+				fmt.Println("🚀 Ready to go! Try these commands:")
+				fmt.Println("   pipeops project list    # View your projects")
+				fmt.Println("   pipeops auth status     # Check auth details")
 			}
 		}
 	},
@@ -198,65 +171,23 @@ func showTokenInfo(cfg *config.Config, authService *auth.PKCEOAuthService, opts 
 	expiresAt := cfg.OAuth.ExpiresAt
 	timeUntilExpiry := time.Until(expiresAt)
 
-	// Format remaining time
 	var expiryStatus string
-	var expiryColor string
 	if timeUntilExpiry > 24*time.Hour {
 		days := int(timeUntilExpiry.Hours() / 24)
 		expiryStatus = fmt.Sprintf("%d days", days)
-		expiryColor = "🟢"
 	} else if timeUntilExpiry > time.Hour {
 		hours := int(timeUntilExpiry.Hours())
 		expiryStatus = fmt.Sprintf("%d hours", hours)
-		expiryColor = "🟡"
 	} else if timeUntilExpiry > 0 {
 		minutes := int(timeUntilExpiry.Minutes())
 		expiryStatus = fmt.Sprintf("%d minutes", minutes)
-		expiryColor = "🟠"
 	} else {
-		expiryStatus = "Expired"
-		expiryColor = "🔴"
+		expiryStatus = "expired"
 	}
 
-	fmt.Println()
-	fmt.Println("🔐 Authentication Status")
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Printf("✅ Status: %s Authenticated\n", expiryColor)
-	fmt.Printf("🔑 Token: %s...\n", authService.GetAccessToken()[:20])
-	fmt.Printf("⏰ Expires: %s (%s remaining)\n", expiresAt.Format("2006-01-02 15:04:05 MST"), expiryStatus)
-	fmt.Printf("🌐 API Endpoint: %s\n", cfg.OAuth.BaseURL)
-	fmt.Printf("🏷️  Client ID: %s\n", cfg.OAuth.ClientID)
-	fmt.Printf("🎯 Scopes: %s\n", strings.Join(cfg.OAuth.Scopes, ", "))
-	fmt.Println()
-
-	// Show quick actions
-	fmt.Println("🚀 Quick Actions:")
-	fmt.Println("   📋 pipeops project list      - List your projects")
-	fmt.Println("   📊 pipeops auth status        - Full authentication status")
-	fmt.Println("   🔄 pipeops auth login         - Refresh authentication")
-	fmt.Println("   🚪 pipeops auth logout        - Sign out")
-	fmt.Println()
-
-	// Show tips based on expiry
-	if timeUntilExpiry < 24*time.Hour {
-		fmt.Println("💡 TIP: Your token expires soon. Run 'pipeops auth login' to refresh it.")
-	}
+	fmt.Printf("Token expires in %s\n", expiryStatus)
 }
 
 func (k *authModel) me() {
 	k.rootCmd.AddCommand(meCmd)
-}
-
-// formatTime formats a time string for display
-func formatTime(timeStr string) string {
-	if timeStr == "" {
-		return "N/A"
-	}
-
-	t, err := time.Parse(time.RFC3339, timeStr)
-	if err != nil {
-		return timeStr
-	}
-
-	return t.Format("2006-01-02 15:04:05 MST")
 }
