@@ -41,10 +41,9 @@ type Settings struct {
 func DefaultConfig() *Config {
 	return &Config{
 		OAuth: &OAuthConfig{
-			ClientID:     "pipeops_default_client",                                           // Original client ID
-			ClientSecret: "7c017b8d548caf9e79e52a235f84bed241e6905d624d808eea3ecb2ccf57fced", // Original client ID
-			BaseURL:      "https://api.pipeops.sh",
-			Scopes:       []string{"read:user", "read:projects", "write:projects"},
+			ClientID: "pipeops_default_client", // Original client ID
+			BaseURL:  "https://api.pipeops.sh",
+			Scopes:   []string{"read:user", "read:projects", "write:projects"},
 		},
 		Settings: &Settings{
 			OutputFormat: "table",
