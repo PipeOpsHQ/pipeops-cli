@@ -15,7 +15,7 @@ import (
 type AuthenticatedClient struct {
 	baseURL     string
 	httpClient  *http.Client
-	authService *auth.OAuthService
+	authService *auth.PKCEOAuthService
 	config      *config.Config
 }
 
@@ -25,11 +25,11 @@ func NewAuthenticatedClient(cfg *config.Config) (*AuthenticatedClient, error) {
 		return nil, fmt.Errorf("OAuth configuration not found")
 	}
 
-	if !cfg.IsAuthenticated() {
+	authService := auth.NewPKCEOAuthService(cfg)
+
+	if !authService.IsAuthenticated() {
 		return nil, fmt.Errorf("not authenticated - please run 'pipeops auth login'")
 	}
-
-	authService := auth.NewOAuthService(cfg.OAuth)
 
 	return &AuthenticatedClient{
 		baseURL:     cfg.OAuth.BaseURL,
@@ -59,21 +59,6 @@ func (c *AuthenticatedClient) Do(req *http.Request) (*http.Response, error) {
 	// Handle token refresh on 401 Unauthorized
 	if resp.StatusCode == http.StatusUnauthorized {
 		resp.Body.Close()
-
-		// Try to refresh token if available
-		if c.config.OAuth.RefreshToken != "" {
-			if err := c.authService.RefreshToken(req.Context()); err == nil {
-				// Save updated config
-				if saveErr := config.Save(c.config); saveErr != nil {
-					fmt.Printf("Warning: Failed to save refreshed token: %v\n", saveErr)
-				}
-
-				// Retry request with new token
-				req.Header.Set("Authorization", "Bearer "+c.authService.GetAccessToken())
-				return c.httpClient.Do(req)
-			}
-		}
-
 		return nil, fmt.Errorf("authentication expired - please run 'pipeops auth login'")
 	}
 

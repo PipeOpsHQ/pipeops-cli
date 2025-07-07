@@ -22,6 +22,7 @@ type Config struct {
 // OAuthConfig holds OAuth-related configuration
 type OAuthConfig struct {
 	ClientID     string    `json:"client_id"`
+	ClientSecret string    `json:"client_secret"`
 	BaseURL      string    `json:"base_url"`
 	AccessToken  string    `json:"access_token,omitempty"`
 	RefreshToken string    `json:"refresh_token,omitempty"`
@@ -40,9 +41,10 @@ type Settings struct {
 func DefaultConfig() *Config {
 	return &Config{
 		OAuth: &OAuthConfig{
-			ClientID: "pipeops-cli", // This will be set from environment or config
-			BaseURL:  "https://api.pipeops.sh",
-			Scopes:   []string{"read:user", "read:projects", "write:projects"},
+			ClientID:     "pipeops_default_client",                                           // Original client ID
+			ClientSecret: "7c017b8d548caf9e79e52a235f84bed241e6905d624d808eea3ecb2ccf57fced", // Original client ID
+			BaseURL:      "http://localhost:8002",
+			Scopes:       []string{"read:user", "read:projects", "write:projects"},
 		},
 		Settings: &Settings{
 			OutputFormat: "table",

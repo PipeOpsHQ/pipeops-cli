@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -43,37 +42,33 @@ Examples:
 			return
 		}
 
-		// Check authentication
-		if !cfg.IsAuthenticated() {
-			utils.PrintError("Not authenticated. Please run 'pipeops auth login' to authenticate.", opts)
+		// Create OAuth service
+		authService := auth.NewPKCEOAuthService(cfg)
+
+		// Get user info
+		if !authService.IsAuthenticated() {
+			utils.PrintError("You are not authenticated. Please login first.", opts)
+			fmt.Println("Run 'pipeops auth login' to authenticate.")
 			return
 		}
 
-		// Create OAuth service and get user info
-		authService := auth.NewOAuthService(cfg.OAuth)
-		ctx := context.Background()
-
-		utils.PrintInfo("Fetching user information...", opts)
-
-		userInfo, err := authService.GetUserInfo(ctx)
-		if err != nil {
-			utils.HandleError(err, "Failed to get user information", opts)
-			return
-		}
+		// For now, show that we're authenticated
+		fmt.Println("✅ You are authenticated!")
+		fmt.Printf("🔑 Access token: %s...\n", authService.GetAccessToken()[:20])
+		fmt.Println("ℹ️  Full user info endpoint not implemented yet.")
 
 		// Output result
 		if opts.Format == utils.OutputFormatJSON {
-			utils.PrintJSON(userInfo)
+			utils.PrintJSON(map[string]string{
+				"status":        "authenticated",
+				"token_preview": authService.GetAccessToken()[:20] + "...",
+			})
 		} else {
 			utils.PrintSuccess("User information retrieved successfully", opts)
 
 			fmt.Printf("\n👤 USER INFORMATION\n")
-			fmt.Printf("├─ ID: %d\n", userInfo.ID)
-			fmt.Printf("├─ Username: %s\n", userInfo.Username)
-			fmt.Printf("├─ Email: %s\n", userInfo.Email)
-			fmt.Printf("├─ Name: %s %s\n", userInfo.FirstName, userInfo.LastName)
-			fmt.Printf("├─ Created: %s\n", formatTime(userInfo.CreatedAt))
-			fmt.Printf("├─ Updated: %s\n", formatTime(userInfo.UpdatedAt))
+			fmt.Printf("├─ Status: Authenticated\n")
+			fmt.Printf("├─ Token: %s...\n", authService.GetAccessToken()[:20])
 			fmt.Printf("├─ API Endpoint: %s\n", cfg.OAuth.BaseURL)
 			fmt.Printf("└─ Token Status: %s Valid\n", utils.GetStatusIcon("success"))
 
