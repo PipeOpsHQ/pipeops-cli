@@ -47,7 +47,7 @@ archives:
       - goos: windows
         format: zip
     files:
-      - README.md
+      - Readme.md
       - LICENSE
 
 checksum:
@@ -141,7 +141,7 @@ nfpms:
     contents:
       - src: ./LICENSE
         dst: /usr/share/doc/pipeops/copyright
-      - src: ./README.md
+      - src: ./Readme.md
         dst: /usr/share/doc/pipeops/README.md
     scripts:
       postinstall: scripts/postinstall.sh
