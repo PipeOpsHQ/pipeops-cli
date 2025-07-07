@@ -4,8 +4,10 @@ go 1.23.4
 
 require (
 	github.com/go-resty/resty/v2 v2.16.2
+	github.com/gorilla/websocket v1.5.3
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
+	golang.org/x/term v0.32.0
 )
 
 require (

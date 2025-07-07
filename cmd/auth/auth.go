@@ -14,4 +14,7 @@ func NewAuth(rootCmd *cobra.Command) *authModel {
 
 func (k *authModel) Register() {
 	k.me()
+	k.login()
+	k.logout()
+	k.status()
 }

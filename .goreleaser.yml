@@ -25,12 +25,24 @@ builds:
       - linux
       - windows
       - darwin
-      
+
     goarch:
       - "386"
       - amd64
       - arm
       - arm64
+    # Build flags for smaller binaries
+    ldflags:
+      - -s -w
+      - -X github.com/PipeOpsHQ/pipeops-cli/cmd.Version={{.Version}}
+      - -X github.com/PipeOpsHQ/pipeops-cli/cmd.BuildDate={{.Date}}
+      - -X github.com/PipeOpsHQ/pipeops-cli/cmd.GitCommit={{.Commit}}
+    # Ignore specific combinations
+    ignore:
+      - goos: freebsd
+        goarch: arm
+      - goos: freebsd
+        goarch: arm64
 
 archives:
   - format: tar.gz
@@ -46,54 +58,199 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
+    files:
+      - README.md
+      - LICENSE
+      - docs/*
+      - examples/*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
 
 changelog:
   sort: asc
+  use: github
   filters:
     exclude:
       - "^docs:"
       - "^test:"
+      - "^chore:"
+      - "^ci:"
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: 'Bug fixes'
+      regexp: '^.*?bug(\(.+\))??!?:.+$'
+      order: 1
+    - title: Others
+      order: 999
 
 release:
-  draft: true
-  
-    # Header for the release body.
-  # Adds a custom, friendly introduction to each release.
+  draft: false
+  prerelease: auto
+  mode: replace
   header: |
-    ---
-    ## 🚀 New Release: {{ .ProjectName }} v{{ .Version }} ({{ .Date }})
+    ## 🚀 PipeOps CLI v{{ .Version }}
 
-    We’re excited to announce the release of **{{ .ProjectName }} v{{ .Version }}**!
-    This update brings the latest features, improvements, and fixes to help you get the best out of PipeOps CLI.
+    **Release Date:** {{ .Date }}
 
-  # Footer for the release body.
-  # Adds a custom closing message to thank contributors or point to further resources.
+    Welcome to the latest release of PipeOps CLI! This version includes new features, improvements, and bug fixes.
+
+    ### 📦 Installation
+
+    #### Quick Install (Recommended)
+    ```bash
+    # macOS/Linux
+    curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.sh | sh
+
+    # Or using Homebrew (macOS/Linux)
+    brew tap pipeops/pipeops
+    brew install pipeops
+    ```
+
+    #### Manual Download
+    Download the appropriate binary for your platform from the assets below.
+
   footer: |
     ---
-    ## 📝 Additional Information
+    ## 📖 Documentation & Support
 
-    - **Download**: You can find platform-specific binaries below.
-    - **Contribute**: Got feedback or ideas? Open an issue or a PR on [GitHub](https://github.com/PipeOpsHQ/pipeops-cli).
-    - **Documentation**: Check out our [docs](https://docs.pipeops.io).
+    - **Documentation**: [docs.pipeops.io](https://docs.pipeops.io)
+    - **Getting Started**: `pipeops --help`
+    - **Report Issues**: [GitHub Issues](https://github.com/PipeOpsHQ/pipeops-cli/issues)
 
-    ## 💬 Stay Connected
+    ## 🌟 Community
 
-    Join our community to stay updated:
-    - [Twitter](https://twitter.com/pipeops)  
-    - [Discord](https://discord.gg/pipeops)
+    - **Discord**: [Join our community](https://discord.gg/pipeops)
+    - **Twitter**: [@PipeOpsHQ](https://twitter.com/pipeops)
+    - **Website**: [pipeops.io](https://pipeops.io)
 
-    **Thank you for using {{ .ProjectName }}!** ❤️
+    **Thanks for using PipeOps CLI!** 🙏
 
+# -------------------- Package Managers --------------------
 
-# -------------------- Linux Packages (.deb, .rpm) ---------
-nfpms:
-  - license: MIT
-    maintainer: PipeOps
+# Homebrew
+brews:
+  - name: pipeops
     homepage: https://github.com/PipeOpsHQ/pipeops-cli
-    bindir: /usr
-    dependencies:
-      - git
-    description: PipeOps CLI - Official command line tool for PipeOps.
+    description: Official command line tool for PipeOps
+    license: MIT
+    repository:
+      owner: pipeops
+      name: homebrew-pipeops
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: pipeops-bot
+      email: bot@pipeops.io
+    install: |
+      bin.install "pipeops"
+    test: |
+      system "#{bin}/pipeops", "version"
+
+# Linux packages (.deb, .rpm)
+nfpms:
+  - id: packages
+    package_name: pipeops
+    file_name_template: "{{ .ConventionalFileName }}"
+    vendor: PipeOps
+    homepage: https://github.com/PipeOpsHQ/pipeops-cli
+    maintainer: PipeOps Team <support@pipeops.io>
+    description: Official command line tool for PipeOps
+    license: MIT
     formats:
       - deb
       - rpm
+      - apk
+    bindir: /usr/bin
+    section: utils
+    priority: optional
+    dependencies:
+      - git
+    recommends:
+      - curl
+    suggests:
+      - docker
+    contents:
+      - src: ./LICENSE
+        dst: /usr/share/doc/pipeops/copyright
+        file_info:
+          mode: 0644
+      - src: ./README.md
+        dst: /usr/share/doc/pipeops/README.md
+        file_info:
+          mode: 0644
+    scripts:
+      postinstall: |
+        echo "PipeOps CLI installed successfully!"
+        echo "Get started with: pipeops auth login"
+      preremove: |
+        echo "Removing PipeOps CLI..."
+
+# Docker images
+dockers:
+  - image_templates:
+      - "ghcr.io/pipeops/pipeops-cli:{{ .Version }}-amd64"
+      - "ghcr.io/pipeops/pipeops-cli:latest-amd64"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+      - "--platform=linux/amd64"
+  - image_templates:
+      - "ghcr.io/pipeops/pipeops-cli:{{ .Version }}-arm64"
+      - "ghcr.io/pipeops/pipeops-cli:latest-arm64"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+      - "--platform=linux/arm64"
+    goarch: arm64
+
+docker_manifests:
+  - name_template: "ghcr.io/pipeops/pipeops-cli:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/pipeops/pipeops-cli:{{ .Version }}-amd64"
+      - "ghcr.io/pipeops/pipeops-cli:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/pipeops/pipeops-cli:latest"
+    image_templates:
+      - "ghcr.io/pipeops/pipeops-cli:latest-amd64"
+      - "ghcr.io/pipeops/pipeops-cli:latest-arm64"
+
+# Publish to AUR (Arch Linux)
+aurs:
+  - name: pipeops-cli
+    homepage: https://github.com/PipeOpsHQ/pipeops-cli
+    description: Official command line tool for PipeOps
+    maintainers:
+      - 'PipeOps Team <support@pipeops.io>'
+    license: MIT
+    private_key: '{{ .Env.AUR_KEY }}'
+    git_url: 'ssh://aur@aur.archlinux.org/pipeops-cli.git'
+    depends:
+      - git
+    optdepends:
+      - 'docker: for container management'
+    package: |-
+      # bin
+      install -Dm755 "./pipeops" "${pkgdir}/usr/bin/pipeops"
+
+      # license
+      install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/pipeops/LICENSE"
+
+      # documentation
+      install -Dm644 "./README.md" "${pkgdir}/usr/share/doc/pipeops/README.md"
