@@ -251,34 +251,6 @@ func (s *Session) handleExit(exitCode int) {
 	}
 }
 
-// handleSignals handles terminal resize signals
-func (s *Session) handleSignals(ctx context.Context) {
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGWINCH)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-sigChan:
-			// Get new terminal size
-			width, height, err := term.GetSize(int(os.Stdin.Fd()))
-			if err != nil {
-				continue
-			}
-
-			// Send resize message
-			resizeMsg := models.ResizeMessage{
-				Type: "resize",
-				Cols: width,
-				Rows: height,
-			}
-
-			s.conn.WriteJSON(resizeMsg)
-		}
-	}
-}
-
 // SendCommand sends a command to the session
 func (s *Session) SendCommand(command string) error {
 	data := base64.StdEncoding.EncodeToString([]byte(command))
