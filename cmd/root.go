@@ -26,7 +26,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/PipeOpsHQ/pipeops-cli/internal/updater"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -38,10 +40,16 @@ var Version = "dev"
 
 type Config struct {
 	Version VersionInfo
+	Updates UpdateSettings
 }
 
 type VersionInfo struct {
 	Version string
+}
+
+type UpdateSettings struct {
+	LastUpdateCheck time.Time `json:"last_update_check"`
+	SkipUpdateCheck bool      `json:"skip_update_check"`
 }
 
 var Conf Config
@@ -59,6 +67,9 @@ var rootCmd = &cobra.Command{
 			// Set a global flag that other commands can check
 			cmd.Root().SetContext(context.WithValue(cmd.Root().Context(), "json", true))
 		}
+
+		// Check for updates periodically (but don't block the command)
+		go checkForUpdatesBackground(cmd)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if cmd.Flag("version").Changed {
@@ -69,6 +80,133 @@ var rootCmd = &cobra.Command{
 		// Show help by default
 		cmd.Help()
 	},
+}
+
+// checkForUpdatesBackground runs a background update check
+func checkForUpdatesBackground(cmd *cobra.Command) {
+	// Skip update check if specifically disabled
+	if shouldSkipUpdateCheck(cmd) {
+		return
+	}
+
+	// Check if it's been more than 24 hours since last check
+	if !shouldCheckForUpdates() {
+		return
+	}
+
+	// Get current version
+	currentVersion := Version
+	if currentVersion == "" {
+		currentVersion = "dev"
+	}
+
+	// Create update service
+	updateService := updater.NewUpdateService(currentVersion)
+
+	// Check for updates with a short timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	release, hasUpdate, err := updateService.CheckForUpdates(ctx)
+	if err != nil {
+		// Silently ignore errors in background check
+		return
+	}
+
+	// Update last check time
+	updateLastCheckTime()
+
+	// If update available, show notification
+	if hasUpdate {
+		fmt.Printf("\n💡 A new version of PipeOps CLI is available: %s (current: %s)\n", release.TagName, currentVersion)
+		fmt.Printf("   Run 'pipeops update' to install the latest version\n")
+		fmt.Printf("   Run 'pipeops update check' to see what's new\n\n")
+	}
+}
+
+// shouldSkipUpdateCheck determines if update checking should be skipped
+func shouldSkipUpdateCheck(cmd *cobra.Command) bool {
+	// Skip for certain commands
+	if cmd.Name() == "update" || cmd.Name() == "version" || cmd.Name() == "help" {
+		return true
+	}
+
+	// Skip if running in CI/automated environment
+	if os.Getenv("CI") == "true" || os.Getenv("GITHUB_ACTIONS") == "true" {
+		return true
+	}
+
+	// Skip if explicitly disabled
+	if os.Getenv("PIPEOPS_SKIP_UPDATE_CHECK") == "true" {
+		return true
+	}
+
+	// Skip if JSON output is requested (likely automated)
+	if jsonOutput, _ := cmd.Flags().GetBool("json"); jsonOutput {
+		return true
+	}
+
+	return false
+}
+
+// shouldCheckForUpdates determines if it's time to check for updates
+func shouldCheckForUpdates() bool {
+	// Try to load existing config
+	config := loadConfigSafely()
+
+	// Check if enough time has passed since last check
+	if time.Since(config.Updates.LastUpdateCheck) < 24*time.Hour {
+		return false
+	}
+
+	return true
+}
+
+// loadConfigSafely loads config without exiting on errors
+func loadConfigSafely() Config {
+	var config Config
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return config
+	}
+
+	filename := fmt.Sprintf("%s/.pipeops.json", home)
+
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return config
+	}
+
+	dataBytes, err := os.ReadFile(filename)
+	if err != nil {
+		return config
+	}
+
+	// Ignore unmarshal errors for background check
+	json.Unmarshal(dataBytes, &config)
+	return config
+}
+
+// updateLastCheckTime updates the last update check time
+func updateLastCheckTime() {
+	config := loadConfigSafely()
+	config.Updates.LastUpdateCheck = time.Now()
+
+	// Save config safely
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+
+	filename := fmt.Sprintf("%s/.pipeops.json", home)
+
+	dataBytes, err := json.Marshal(config)
+	if err != nil {
+		return
+	}
+
+	// Ignore errors in background update
+	os.WriteFile(filename, dataBytes, 0600)
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
