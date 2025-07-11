@@ -350,9 +350,92 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 	return nil
 }
 
-// IsAuthenticated checks if user is authenticated
+// Refresh uses the refresh token to obtain a new access token
+func (s *PKCEOAuthService) Refresh(ctx context.Context) error {
+	if s.config.OAuth.RefreshToken == "" {
+		return fmt.Errorf("no refresh token available")
+	}
+
+	// Prepare refresh request
+	refreshReq := map[string]string{
+		"grant_type":    "refresh_token",
+		"refresh_token": s.config.OAuth.RefreshToken,
+		"client_id":     s.config.OAuth.ClientID,
+	}
+
+	jsonData, err := json.Marshal(refreshReq)
+	if err != nil {
+		return fmt.Errorf("failed to marshal refresh request: %w", err)
+	}
+
+	// Make refresh request
+	req, err := http.NewRequestWithContext(ctx, "POST", s.config.OAuth.BaseURL+"/oauth/token", strings.NewReader(string(jsonData)))
+	if err != nil {
+		return fmt.Errorf("failed to create refresh request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("refresh request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read refresh response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("refresh failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse refresh response
+	var tokenResp struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token,omitempty"`
+		ExpiresIn    int    `json:"expires_in"`
+		TokenType    string `json:"token_type"`
+	}
+
+	if err := json.Unmarshal(body, &tokenResp); err != nil {
+		return fmt.Errorf("failed to parse refresh response: %w", err)
+	}
+
+	// Update config
+	s.config.OAuth.AccessToken = tokenResp.AccessToken
+	if tokenResp.RefreshToken != "" {
+		s.config.OAuth.RefreshToken = tokenResp.RefreshToken
+	}
+	s.config.OAuth.ExpiresAt = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
+
+	// Save updated config
+	if err := config.Save(s.config); err != nil {
+		return fmt.Errorf("failed to save refreshed config: %w", err)
+	}
+
+	return nil
+}
+
+// IsAuthenticated checks if user is authenticated and attempts refresh if expired
 func (s *PKCEOAuthService) IsAuthenticated() bool {
-	return s.config.OAuth.AccessToken != "" && time.Now().Before(s.config.OAuth.ExpiresAt.Add(-5*time.Minute))
+	if s.config.OAuth.AccessToken != "" && time.Now().Before(s.config.OAuth.ExpiresAt.Add(-5*time.Minute)) {
+		return true
+	}
+
+	if s.config.OAuth.RefreshToken != "" {
+		ctx := context.Background() // Use background context for simplicity; consider passing ctx if needed
+		if err := s.Refresh(ctx); err == nil {
+			return true
+		} else {
+			// Optional: log error or clear tokens if refresh fails
+			fmt.Printf("Token refresh failed: %v\n", err)
+		}
+	}
+
+	return false
 }
 
 // GetAccessToken returns the current access token

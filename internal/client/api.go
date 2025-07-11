@@ -39,11 +39,11 @@ func NewAuthenticatedClient(cfg *config.Config) (*AuthenticatedClient, error) {
 	}, nil
 }
 
-// Do performs an HTTP request with automatic authentication
+// Do performs an HTTP request with automatic authentication and retry on 401
 func (c *AuthenticatedClient) Do(req *http.Request) (*http.Response, error) {
-	// Check if token is still valid
+	// Check if token is still valid (this now includes auto-refresh)
 	if !c.authService.IsAuthenticated() {
-		return nil, fmt.Errorf("authentication expired - please run 'pipeops auth login'")
+		return nil, fmt.Errorf("authentication expired and refresh failed - please run 'pipeops auth login'")
 	}
 
 	// Add authorization header
@@ -59,7 +59,20 @@ func (c *AuthenticatedClient) Do(req *http.Request) (*http.Response, error) {
 	// Handle token refresh on 401 Unauthorized
 	if resp.StatusCode == http.StatusUnauthorized {
 		resp.Body.Close()
-		return nil, fmt.Errorf("authentication expired - please run 'pipeops auth login'")
+		// Attempt refresh
+		ctx := context.Background()
+		if err := c.authService.Refresh(ctx); err != nil {
+			return nil, fmt.Errorf("authentication expired and refresh failed: %w - please run 'pipeops auth login'", err)
+		}
+		// Retry the request with new token
+		req.Header.Set("Authorization", "Bearer "+c.authService.GetAccessToken())
+		resp, err = c.httpClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("retry HTTP request failed: %w", err)
+		}
+		if resp.StatusCode == http.StatusUnauthorized {
+			return nil, fmt.Errorf("authentication failed after refresh - please run 'pipeops auth login'")
+		}
 	}
 
 	return resp, nil
