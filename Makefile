@@ -293,3 +293,46 @@ help:
 
 # Phony targets
 .PHONY: all build build-race run test test-coverage bench lint fmt tidy generate verify clean install cross-compile package docker-build docker-run docker-push release release-dry-run tag dev-setup pre-release check info help
+
+# Security-focused build targets
+.PHONY: build-secure build-enterprise build-public
+
+# Build with custom configuration injected at build time
+build-secure:
+	@echo "Building with secure configuration..."
+	go build -ldflags "-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultClientID=$(CLIENT_ID)' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultAPIURL=$(API_URL)' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultScopes=$(SCOPES)' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/updater.DefaultGitHubRepo=$(GITHUB_REPO)'" \
+		-o bin/pipeops .
+
+# Build for enterprise with custom endpoints
+build-enterprise:
+	@echo "Building enterprise version..."
+	go build -ldflags "-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultClientID=pipeops_enterprise_client' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultAPIURL=https://enterprise.pipeops.sh' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/updater.DefaultGitHubRepo=PipeOpsHQ/pipeops-cli-enterprise'" \
+		-o bin/pipeops-enterprise .
+
+# Build for public release (obfuscated)
+build-public:
+	@echo "Building for public release..."
+	go build -ldflags "-s -w \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultClientID=pipeops_public_client' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultAPIURL=https://api.pipeops.sh' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/updater.DefaultGitHubRepo=PipeOpsHQ/pipeops-cli'" \
+		-o bin/pipeops .
+
+# Build with stripped symbols for production
+build-stripped:
+	@echo "Building with stripped symbols..."
+	go build -ldflags "-s -w" -trimpath -o bin/pipeops .
+
+# Build with UPX compression (requires UPX to be installed)
+build-compressed: build-stripped
+	@echo "Compressing binary..."
+	@if command -v upx >/dev/null 2>&1; then \
+		upx --best --ultra-brute bin/pipeops; \
+	else \
+		echo "UPX not installed, skipping compression"; \
+	fi

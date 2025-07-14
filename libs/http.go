@@ -9,22 +9,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
 	"github.com/go-resty/resty/v2"
 )
 
 var (
-	ErrInvalidToken           = errors.New("invalid token")
-	ErrVerificationFailed     = errors.New("token verification failed")
-	PIPEOPS_CONTROL_PLANE_API = ""
+	ErrInvalidToken       = errors.New("invalid token")
+	ErrVerificationFailed = errors.New("token verification failed")
 )
 
-func init() {
-	PIPEOPS_CONTROL_PLANE_API = os.Getenv("PIPEOPS_API_URL")
-	if PIPEOPS_CONTROL_PLANE_API == "" {
-		PIPEOPS_CONTROL_PLANE_API = "https://api.pipeops.sh" // Default API URL
-	}
-}
+// Removed init() function - now using secure configuration approach
 
 type HttpClients interface {
 	VerifyToken(token string, operatorID string) (*models.PipeOpsTokenVerificationResponse, error)
@@ -61,7 +56,8 @@ func NewHttpClient() HttpClients {
 		r.Debug = true
 	}
 
-	URL := strings.TrimSpace(PIPEOPS_CONTROL_PLANE_API)
+	// Use secure configuration approach
+	URL := strings.TrimSpace(config.GetAPIURL())
 	r.SetBaseURL(URL)
 
 	return &HttpClient{
