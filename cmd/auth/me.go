@@ -150,7 +150,7 @@ Examples:
 				fmt.Println()
 				fmt.Println("❌ Your session has expired")
 				fmt.Println("🔑 Please login again: pipeops auth login")
-			} else if timeUntilExpiry < 24*time.Hour {
+			} else if timeUntilExpiry < 1*time.Hour {
 				fmt.Println()
 				fmt.Println("⚠️  Your session expires soon")
 				fmt.Println("🔄 Refresh it: pipeops auth login")

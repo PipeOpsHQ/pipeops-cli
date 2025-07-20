@@ -3,3 +3,4 @@ dist/
 vendor
 build
 .vscode
+bin/

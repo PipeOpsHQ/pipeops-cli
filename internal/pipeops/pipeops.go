@@ -218,3 +218,43 @@ func (c *Client) DeleteAddonDeployment(deploymentID string) error {
 	}
 	return c.httpClient.DeleteAddonDeployment(c.GetToken(), deploymentID)
 }
+
+// GetServers retrieves all servers
+func (c *Client) GetServers() (*models.ServersResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	return c.httpClient.GetServers(c.GetToken())
+}
+
+// GetServer retrieves a specific server by ID
+func (c *Client) GetServer(serverID string) (*models.Server, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	return c.httpClient.GetServer(c.GetToken(), serverID)
+}
+
+// CreateServer creates a new server
+func (c *Client) CreateServer(req *models.ServerCreateRequest) (*models.Server, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	return c.httpClient.CreateServer(c.GetToken(), req)
+}
+
+// UpdateServer updates an existing server
+func (c *Client) UpdateServer(serverID string, req *models.ServerUpdateRequest) (*models.Server, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	return c.httpClient.UpdateServer(c.GetToken(), serverID, req)
+}
+
+// DeleteServer deletes a server
+func (c *Client) DeleteServer(serverID string) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+	return c.httpClient.DeleteServer(c.GetToken(), serverID)
+}

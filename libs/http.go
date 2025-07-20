@@ -42,6 +42,13 @@ type HttpClients interface {
 	DeployAddon(token string, req *models.AddonDeployRequest) (*models.AddonDeployResponse, error)
 	GetAddonDeployments(token string, projectID string) ([]models.AddonDeployment, error)
 	DeleteAddonDeployment(token string, deploymentID string) error
+
+	// Server Management
+	GetServers(token string) (*models.ServersResponse, error)
+	GetServer(token string, serverID string) (*models.Server, error)
+	CreateServer(token string, req *models.ServerCreateRequest) (*models.Server, error)
+	UpdateServer(token string, serverID string, req *models.ServerUpdateRequest) (*models.Server, error)
+	DeleteServer(token string, serverID string) error
 }
 
 type HttpClient struct {
@@ -130,8 +137,20 @@ func (h *HttpClient) GetProjects(token string) (*models.ProjectsResponse, error)
 		return nil, fmt.Errorf("API error: %s", resp.String())
 	}
 
+	// Handle empty response body
+	body := resp.Body()
+	if len(body) == 0 {
+		// Return empty projects response when API returns empty body
+		return &models.ProjectsResponse{
+			Projects: []models.Project{},
+			Total:    0,
+			Page:     1,
+			PerPage:  10,
+		}, nil
+	}
+
 	var projectsResp *models.ProjectsResponse
-	if err := json.Unmarshal(resp.Body(), &projectsResp); err != nil {
+	if err := json.Unmarshal(body, &projectsResp); err != nil {
 		return nil, fmt.Errorf("failed to parse projects response: %w", err)
 	}
 
@@ -875,6 +894,209 @@ func (h *HttpClient) DeleteAddonDeployment(token string, deploymentID string) er
 
 	if resp.StatusCode() == 404 {
 		return fmt.Errorf("deployment not found")
+	}
+
+	if resp.IsError() {
+		return fmt.Errorf("API error: %s", resp.String())
+	}
+
+	return nil
+}
+
+// GetServers retrieves all servers for the authenticated user
+func (h *HttpClient) GetServers(token string) (*models.ServersResponse, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		Get("/servers")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get servers: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		return nil, ErrInvalidToken
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	// Handle empty response body
+	body := resp.Body()
+	if len(body) == 0 {
+		// Return empty servers response when API returns empty body
+		return &models.ServersResponse{
+			Servers: []models.Server{},
+			Total:   0,
+			Page:    1,
+			PerPage: 10,
+		}, nil
+	}
+
+	var serversResp *models.ServersResponse
+	if err := json.Unmarshal(body, &serversResp); err != nil {
+		return nil, fmt.Errorf("failed to parse servers response: %w", err)
+	}
+
+	return serversResp, nil
+}
+
+// GetServer retrieves a specific server by ID
+func (h *HttpClient) GetServer(token string, serverID string) (*models.Server, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	if strings.TrimSpace(serverID) == "" {
+		return nil, errors.New("server ID is empty")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		Get("/servers/" + serverID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get server: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		return nil, ErrInvalidToken
+	}
+
+	if resp.StatusCode() == 404 {
+		return nil, fmt.Errorf("server not found")
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	var server *models.Server
+	if err := json.Unmarshal(resp.Body(), &server); err != nil {
+		return nil, fmt.Errorf("failed to parse server response: %w", err)
+	}
+
+	return server, nil
+}
+
+// CreateServer creates a new server
+func (h *HttpClient) CreateServer(token string, req *models.ServerCreateRequest) (*models.Server, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	if req == nil {
+		return nil, errors.New("request is nil")
+	}
+
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, errors.New("server name is required")
+	}
+
+	if strings.TrimSpace(req.Type) == "" {
+		return nil, errors.New("server type is required")
+	}
+
+	if strings.TrimSpace(req.Region) == "" {
+		return nil, errors.New("server region is required")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		SetBody(req).
+		Post("/servers")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create server: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		return nil, ErrInvalidToken
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	var server *models.Server
+	if err := json.Unmarshal(resp.Body(), &server); err != nil {
+		return nil, fmt.Errorf("failed to parse server response: %w", err)
+	}
+
+	return server, nil
+}
+
+// UpdateServer updates an existing server
+func (h *HttpClient) UpdateServer(token string, serverID string, req *models.ServerUpdateRequest) (*models.Server, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	if strings.TrimSpace(serverID) == "" {
+		return nil, errors.New("server ID is empty")
+	}
+
+	if req == nil {
+		return nil, errors.New("request is nil")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		SetBody(req).
+		Put("/servers/" + serverID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update server: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		return nil, ErrInvalidToken
+	}
+
+	if resp.StatusCode() == 404 {
+		return nil, fmt.Errorf("server not found")
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	var server *models.Server
+	if err := json.Unmarshal(resp.Body(), &server); err != nil {
+		return nil, fmt.Errorf("failed to parse server response: %w", err)
+	}
+
+	return server, nil
+}
+
+// DeleteServer deletes a server
+func (h *HttpClient) DeleteServer(token string, serverID string) error {
+	if strings.TrimSpace(token) == "" {
+		return errors.New("token is empty")
+	}
+
+	if strings.TrimSpace(serverID) == "" {
+		return errors.New("server ID is empty")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		Delete("/servers/" + serverID)
+	if err != nil {
+		return fmt.Errorf("failed to delete server: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		return ErrInvalidToken
+	}
+
+	if resp.StatusCode() == 404 {
+		return fmt.Errorf("server not found")
 	}
 
 	if resp.IsError() {
