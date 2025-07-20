@@ -22,6 +22,19 @@ func NewClient() *Client {
 	}
 }
 
+// NewClientWithConfig creates a new PipeOps client with the provided configuration
+func NewClientWithConfig(cfg *config.Config) *Client {
+	baseURL := cfg.OAuth.BaseURL
+	if baseURL == "" {
+		baseURL = config.GetAPIURL()
+	}
+
+	return &Client{
+		httpClient: libs.NewHttpClientWithURL(baseURL),
+		config:     cfg,
+	}
+}
+
 // LoadConfig loads the configuration from the config file
 func (c *Client) LoadConfig() error {
 	cfg, err := config.Load()

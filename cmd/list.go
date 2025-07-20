@@ -148,6 +148,10 @@ Examples:
 
 			projectsResp, err := client.GetProjects()
 			if err != nil {
+				// Handle authentication errors specifically
+				if !utils.HandleAuthError(err, opts) {
+					return
+				}
 				utils.HandleError(err, "Error fetching projects", opts)
 				return
 			}

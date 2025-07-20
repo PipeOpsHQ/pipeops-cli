@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PipeOpsHQ/pipeops-cli/internal/auth"
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
 	"github.com/go-resty/resty/v2"
@@ -20,6 +21,104 @@ var (
 )
 
 // Removed init() function - now using secure configuration approach
+
+// validateToken proactively validates a token by making a test request
+func (h *HttpClient) validateToken(token string) error {
+	if strings.TrimSpace(token) == "" {
+		return auth.NewAuthError("token_invalid", "Token is empty", 401, nil)
+	}
+
+	// Try to validate token by making a request to a validation endpoint
+	// We'll use the userinfo endpoint since it's lightweight and always available
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		Get("/oauth/userinfo")
+	if err != nil {
+		return auth.NewAuthError("validation_failed",
+			fmt.Sprintf("Token validation failed: %v", err), 401, err)
+	}
+
+	// Check for authentication errors
+	if resp.StatusCode() == 401 {
+		return detectAuthError(resp)
+	}
+
+	// If we get a successful response, token is valid
+	if resp.StatusCode() == 200 {
+		return nil
+	}
+
+	// For other status codes, assume token is invalid
+	return auth.NewAuthError("token_invalid",
+		fmt.Sprintf("Token validation failed with status %d", resp.StatusCode()),
+		resp.StatusCode(), nil)
+}
+
+// detectAuthError analyzes API response to determine the specific authentication error
+func detectAuthError(resp *resty.Response) error {
+	if resp.StatusCode() != 401 {
+		return nil
+	}
+
+	// Try to parse error response for more specific error information
+	var errorResp struct {
+		Error       string `json:"error"`
+		Description string `json:"error_description"`
+		Code        int    `json:"code"`
+	}
+
+	body := resp.Body()
+	if len(body) > 0 {
+		if err := json.Unmarshal(body, &errorResp); err == nil {
+			// Check for specific error types in the response
+			errorStr := strings.ToLower(errorResp.Error)
+			descStr := strings.ToLower(errorResp.Description)
+
+			// Token expired
+			if strings.Contains(errorStr, "expired") ||
+				strings.Contains(descStr, "expired") ||
+				strings.Contains(errorStr, "expiration") ||
+				strings.Contains(descStr, "expiration") {
+				return auth.NewAuthError("token_expired",
+					"Your session has expired. Please run 'pipeops auth login' to authenticate again.",
+					401, nil)
+			}
+
+			// Token revoked
+			if strings.Contains(errorStr, "revoked") ||
+				strings.Contains(descStr, "revoked") ||
+				strings.Contains(errorStr, "invalidated") ||
+				strings.Contains(descStr, "invalidated") {
+				return auth.NewAuthError("token_revoked",
+					"Your session has been revoked. Please run 'pipeops auth login' to authenticate again.",
+					401, nil)
+			}
+
+			// Invalid token
+			if strings.Contains(errorStr, "invalid") ||
+				strings.Contains(descStr, "invalid") ||
+				strings.Contains(errorStr, "malformed") ||
+				strings.Contains(descStr, "malformed") {
+				return auth.NewAuthError("token_invalid",
+					"Your authentication token is invalid. Please run 'pipeops auth login' to authenticate again.",
+					401, nil)
+			}
+
+			// Provide specific error message if available
+			if errorResp.Description != "" {
+				return auth.NewAuthError("authentication_failed",
+					fmt.Sprintf("Authentication failed: %s", errorResp.Description),
+					401, nil)
+			}
+		}
+	}
+
+	// Default 401 error
+	return auth.NewAuthError("authentication_failed",
+		"Authentication failed. Please run 'pipeops auth login' to authenticate again.",
+		401, nil)
+}
 
 type HttpClients interface {
 	VerifyToken(token string, operatorID string) (*models.PipeOpsTokenVerificationResponse, error)
@@ -52,10 +151,15 @@ type HttpClients interface {
 }
 
 type HttpClient struct {
-	client *resty.Client
+	client  *resty.Client
+	baseURL string
 }
 
 func NewHttpClient() HttpClients {
+	return NewHttpClientWithURL(config.GetAPIURL())
+}
+
+func NewHttpClientWithURL(baseURL string) HttpClients {
 	r := resty.New()
 
 	// Enable debug mode if environment variable is set
@@ -63,12 +167,13 @@ func NewHttpClient() HttpClients {
 		r.Debug = true
 	}
 
-	// Use secure configuration approach
-	URL := strings.TrimSpace(config.GetAPIURL())
+	// Use the provided base URL
+	URL := strings.TrimSpace(baseURL)
 	r.SetBaseURL(URL)
 
 	return &HttpClient{
-		client: r,
+		client:  r,
+		baseURL: URL,
 	}
 }
 
@@ -121,6 +226,11 @@ func (h *HttpClient) GetProjects(token string) (*models.ProjectsResponse, error)
 		return nil, errors.New("token is empty")
 	}
 
+	// Validate token before making the request
+	if err := h.validateToken(token); err != nil {
+		return nil, err
+	}
+
 	resp, err := h.client.R().
 		SetHeader("Authorization", "Bearer "+token).
 		SetHeader("Content-Type", "application/json").
@@ -130,6 +240,9 @@ func (h *HttpClient) GetProjects(token string) (*models.ProjectsResponse, error)
 	}
 
 	if resp.StatusCode() == 401 {
+		if authErr := detectAuthError(resp); authErr != nil {
+			return nil, authErr
+		}
 		return nil, ErrInvalidToken
 	}
 
@@ -909,6 +1022,11 @@ func (h *HttpClient) GetServers(token string) (*models.ServersResponse, error) {
 		return nil, errors.New("token is empty")
 	}
 
+	// Validate token before making the request
+	if err := h.validateToken(token); err != nil {
+		return nil, err
+	}
+
 	resp, err := h.client.R().
 		SetHeader("Authorization", "Bearer "+token).
 		SetHeader("Content-Type", "application/json").
@@ -918,6 +1036,9 @@ func (h *HttpClient) GetServers(token string) (*models.ServersResponse, error) {
 	}
 
 	if resp.StatusCode() == 401 {
+		if authErr := detectAuthError(resp); authErr != nil {
+			return nil, authErr
+		}
 		return nil, ErrInvalidToken
 	}
 

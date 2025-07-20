@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 
+	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
@@ -19,13 +20,15 @@ Examples:
   pipeops server list --json`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
-		client := pipeops.NewClient()
-
-		// Load configuration
-		if err := client.LoadConfig(); err != nil {
+		// Load configuration first
+		cfg, err := config.Load()
+		if err != nil {
 			utils.HandleError(err, "Error loading configuration", opts)
 			return
 		}
+
+		// Create client with the loaded configuration
+		client := pipeops.NewClientWithConfig(cfg)
 
 		// Check if user is authenticated
 		if !utils.RequireAuth(client, opts) {
@@ -37,6 +40,10 @@ Examples:
 
 		serversResp, err := client.GetServers()
 		if err != nil {
+			// Handle authentication errors specifically
+			if !utils.HandleAuthError(err, opts) {
+				return
+			}
 			utils.HandleError(err, "Error fetching servers", opts)
 			return
 		}

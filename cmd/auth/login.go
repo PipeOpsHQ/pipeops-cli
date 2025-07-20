@@ -29,11 +29,23 @@ Examples:
 		// Create PKCE OAuth service
 		oauthService := auth.NewPKCEOAuthService(cfg)
 
-		// Check if already authenticated
+		// Check if already authenticated (local check)
 		if oauthService.IsAuthenticated() {
-			fmt.Println("✅ You're already authenticated!")
-			fmt.Println("🚀 Ready to use PipeOps. Try: pipeops project list")
-			return
+			// Validate with server to ensure token is still valid
+			userInfoService := auth.NewUserInfoService(cfg)
+			ctx := context.Background()
+
+			if _, err := userInfoService.GetUserInfo(ctx, oauthService.GetAccessToken()); err == nil {
+				fmt.Println("✅ You're already authenticated!")
+				fmt.Println("🚀 Ready to use PipeOps. Try: pipeops project list")
+				return
+			} else {
+				// Token is invalid on server, clear it and proceed with login
+				fmt.Println("⚠️  Your session has expired or been revoked")
+				fmt.Println("🔄 Starting fresh authentication...")
+				cfg.ClearAuth()
+				config.Save(cfg)
+			}
 		}
 
 		// Perform authentication
