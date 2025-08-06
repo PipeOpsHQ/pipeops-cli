@@ -1,4 +1,4 @@
-# PipeOps CLI - Railway-Style Developer Experience TODO
+# PipeOps CLI TODO
 
 ## CLI Features
 
@@ -13,7 +13,7 @@
 - [x] **Status Monitoring**: `pipeops status` - Show current status
 - [x] **Version Management**: `pipeops version` - Show CLI version
 
-### 🚧 Needs Implementation (Railway Style)
+### 🚧 Needs Implementation
 
 1. **Project Management**
    - [ ] `pipeops list` - List all projects (enhance current `project list`)
@@ -47,7 +47,7 @@
 ## 🗺️ Implementation Plan
 
 **Phase 1 (Week 1): Enhance Existing Features**
-- **Enhance project listing**: Improve `pipeops project list` to match Railway style
+- **Enhance project listing**: Improve `pipeops project list`
 - **Enhance status command**: Improve `pipeops status` to show current project info
 - **Add unlink command**: `pipeops unlink` to disconnect from project
 - **Enhance logs**: Improve `pipeops logs` with better filtering and real-time streaming
@@ -66,4 +66,4 @@
 
 ---
 
-> This plan is strictly focused on providing the basic developer experience that [Railway CLI](https://docs.railway.com/reference/cli-api) offers. All features and commands should be implemented to match or closely mirror the Railway CLI workflow and user expectations.
+> This plan is strictly focused on providing the basic developer experience that [Railway CLI](https://docs.railway.com/reference/cli-api) offers
