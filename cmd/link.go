@@ -136,30 +136,111 @@ var unlinkCmd = &cobra.Command{
 	Use:   "unlink",
 	Short: "🔓 Unlink project from current directory",
 	Long: `🔓 Remove the project association from the current directory.
-After unlinking, you'll need to specify project IDs in commands again.`,
+
+This command removes both the new context format (.pipeops/project.json) and 
+the legacy format (.pipeops file) to ensure complete unlinking.
+
+After unlinking, you'll need to specify project IDs in commands again.
+
+Examples:
+  - Unlink current directory:
+    pipeops unlink
+    
+  - Force unlink (no confirmation):
+    pipeops unlink --force`,
 	Run: func(cmd *cobra.Command, args []string) {
+		opts := utils.GetOutputOptions(cmd)
+		force, _ := cmd.Flags().GetBool("force")
+		
 		currentDir, err := os.Getwd()
 		if err != nil {
-			fmt.Printf("❌ Error getting current directory: %v\n", err)
+			utils.HandleError(err, "Error getting current directory", opts)
 			return
 		}
 
-		pipeopsFile := filepath.Join(currentDir, ".pipeops")
+		// Check if any project is linked
+		context, contextErr := utils.LoadProjectContext()
+		hasContext := contextErr == nil
+		
+		// Check for legacy .pipeops file
+		legacyFile := filepath.Join(currentDir, ".pipeops")
+		hasLegacy := false
+		if _, err := os.Stat(legacyFile); err == nil {
+			hasLegacy = true
+		}
+		
+		// Check for new context directory
+		contextDir := filepath.Join(currentDir, ".pipeops")
+		contextFile := filepath.Join(contextDir, "project.json")
+		hasContextDir := false
+		if _, err := os.Stat(contextFile); err == nil {
+			hasContextDir = true
+		}
 
-		// Check if .pipeops file exists
-		if _, err := os.Stat(pipeopsFile); os.IsNotExist(err) {
-			fmt.Println("📭 No project is linked to this directory.")
+		if !hasContext && !hasLegacy && !hasContextDir {
+			utils.PrintWarning("No project is linked to this directory", opts)
 			return
 		}
 
-		// Remove .pipeops file
-		if err := os.Remove(pipeopsFile); err != nil {
-			fmt.Printf("❌ Error removing .pipeops file: %v\n", err)
-			return
+		// Show what will be unlinked
+		if hasContext && !opts.Quiet {
+			fmt.Printf("\n📋 CURRENT LINK\n")
+			fmt.Printf("├─ Project: %s (%s)\n", context.ProjectName, context.ProjectID)
+			fmt.Printf("├─ Directory: %s\n", context.Directory)
+			fmt.Printf("└─ Linked at: %s\n", utils.FormatDate(context.LinkedAt))
 		}
 
-		fmt.Println("✅ Successfully unlinked project from current directory!")
-		fmt.Printf("🗑️  Removed %s\n", pipeopsFile)
+		// Confirm unlinking unless force flag is set
+		if !force && !opts.Quiet {
+			if !utils.ConfirmAction("\n⚠️  Are you sure you want to unlink this project?") {
+				utils.PrintInfo("Unlink cancelled", opts)
+				return
+			}
+		}
+
+		// Track what was removed
+		var removedItems []string
+
+		// Remove new context directory and all its contents
+		if hasContextDir {
+			if err := os.RemoveAll(contextDir); err != nil {
+				utils.PrintWarning(fmt.Sprintf("Could not remove .pipeops directory: %v", err), opts)
+			} else {
+				removedItems = append(removedItems, ".pipeops/")
+			}
+		}
+
+		// Remove legacy .pipeops file if it exists and wasn't removed as part of directory
+		if hasLegacy && !hasContextDir {
+			if err := os.Remove(legacyFile); err != nil {
+				utils.PrintWarning(fmt.Sprintf("Could not remove legacy .pipeops file: %v", err), opts)
+			} else {
+				removedItems = append(removedItems, ".pipeops")
+			}
+		}
+
+		// Success message
+		if len(removedItems) > 0 {
+			utils.PrintSuccess("Successfully unlinked project from current directory", opts)
+			
+			if !opts.Quiet {
+				fmt.Printf("\n🗑️  REMOVED\n")
+				for i, item := range removedItems {
+					if i == len(removedItems)-1 {
+						fmt.Printf("└─ %s\n", item)
+					} else {
+						fmt.Printf("├─ %s\n", item)
+					}
+				}
+				
+				fmt.Printf("\n💡 NEXT STEPS\n")
+				fmt.Printf("├─ Link another project: pipeops link\n")
+				fmt.Printf("├─ List projects: pipeops list\n")
+				fmt.Printf("└─ Specify project ID directly in commands\n")
+			}
+		} else {
+			utils.PrintError("Failed to unlink project", opts)
+		}
 	},
 	Args: cobra.NoArgs,
 }
@@ -167,4 +248,7 @@ After unlinking, you'll need to specify project IDs in commands again.`,
 func init() {
 	rootCmd.AddCommand(linkCmd)
 	rootCmd.AddCommand(unlinkCmd)
+	
+	// Add flags for unlink command
+	unlinkCmd.Flags().BoolP("force", "f", false, "Force unlink without confirmation")
 }
