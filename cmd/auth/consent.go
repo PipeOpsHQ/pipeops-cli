@@ -215,50 +215,6 @@ func displayConsentUnavailableMessage(cfg *config.Config, opts utils.OutputOptio
 	}
 }
 
-// getScopeIcon returns an appropriate icon for a scope
-func getScopeIcon(scope string) string {
-	switch scope {
-	case "read:user", "user:read":
-		return "👤"
-	case "read:projects", "projects:read":
-		return "📋"
-	case "write:projects", "projects:write":
-		return "✏️"
-	case "read:deployments", "deployments:read":
-		return "🚀"
-	case "write:deployments", "deployments:write":
-		return "🔧"
-	case "read:servers", "servers:read":
-		return "🖥️"
-	case "write:servers", "servers:write":
-		return "⚙️"
-	default:
-		return "🔹"
-	}
-}
-
-// getScopeDescription returns a description for a scope
-func getScopeDescription(scope string) string {
-	switch scope {
-	case "read:user", "user:read":
-		return "View your profile information"
-	case "read:projects", "projects:read":
-		return "View your projects"
-	case "write:projects", "projects:write":
-		return "Create and modify projects"
-	case "read:deployments", "deployments:read":
-		return "View deployment information"
-	case "write:deployments", "deployments:write":
-		return "Create and manage deployments"
-	case "read:servers", "servers:read":
-		return "View server information"
-	case "write:servers", "servers:write":
-		return "Manage servers"
-	default:
-		return ""
-	}
-}
-
 // formatConsentDuration formats a duration for display in consent context
 func formatConsentDuration(d time.Duration) string {
 	if d < 0 {

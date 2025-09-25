@@ -22,25 +22,55 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 RESET := \033[0m
 
-# Default target
+# Default target - builds secure production-ready binary
 .PHONY: all
 all: build
 
-# Build the CLI
+# Build targets:
+# - build:         Default secure production build (stripped symbols, build-time config)
+# - build-dev:     Development build (faster, includes debug symbols)
+# - build-race:    Secure build with race detection
+# - build-secure:  Custom configuration via environment variables
+# - build-enterprise: Pre-configured for enterprise deployment
+# - build-public:  Alias for default build (secure production build)
+
+# Build the CLI (secure production build by default)
 .PHONY: build
 build:
-	@echo "$(BLUE)Building $(APP_NAME) $(VERSION) for $(GOOS)/$(GOARCH)...$(RESET)"
+	@echo "$(BLUE)Building $(APP_NAME) $(VERSION) for $(GOOS)/$(GOARCH) (secure release build)...$(RESET)"
 	@mkdir -p $(BIN_DIR)
-	$(GO) build $(GOFLAGS) -ldflags "$(GO_LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME) .
-	@echo "$(GREEN)✓ Build complete: $(BIN_DIR)/$(APP_NAME)$(RESET)"
+	$(GO) build $(GOFLAGS) -ldflags "-s -w \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultClientID=pipeops_public_client' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultAPIURL=http://localhost:8002' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/updater.DefaultGitHubRepo=PipeOpsHQ/pipeops-cli' \
+		-X github.com/PipeOpsHQ/pipeops-cli/cmd.Version=$(VERSION) \
+		-X github.com/PipeOpsHQ/pipeops-cli/cmd.BuildDate=$(shell date -u +%Y-%m-%dT%H:%M:%SZ) \
+		-X github.com/PipeOpsHQ/pipeops-cli/cmd.GitCommit=$(shell git rev-parse HEAD)" \
+		-trimpath -o $(BIN_DIR)/$(APP_NAME) .
+	@echo "$(GREEN)✓ Secure build complete: $(BIN_DIR)/$(APP_NAME)$(RESET)"
 
-# Build with race detection
+# Build the CLI (development build - faster, includes debug symbols)
+.PHONY: build-dev
+build-dev:
+	@echo "$(BLUE)Building $(APP_NAME) $(VERSION) for $(GOOS)/$(GOARCH) (development build)...$(RESET)"
+	@mkdir -p $(BIN_DIR)
+	$(GO) build $(GOFLAGS) -ldflags "$(GO_LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME)-dev .
+	@echo "$(GREEN)✓ Development build complete: $(BIN_DIR)/$(APP_NAME)-dev$(RESET)"
+
+# Build with race detection (secure build + race detection)
 .PHONY: build-race
 build-race:
-	@echo "$(BLUE)Building $(APP_NAME) with race detection...$(RESET)"
+	@echo "$(BLUE)Building $(APP_NAME) with race detection (secure build)...$(RESET)"
 	@mkdir -p $(BIN_DIR)
-	$(GO) build $(GOFLAGS) -race -ldflags "$(GO_LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME)-race .
-	@echo "$(GREEN)✓ Build complete: $(BIN_DIR)/$(APP_NAME)-race$(RESET)"
+	$(GO) build $(GOFLAGS) -race -ldflags "-s -w \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultClientID=pipeops_public_client' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultAPIURL=' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/updater.DefaultGitHubRepo=PipeOpsHQ/pipeops-cli' \
+		-X github.com/PipeOpsHQ/pipeops-cli/cmd.Version=$(VERSION) \
+		-X github.com/PipeOpsHQ/pipeops-cli/cmd.BuildDate=$(shell date -u +%Y-%m-%dT%H:%M:%SZ) \
+		-X github.com/PipeOpsHQ/pipeops-cli/cmd.GitCommit=$(shell git rev-parse HEAD)" \
+		-trimpath -o $(BIN_DIR)/$(APP_NAME)-race .
+	@echo "$(GREEN)✓ Secure build with race detection complete: $(BIN_DIR)/$(APP_NAME)-race$(RESET)"
 
 # Run the application
 .PHONY: run
@@ -292,4 +322,42 @@ help:
 	@echo ""
 
 # Phony targets
-.PHONY: all build build-race run test test-coverage bench lint fmt tidy generate verify clean install cross-compile package docker-build docker-run docker-push release release-dry-run tag dev-setup pre-release check info help
+.PHONY: all build build-dev build-race run test test-coverage bench lint fmt tidy generate verify clean install cross-compile package docker-build docker-run docker-push release release-dry-run tag dev-setup pre-release check info help
+
+# Security-focused build targets
+.PHONY: build-secure build-enterprise build-public
+
+# Build with custom configuration injected at build time
+build-secure:
+	@echo "Building with secure configuration..."
+	go build -ldflags "-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultClientID=$(CLIENT_ID)' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultAPIURL=$(API_URL)' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultScopes=$(SCOPES)' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/updater.DefaultGitHubRepo=$(GITHUB_REPO)'" \
+		-o bin/pipeops .
+
+# Build for enterprise with custom endpoints
+build-enterprise:
+	@echo "Building enterprise version..."
+	go build -ldflags "-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultClientID=pipeops_enterprise_client' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultAPIURL=https://enterprise.pipeops.sh' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/updater.DefaultGitHubRepo=PipeOpsHQ/pipeops-cli-enterprise'" \
+		-o bin/pipeops-enterprise .
+
+# Build for public release (same as default build)
+build-public: build
+	@echo "$(GREEN)✓ Public release build complete (same as default build)$(RESET)"
+
+# Build with stripped symbols for production
+build-stripped:
+	@echo "Building with stripped symbols..."
+	go build -ldflags "-s -w" -trimpath -o bin/pipeops .
+
+# Build with UPX compression (requires UPX to be installed)
+build-compressed: build-stripped
+	@echo "Compressing binary..."
+	@if command -v upx >/dev/null 2>&1; then \
+		upx --best --ultra-brute bin/pipeops; \
+	else \
+		echo "UPX not installed, skipping compression"; \
+	fi

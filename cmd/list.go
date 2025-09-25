@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
+	"github.com/PipeOpsHQ/pipeops-cli/models"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
@@ -148,6 +149,10 @@ Examples:
 
 			projectsResp, err := client.GetProjects()
 			if err != nil {
+				// Handle authentication errors specifically
+				if !utils.HandleAuthError(err, opts) {
+					return
+				}
 				utils.HandleError(err, "Error fetching projects", opts)
 				return
 			}
@@ -156,42 +161,131 @@ Examples:
 				if opts.Format == utils.OutputFormatJSON {
 					utils.PrintJSON([]interface{}{})
 				} else {
-					utils.PrintWarning("No projects found. Create your first project to get started!", opts)
+					utils.PrintWarning("No projects found", opts)
+					fmt.Printf("\n🚀 GET STARTED\n")
+					fmt.Printf("├─ Create a project at: https://app.pipeops.io\n")
+					fmt.Printf("├─ Import from GitHub: pipeops create --from-github\n")
+					fmt.Printf("└─ Check documentation: https://docs.pipeops.io\n")
 				}
 				return
 			}
 
+			// Check if current directory is linked to a project
+			linkedProjectID := ""
+			if context, err := utils.LoadProjectContext(); err == nil {
+				linkedProjectID = context.ProjectID
+			}
+
 			// Format output
 			if opts.Format == utils.OutputFormatJSON {
-				utils.PrintJSON(projectsResp.Projects)
+				// Add linked status to JSON output
+				type ProjectWithLink struct {
+					*models.Project
+					IsLinked bool `json:"is_linked"`
+				}
+				
+				var projectsWithLink []ProjectWithLink
+				for _, project := range projectsResp.Projects {
+					p := project // Create a copy to avoid pointer issues
+					projectsWithLink = append(projectsWithLink, ProjectWithLink{
+						Project:  &p,
+						IsLinked: p.ID == linkedProjectID,
+					})
+				}
+				utils.PrintJSON(projectsWithLink)
 			} else {
-				// Prepare table data
-				headers := []string{"PROJECT ID", "PROJECT NAME", "STATUS", "CREATED"}
+				// Enhanced table display
+				fmt.Printf("\n📊 PROJECTS OVERVIEW\n")
+				fmt.Printf("├─ Total: %d projects\n", len(projectsResp.Projects))
+				
+				// Count projects by status
+				statusCounts := make(map[string]int)
+				for _, project := range projectsResp.Projects {
+					statusCounts[project.Status]++
+				}
+				
+				if len(statusCounts) > 0 {
+					fmt.Printf("└─ Status: ")
+					i := 0
+					for status, count := range statusCounts {
+						if i > 0 {
+							fmt.Printf(", ")
+						}
+						fmt.Printf("%s %s (%d)", utils.GetStatusIcon(status), status, count)
+						i++
+					}
+					fmt.Printf("\n")
+				}
+				
+				fmt.Printf("\n")
+				
+				// Prepare enhanced table data
+				headers := []string{"", "PROJECT ID", "PROJECT NAME", "STATUS", "ENVIRONMENT", "LAST UPDATED", "CREATED"}
 				var rows [][]string
 
 				for _, project := range projectsResp.Projects {
-					name := utils.TruncateString(project.Name, 30)
+					// Check if this is the linked project
+					linkedIndicator := "  "
+					if project.ID == linkedProjectID {
+						linkedIndicator = "→ "
+					}
+					
+					name := utils.TruncateString(project.Name, 25)
 					status := utils.GetStatusIcon(project.Status) + " " + project.Status
+					
+					// Get environment - using status as a proxy for environment
+					environment := "production" // Default
+					if project.Status == "development" || project.Status == "dev" {
+						environment = "development"
+					} else if project.Status == "staging" {
+						environment = "staging"
+					}
+					
+					// Format dates
 					created := utils.FormatDateShort(project.CreatedAt)
+					updated := utils.FormatDateShort(project.UpdatedAt)
 
 					rows = append(rows, []string{
+						linkedIndicator,
 						project.ID,
 						name,
 						status,
+						environment,
+						updated,
 						created,
 					})
 				}
 
 				utils.PrintTable(headers, rows, opts)
-				utils.PrintSuccess(fmt.Sprintf("Found %d projects", len(projectsResp.Projects)), opts)
-
-				// Show helpful tips
+				
+				// Show linked project info
+				if linkedProjectID != "" {
+					fmt.Printf("\n→ Linked to current directory\n")
+				}
+				
+				// Enhanced tips section
 				if !opts.Quiet {
-					fmt.Printf("\n💡 TIPS\n")
-					fmt.Printf("├─ Link a project: pipeops link <project-id>\n")
-					fmt.Printf("├─ Create project: pipeops create <project-name>\n")
+					fmt.Printf("\n💡 QUICK ACTIONS\n")
+					
+					if linkedProjectID != "" {
+						fmt.Printf("├─ Deploy linked project: pipeops deploy\n")
+						fmt.Printf("├─ View linked status: pipeops status\n")
+						fmt.Printf("├─ Unlink project: pipeops unlink\n")
+					} else {
+						fmt.Printf("├─ Link a project: pipeops link <project-id>\n")
+						fmt.Printf("├─ Interactive link: pipeops link\n")
+					}
+					
+					fmt.Printf("├─ View details: pipeops status <project-id>\n")
+					fmt.Printf("├─ View logs: pipeops logs --project <project-id>\n")
 					fmt.Printf("├─ List addons: pipeops list --addons\n")
-					fmt.Printf("└─ View project: pipeops status <project-id>\n")
+					fmt.Printf("└─ Deploy addon: pipeops deploy --addon <addon-id>\n")
+					
+					// Add filtering hint
+					fmt.Printf("\n🔍 COMING SOON\n")
+					fmt.Printf("├─ Filter by status: pipeops list --status active\n")
+					fmt.Printf("├─ Search projects: pipeops list --search <term>\n")
+					fmt.Printf("└─ Sort options: pipeops list --sort name|created|updated\n")
 				}
 			}
 		}

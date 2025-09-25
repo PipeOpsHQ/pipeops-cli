@@ -219,6 +219,52 @@ func RequireAuth(client interface{ IsAuthenticated() bool }, opts OutputOptions)
 	return true
 }
 
+// HandleAuthError handles authentication errors with specific messaging
+func HandleAuthError(err error, opts OutputOptions) bool {
+	if err == nil {
+		return true
+	}
+
+	// Check for specific authentication error types
+	errorStr := err.Error()
+
+	// Check for token expired
+	if strings.Contains(errorStr, "expired") || strings.Contains(errorStr, "expiration") {
+		PrintError("Your session has expired. Please run 'pipeops auth login' to authenticate again.", opts)
+		return false
+	}
+
+	// Check for token revoked
+	if strings.Contains(errorStr, "revoked") || strings.Contains(errorStr, "invalidated") {
+		PrintError("Your session has been revoked. Please run 'pipeops auth login' to authenticate again.", opts)
+		return false
+	}
+
+	// Check for invalid token
+	if strings.Contains(errorStr, "invalid") || strings.Contains(errorStr, "malformed") {
+		PrintError("Your authentication token is invalid. Please run 'pipeops auth login' to authenticate again.", opts)
+		return false
+	}
+
+	// Check for refresh failed
+	if strings.Contains(errorStr, "refresh") && strings.Contains(errorStr, "failed") {
+		PrintError("Failed to refresh your session. Please run 'pipeops auth login' to authenticate again.", opts)
+		return false
+	}
+
+	// Check if it's a general authentication error
+	if strings.Contains(errorStr, "authentication") ||
+		strings.Contains(errorStr, "unauthorized") ||
+		strings.Contains(errorStr, "401") ||
+		strings.Contains(errorStr, "invalid token") {
+		PrintError("Authentication failed. Please run 'pipeops auth login' to authenticate again.", opts)
+		return false
+	}
+
+	// Not an authentication error, return true to let caller handle it
+	return true
+}
+
 // HandleError handles errors consistently across commands
 func HandleError(err error, message string, opts OutputOptions) {
 	if err != nil {

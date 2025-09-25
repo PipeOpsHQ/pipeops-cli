@@ -9,21 +9,115 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PipeOpsHQ/pipeops-cli/internal/auth"
+	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
 	"github.com/go-resty/resty/v2"
 )
 
 var (
-	ErrInvalidToken           = errors.New("invalid token")
-	ErrVerificationFailed     = errors.New("token verification failed")
-	PIPEOPS_CONTROL_PLANE_API = ""
+	ErrInvalidToken       = errors.New("invalid token")
+	ErrVerificationFailed = errors.New("token verification failed")
 )
 
-func init() {
-	PIPEOPS_CONTROL_PLANE_API = os.Getenv("PIPEOPS_API_URL")
-	if PIPEOPS_CONTROL_PLANE_API == "" {
-		PIPEOPS_CONTROL_PLANE_API = "https://api.pipeops.sh" // Default API URL
+// Removed init() function - now using secure configuration approach
+
+// validateToken proactively validates a token by making a test request
+func (h *HttpClient) validateToken(token string) error {
+	if strings.TrimSpace(token) == "" {
+		return auth.NewAuthError("token_invalid", "Token is empty", 401, nil)
 	}
+
+	// Try to validate token by making a request to a validation endpoint
+	// We'll use the userinfo endpoint since it's lightweight and always available
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		Get("/oauth/userinfo")
+	if err != nil {
+		return auth.NewAuthError("validation_failed",
+			fmt.Sprintf("Token validation failed: %v", err), 401, err)
+	}
+
+	// Check for authentication errors
+	if resp.StatusCode() == 401 {
+		return detectAuthError(resp)
+	}
+
+	// If we get a successful response, token is valid
+	if resp.StatusCode() == 200 {
+		return nil
+	}
+
+	// For other status codes, assume token is invalid
+	return auth.NewAuthError("token_invalid",
+		fmt.Sprintf("Token validation failed with status %d", resp.StatusCode()),
+		resp.StatusCode(), nil)
+}
+
+// detectAuthError analyzes API response to determine the specific authentication error
+func detectAuthError(resp *resty.Response) error {
+	if resp.StatusCode() != 401 {
+		return nil
+	}
+
+	// Try to parse error response for more specific error information
+	var errorResp struct {
+		Error       string `json:"error"`
+		Description string `json:"error_description"`
+		Code        int    `json:"code"`
+	}
+
+	body := resp.Body()
+	if len(body) > 0 {
+		if err := json.Unmarshal(body, &errorResp); err == nil {
+			// Check for specific error types in the response
+			errorStr := strings.ToLower(errorResp.Error)
+			descStr := strings.ToLower(errorResp.Description)
+
+			// Token expired
+			if strings.Contains(errorStr, "expired") ||
+				strings.Contains(descStr, "expired") ||
+				strings.Contains(errorStr, "expiration") ||
+				strings.Contains(descStr, "expiration") {
+				return auth.NewAuthError("token_expired",
+					"Your session has expired. Please run 'pipeops auth login' to authenticate again.",
+					401, nil)
+			}
+
+			// Token revoked
+			if strings.Contains(errorStr, "revoked") ||
+				strings.Contains(descStr, "revoked") ||
+				strings.Contains(errorStr, "invalidated") ||
+				strings.Contains(descStr, "invalidated") {
+				return auth.NewAuthError("token_revoked",
+					"Your session has been revoked. Please run 'pipeops auth login' to authenticate again.",
+					401, nil)
+			}
+
+			// Invalid token
+			if strings.Contains(errorStr, "invalid") ||
+				strings.Contains(descStr, "invalid") ||
+				strings.Contains(errorStr, "malformed") ||
+				strings.Contains(descStr, "malformed") {
+				return auth.NewAuthError("token_invalid",
+					"Your authentication token is invalid. Please run 'pipeops auth login' to authenticate again.",
+					401, nil)
+			}
+
+			// Provide specific error message if available
+			if errorResp.Description != "" {
+				return auth.NewAuthError("authentication_failed",
+					fmt.Sprintf("Authentication failed: %s", errorResp.Description),
+					401, nil)
+			}
+		}
+	}
+
+	// Default 401 error
+	return auth.NewAuthError("authentication_failed",
+		"Authentication failed. Please run 'pipeops auth login' to authenticate again.",
+		401, nil)
 }
 
 type HttpClients interface {
@@ -47,13 +141,25 @@ type HttpClients interface {
 	DeployAddon(token string, req *models.AddonDeployRequest) (*models.AddonDeployResponse, error)
 	GetAddonDeployments(token string, projectID string) ([]models.AddonDeployment, error)
 	DeleteAddonDeployment(token string, deploymentID string) error
+
+	// Server Management
+	GetServers(token string) (*models.ServersResponse, error)
+	GetServer(token string, serverID string) (*models.Server, error)
+	CreateServer(token string, req *models.ServerCreateRequest) (*models.Server, error)
+	UpdateServer(token string, serverID string, req *models.ServerUpdateRequest) (*models.Server, error)
+	DeleteServer(token string, serverID string) error
 }
 
 type HttpClient struct {
-	client *resty.Client
+	client  *resty.Client
+	baseURL string
 }
 
 func NewHttpClient() HttpClients {
+	return NewHttpClientWithURL(config.GetAPIURL())
+}
+
+func NewHttpClientWithURL(baseURL string) HttpClients {
 	r := resty.New()
 
 	// Enable debug mode if environment variable is set
@@ -61,11 +167,13 @@ func NewHttpClient() HttpClients {
 		r.Debug = true
 	}
 
-	URL := strings.TrimSpace(PIPEOPS_CONTROL_PLANE_API)
+	// Use the provided base URL
+	URL := strings.TrimSpace(baseURL)
 	r.SetBaseURL(URL)
 
 	return &HttpClient{
-		client: r,
+		client:  r,
+		baseURL: URL,
 	}
 }
 
@@ -118,6 +226,11 @@ func (h *HttpClient) GetProjects(token string) (*models.ProjectsResponse, error)
 		return nil, errors.New("token is empty")
 	}
 
+	// Validate token before making the request
+	if err := h.validateToken(token); err != nil {
+		return nil, err
+	}
+
 	resp, err := h.client.R().
 		SetHeader("Authorization", "Bearer "+token).
 		SetHeader("Content-Type", "application/json").
@@ -127,6 +240,9 @@ func (h *HttpClient) GetProjects(token string) (*models.ProjectsResponse, error)
 	}
 
 	if resp.StatusCode() == 401 {
+		if authErr := detectAuthError(resp); authErr != nil {
+			return nil, authErr
+		}
 		return nil, ErrInvalidToken
 	}
 
@@ -134,8 +250,20 @@ func (h *HttpClient) GetProjects(token string) (*models.ProjectsResponse, error)
 		return nil, fmt.Errorf("API error: %s", resp.String())
 	}
 
+	// Handle empty response body
+	body := resp.Body()
+	if len(body) == 0 {
+		// Return empty projects response when API returns empty body
+		return &models.ProjectsResponse{
+			Projects: []models.Project{},
+			Total:    0,
+			Page:     1,
+			PerPage:  10,
+		}, nil
+	}
+
 	var projectsResp *models.ProjectsResponse
-	if err := json.Unmarshal(resp.Body(), &projectsResp); err != nil {
+	if err := json.Unmarshal(body, &projectsResp); err != nil {
 		return nil, fmt.Errorf("failed to parse projects response: %w", err)
 	}
 
@@ -879,6 +1007,217 @@ func (h *HttpClient) DeleteAddonDeployment(token string, deploymentID string) er
 
 	if resp.StatusCode() == 404 {
 		return fmt.Errorf("deployment not found")
+	}
+
+	if resp.IsError() {
+		return fmt.Errorf("API error: %s", resp.String())
+	}
+
+	return nil
+}
+
+// GetServers retrieves all servers for the authenticated user
+func (h *HttpClient) GetServers(token string) (*models.ServersResponse, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	// Validate token before making the request
+	if err := h.validateToken(token); err != nil {
+		return nil, err
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		Get("/servers")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get servers: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		if authErr := detectAuthError(resp); authErr != nil {
+			return nil, authErr
+		}
+		return nil, ErrInvalidToken
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	// Handle empty response body
+	body := resp.Body()
+	if len(body) == 0 {
+		// Return empty servers response when API returns empty body
+		return &models.ServersResponse{
+			Servers: []models.Server{},
+			Total:   0,
+			Page:    1,
+			PerPage: 10,
+		}, nil
+	}
+
+	var serversResp *models.ServersResponse
+	if err := json.Unmarshal(body, &serversResp); err != nil {
+		return nil, fmt.Errorf("failed to parse servers response: %w", err)
+	}
+
+	return serversResp, nil
+}
+
+// GetServer retrieves a specific server by ID
+func (h *HttpClient) GetServer(token string, serverID string) (*models.Server, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	if strings.TrimSpace(serverID) == "" {
+		return nil, errors.New("server ID is empty")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		Get("/servers/" + serverID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get server: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		return nil, ErrInvalidToken
+	}
+
+	if resp.StatusCode() == 404 {
+		return nil, fmt.Errorf("server not found")
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	var server *models.Server
+	if err := json.Unmarshal(resp.Body(), &server); err != nil {
+		return nil, fmt.Errorf("failed to parse server response: %w", err)
+	}
+
+	return server, nil
+}
+
+// CreateServer creates a new server
+func (h *HttpClient) CreateServer(token string, req *models.ServerCreateRequest) (*models.Server, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	if req == nil {
+		return nil, errors.New("request is nil")
+	}
+
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, errors.New("server name is required")
+	}
+
+	if strings.TrimSpace(req.Type) == "" {
+		return nil, errors.New("server type is required")
+	}
+
+	if strings.TrimSpace(req.Region) == "" {
+		return nil, errors.New("server region is required")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		SetBody(req).
+		Post("/servers")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create server: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		return nil, ErrInvalidToken
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	var server *models.Server
+	if err := json.Unmarshal(resp.Body(), &server); err != nil {
+		return nil, fmt.Errorf("failed to parse server response: %w", err)
+	}
+
+	return server, nil
+}
+
+// UpdateServer updates an existing server
+func (h *HttpClient) UpdateServer(token string, serverID string, req *models.ServerUpdateRequest) (*models.Server, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	if strings.TrimSpace(serverID) == "" {
+		return nil, errors.New("server ID is empty")
+	}
+
+	if req == nil {
+		return nil, errors.New("request is nil")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		SetBody(req).
+		Put("/servers/" + serverID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update server: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		return nil, ErrInvalidToken
+	}
+
+	if resp.StatusCode() == 404 {
+		return nil, fmt.Errorf("server not found")
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	var server *models.Server
+	if err := json.Unmarshal(resp.Body(), &server); err != nil {
+		return nil, fmt.Errorf("failed to parse server response: %w", err)
+	}
+
+	return server, nil
+}
+
+// DeleteServer deletes a server
+func (h *HttpClient) DeleteServer(token string, serverID string) error {
+	if strings.TrimSpace(token) == "" {
+		return errors.New("token is empty")
+	}
+
+	if strings.TrimSpace(serverID) == "" {
+		return errors.New("server ID is empty")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		Delete("/servers/" + serverID)
+	if err != nil {
+		return fmt.Errorf("failed to delete server: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		return ErrInvalidToken
+	}
+
+	if resp.StatusCode() == 404 {
+		return fmt.Errorf("server not found")
 	}
 
 	if resp.IsError() {
