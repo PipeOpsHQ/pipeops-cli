@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Client represents a Tailscale client for managing VPN connections
+// Client represents a Tailscale client for managing VPN connections and Funnel exposure
 type Client struct {
 	authKey string
 }
@@ -139,6 +139,169 @@ func (c *Client) Ping(peer string) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to ping peer %s: %w, output: %s", peer, err, string(output))
+	}
+
+	return nil
+}
+
+// EnableFunnel enables Tailscale Funnel for port 80 exposure
+func (c *Client) EnableFunnel(port int) error {
+	if !c.IsInstalled() {
+		return errors.New("tailscale is not installed")
+	}
+
+	if port == 0 {
+		port = 80 // Default to port 80
+	}
+
+	cmd := exec.Command("tailscale", "serve", "funnel", fmt.Sprintf("%d", port))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to enable funnel on port %d: %w, output: %s", port, err, string(output))
+	}
+
+	return nil
+}
+
+// DisableFunnel disables Tailscale Funnel
+func (c *Client) DisableFunnel() error {
+	if !c.IsInstalled() {
+		return errors.New("tailscale is not installed")
+	}
+
+	cmd := exec.Command("tailscale", "serve", "funnel", "off")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to disable funnel: %w, output: %s", err, string(output))
+	}
+
+	return nil
+}
+
+// GetFunnelStatus returns the current Funnel status
+func (c *Client) GetFunnelStatus() (string, error) {
+	if !c.IsInstalled() {
+		return "", errors.New("tailscale is not installed")
+	}
+
+	cmd := exec.Command("tailscale", "serve", "status")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get funnel status: %w", err)
+	}
+
+	return string(output), nil
+}
+
+// GetFunnelURL returns the public URL for the Funnel service
+func (c *Client) GetFunnelURL() (string, error) {
+	if !c.IsInstalled() {
+		return "", errors.New("tailscale is not installed")
+	}
+
+	cmd := exec.Command("tailscale", "serve", "status", "--json")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get funnel URL: %w", err)
+	}
+
+	// Parse JSON output to extract the public URL
+	// This is a simplified implementation - in production you'd want proper JSON parsing
+	outputStr := string(output)
+	if strings.Contains(outputStr, "funnel") {
+		// Extract URL from the JSON response
+		// This is a basic implementation - you might want to use proper JSON parsing
+		lines := strings.Split(outputStr, "\n")
+		for _, line := range lines {
+			if strings.Contains(line, "https://") {
+				// Extract URL from the line
+				start := strings.Index(line, "https://")
+				if start != -1 {
+					end := strings.Index(line[start:], "\"")
+					if end != -1 {
+						return line[start : start+end], nil
+					}
+				}
+			}
+		}
+	}
+
+	return "", errors.New("no funnel URL found")
+}
+
+// InstallTailscale installs Tailscale on the system
+func (c *Client) InstallTailscale() error {
+	// Check if already installed
+	if c.IsInstalled() {
+		return nil
+	}
+
+	// Detect OS and install accordingly
+	cmd := exec.Command("sh", "-c", "curl -fsSL https://tailscale.com/install.sh | sh")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to install tailscale: %w, output: %s", err, string(output))
+	}
+
+	return nil
+}
+
+// SetupKubernetesOperator installs and configures the Tailscale Kubernetes operator
+func (c *Client) SetupKubernetesOperator() error {
+	if !c.IsInstalled() {
+		return errors.New("tailscale is not installed")
+	}
+
+	// Install the Tailscale Kubernetes operator
+	operatorCmd := `kubectl apply -f https://raw.githubusercontent.com/tailscale/tailscale/main/cmd/k8s-operator/deploy.yaml`
+	cmd := exec.Command("sh", "-c", operatorCmd)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to install tailscale kubernetes operator: %w, output: %s", err, string(output))
+	}
+
+	return nil
+}
+
+// CreateIngressWithFunnel creates a Kubernetes ingress with Tailscale Funnel enabled
+func (c *Client) CreateIngressWithFunnel(serviceName, hostname string, port int) error {
+	if !c.IsInstalled() {
+		return errors.New("tailscale is not installed")
+	}
+
+	if port == 0 {
+		port = 80
+	}
+
+	// Create ingress manifest with Tailscale Funnel annotation
+	ingressManifest := fmt.Sprintf(`
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: %s-funnel-ingress
+  annotations:
+    tailscale.com/funnel: "true"
+spec:
+  ingressClassName: tailscale
+  rules:
+  - host: %s
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: %s
+            port:
+              number: %d
+`, serviceName, hostname, serviceName, port)
+
+	// Apply the ingress manifest
+	cmd := exec.Command("kubectl", "apply", "-f", "-")
+	cmd.Stdin = strings.NewReader(ingressManifest)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to create ingress with funnel: %w, output: %s", err, string(output))
 	}
 
 	return nil

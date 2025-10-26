@@ -1,4 +1,4 @@
-# PipeOps CLI 🚀
+# Tailscale Kubernetes CLI 🚀
 
 [![Release](https://github.com/PipeOpsHQ/pipeops-cli/actions/workflows/release.yml/badge.svg)](https://github.com/PipeOpsHQ/pipeops-cli/actions/workflows/release.yml)
 [![CodeQL Analysis](https://github.com/PipeOpsHQ/pipeops-cli/actions/workflows/code-analysis.yml/badge.svg)](https://github.com/PipeOpsHQ/pipeops-cli/actions)
@@ -7,7 +7,7 @@
 [![GitHub Release](https://img.shields.io/github/release/PipeOpsHQ/pipeops-cli.svg)](https://github.com/PipeOpsHQ/pipeops-cli/releases)
 [![Docker Pulls](https://img.shields.io/docker/pulls/pipeops/pipeops-cli.svg)](https://hub.docker.com/r/pipeops/pipeops-cli)
 
-PipeOps CLI is a powerful command-line interface designed to simplify managing cloud-native environments, deploying projects, and interacting with the PipeOps platform. With PipeOps CLI, you can provision servers, deploy applications, manage projects, and monitor your infrastructure seamlessly.
+Tailscale Kubernetes CLI is a powerful command-line interface designed to simplify Tailscale installation and configuration for Kubernetes clusters. With this CLI, you can easily install Tailscale, configure Tailscale Funnel for public port 80 access, and manage your Kubernetes ingress through secure Tailscale tunnels.
 
 ---
 
@@ -47,39 +47,37 @@ go install github.com/PipeOpsHQ/pipeops-cli@latest
 
 ## ✨ Features
 
-- **🔐 OAuth Authentication**: Secure authentication with PKCE flow
-- **📦 Project Management**: Create, manage, and deploy projects
-- **🚀 Server Management**: Provision and configure servers across multiple environments
-- **🔧 Pipeline Management**: Create, manage, and deploy CI/CD pipelines
-- **🤖 Agent Setup**: Install and configure PipeOps agents for various platforms
-- **🌐 Cross-Platform Support**: Available for Linux, Windows, macOS, and FreeBSD
-- **📊 Status Monitoring**: Real-time status updates and monitoring
+- **🔐 Tailscale Integration**: Automatic Tailscale installation and configuration
+- **🌐 Tailscale Funnel**: Easy setup for public port 80 exposure via Tailscale Funnel
+- **🚀 Kubernetes Support**: Native support for k3s, minikube, k3d, and kind clusters
+- **🔧 Ingress Management**: Automatic ingress configuration with Tailscale annotations
+- **📦 Operator Installation**: Automated Tailscale Kubernetes operator setup
+- **🌍 Public Access**: Secure public internet access to your Kubernetes services
 - **🎨 Beautiful UI**: Rich terminal interface with colors and progress indicators
 
 ---
 
 ## 🏃‍♂️ Quick Start
 
-### 1. Authenticate with PipeOps
+### 1. Install Tailscale and setup Kubernetes cluster
 ```bash
-pipeops auth login
+pipeops agent install tskey-auth-your-key-here
 ```
 
-### 2. Check your authentication status
+### 2. Check Tailscale status
 ```bash
-pipeops auth status
+tailscale status
 ```
 
-### 3. List your projects
+### 3. Verify Funnel is enabled
 ```bash
-pipeops project list
+tailscale serve status
 ```
 
 ### 4. Get help for any command
 ```bash
 pipeops --help
-pipeops auth --help
-pipeops project --help
+pipeops agent --help
 ```
 
 ---
@@ -88,12 +86,10 @@ pipeops project --help
 
 | Command | Description | Examples |
 |---------|-------------|----------|
-| `pipeops auth` | Manage authentication and user details | `pipeops auth login`, `pipeops auth status` |
-| `pipeops project` | Manage, list, and deploy PipeOps projects | `pipeops project list`, `pipeops project create` |
-| `pipeops deploy` | Manage and deploy CI/CD pipelines | `pipeops deploy pipeline`, `pipeops deploy status` |
-| `pipeops server` | Manage server-related operations | `pipeops server deploy`, `pipeops server status` |
+| `pipeops agent install` | Install Tailscale and configure Funnel | `pipeops agent install tskey-auth-key` |
+| `pipeops agent join` | Join worker node to existing cluster | `pipeops agent join https://server:6443 token` |
+| `pipeops proxy` | Manage proxy connections | `pipeops proxy start service --port 8080` |
 | `pipeops k3s` | Manage K3s clusters | `pipeops k3s install`, `pipeops k3s join` |
-| `pipeops agent` | Manage PipeOps agents | `pipeops agent install`, `pipeops agent status` |
 
 ### Global Flags
 - `--help, -h`: Show help for any command
@@ -105,14 +101,15 @@ pipeops project --help
 
 ## 🔧 Configuration
 
-PipeOps CLI stores configuration in `~/.pipeops.json`. This includes:
-- Authentication tokens
-- User preferences
+Tailscale Kubernetes CLI stores configuration in `~/.pipeops.json`. This includes:
+- Tailscale authentication settings
+- Cluster preferences
 - Default settings
 
 ### Environment Variables
-- `PIPEOPS_CONFIG_PATH`: Custom config file location
-- `PIPEOPS_API_URL`: Custom API endpoint
+- `TAILSCALE_AUTH_KEY`: Tailscale authentication key
+- `CLUSTER_NAME`: Default cluster name
+- `CLUSTER_TYPE`: Default cluster type (k3s, minikube, k3d, kind)
 - `PIPEOPS_LOG_LEVEL`: Log level (debug, info, warn, error)
 
 ---
