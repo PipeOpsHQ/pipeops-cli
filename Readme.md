@@ -1,4 +1,4 @@
-# Tailscale Kubernetes CLI 🚀
+# PipeOps CLI 🚀
 
 [![Release](https://github.com/PipeOpsHQ/pipeops-cli/actions/workflows/release.yml/badge.svg)](https://github.com/PipeOpsHQ/pipeops-cli/actions/workflows/release.yml)
 [![CodeQL Analysis](https://github.com/PipeOpsHQ/pipeops-cli/actions/workflows/code-analysis.yml/badge.svg)](https://github.com/PipeOpsHQ/pipeops-cli/actions)
@@ -7,18 +7,20 @@
 [![GitHub Release](https://img.shields.io/github/release/PipeOpsHQ/pipeops-cli.svg)](https://github.com/PipeOpsHQ/pipeops-cli/releases)
 [![Docker Pulls](https://img.shields.io/docker/pulls/pipeops/pipeops-cli.svg)](https://hub.docker.com/r/pipeops/pipeops-cli)
 
-Tailscale Kubernetes CLI is a powerful command-line interface designed to simplify Tailscale installation and configuration for Kubernetes clusters. With this CLI, you can easily install Tailscale, configure Tailscale Funnel for public port 80 access, and manage your Kubernetes ingress through secure Tailscale tunnels.
+PipeOps CLI is a powerful command-line interface designed to simplify managing cloud-native environments, deploying projects, and interacting with the PipeOps platform. With PipeOps CLI, you can provision servers, deploy applications, manage projects, and monitor your infrastructure seamlessly.
 
 ---
 
 ## 🚀 Quick Install
 
 ### macOS & Linux (Recommended)
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.sh | sh
 ```
 
 ### Windows (PowerShell)
+
 ```powershell
 irm https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.ps1 | iex
 ```
@@ -26,17 +28,20 @@ irm https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.ps1 | i
 ### Package Managers
 
 #### Homebrew (macOS/Linux)
+
 ```bash
 brew tap pipeops/pipeops
 brew install pipeops
 ```
 
 #### Docker
+
 ```bash
 docker run --rm -it ghcr.io/pipeopshq/pipeops-cli:latest --help
 ```
 
 #### Go Install
+
 ```bash
 go install github.com/PipeOpsHQ/pipeops-cli@latest
 ```
@@ -47,51 +52,60 @@ go install github.com/PipeOpsHQ/pipeops-cli@latest
 
 ## ✨ Features
 
-- **🔐 Tailscale Integration**: Automatic Tailscale installation and configuration
-- **🌐 Tailscale Funnel**: Easy setup for public port 80 exposure via Tailscale Funnel
-- **🚀 Kubernetes Support**: Native support for k3s, minikube, k3d, and kind clusters
-- **🔧 Ingress Management**: Automatic ingress configuration with Tailscale annotations
-- **📦 Operator Installation**: Automated Tailscale Kubernetes operator setup
-- **🌍 Public Access**: Secure public internet access to your Kubernetes services
+- **🔐 OAuth Authentication**: Secure authentication with PKCE flow
+- **📦 Project Management**: Create, manage, and deploy projects
+- **🚀 Server Management**: Provision and configure servers across multiple environments
+- **🔧 Pipeline Management**: Create, manage, and deploy CI/CD pipelines
+- **🤖 Agent Setup**: Install and configure PipeOps agents for various platforms
+- **🌐 Cross-Platform Support**: Available for Linux, Windows, macOS, and FreeBSD
+- **📊 Status Monitoring**: Real-time status updates and monitoring
 - **🎨 Beautiful UI**: Rich terminal interface with colors and progress indicators
 
 ---
 
 ## 🏃‍♂️ Quick Start
 
-### 1. Install Tailscale and setup Kubernetes cluster
+### 1. Authenticate with PipeOps
+
 ```bash
-pipeops agent install tskey-auth-your-key-here
+pipeops auth login
 ```
 
-### 2. Check Tailscale status
+### 2. Check your authentication status
+
 ```bash
-tailscale status
+pipeops auth status
 ```
 
-### 3. Verify Funnel is enabled
+### 3. List your projects
+
 ```bash
-tailscale serve status
+pipeops project list
 ```
 
 ### 4. Get help for any command
+
 ```bash
 pipeops --help
-pipeops agent --help
+pipeops auth --help
+pipeops project --help
 ```
 
 ---
 
 ## 📖 Commands Overview
 
-| Command | Description | Examples |
-|---------|-------------|----------|
-| `pipeops agent install` | Install Tailscale and configure Funnel | `pipeops agent install tskey-auth-key` |
-| `pipeops agent join` | Join worker node to existing cluster | `pipeops agent join https://server:6443 token` |
-| `pipeops proxy` | Manage proxy connections | `pipeops proxy start service --port 8080` |
-| `pipeops k3s` | Manage K3s clusters | `pipeops k3s install`, `pipeops k3s join` |
+| Command           | Description                               | Examples                                           |
+| ----------------- | ----------------------------------------- | -------------------------------------------------- |
+| `pipeops auth`    | Manage authentication and user details    | `pipeops auth login`, `pipeops auth status`        |
+| `pipeops project` | Manage, list, and deploy PipeOps projects | `pipeops project list`, `pipeops project create`   |
+| `pipeops deploy`  | Manage and deploy CI/CD pipelines         | `pipeops deploy pipeline`, `pipeops deploy status` |
+| `pipeops server`  | Manage server-related operations          | `pipeops server deploy`, `pipeops server status`   |
+| `pipeops k3s`     | Manage K3s clusters                       | `pipeops k3s install`, `pipeops k3s join`          |
+| `pipeops agent`   | Manage PipeOps agents                     | `pipeops agent install`, `pipeops agent status`    |
 
 ### Global Flags
+
 - `--help, -h`: Show help for any command
 - `--version, -v`: Show version information
 - `--json`: Output results in JSON format
@@ -101,15 +115,16 @@ pipeops agent --help
 
 ## 🔧 Configuration
 
-Tailscale Kubernetes CLI stores configuration in `~/.pipeops.json`. This includes:
-- Tailscale authentication settings
-- Cluster preferences
+PipeOps CLI stores configuration in `~/.pipeops.json`. This includes:
+
+- Authentication tokens
+- User preferences
 - Default settings
 
 ### Environment Variables
-- `TAILSCALE_AUTH_KEY`: Tailscale authentication key
-- `CLUSTER_NAME`: Default cluster name
-- `CLUSTER_TYPE`: Default cluster type (k3s, minikube, k3d, kind)
+
+- `PIPEOPS_CONFIG_PATH`: Custom config file location
+- `PIPEOPS_API_URL`: Custom API endpoint
 - `PIPEOPS_LOG_LEVEL`: Log level (debug, info, warn, error)
 
 ---
@@ -117,10 +132,12 @@ Tailscale Kubernetes CLI stores configuration in `~/.pipeops.json`. This include
 ## 🛠️ Development
 
 ### Prerequisites
+
 - [Go](https://golang.org/) 1.23 or later
 - [Git](https://git-scm.com/)
 
 ### Setup
+
 ```bash
 # Clone the repository
 git clone https://github.com/PipeOpsHQ/pipeops-cli.git
@@ -140,6 +157,7 @@ make lint
 ```
 
 ### Available Make Targets
+
 ```bash
 make build          # Build the binary
 make test           # Run tests
@@ -152,6 +170,7 @@ make docker-run     # Run in Docker
 ```
 
 ### Project Structure
+
 ```
 pipeops-cli/
 ├── cmd/                 # CLI commands
@@ -176,6 +195,7 @@ pipeops-cli/
 ## 🐳 Docker Usage
 
 ### Run CLI in Docker
+
 ```bash
 # Basic usage
 docker run --rm -it ghcr.io/pipeopshq/pipeops-cli:latest --help
@@ -193,8 +213,9 @@ docker run --rm -it \
 ```
 
 ### Docker Compose
+
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   pipeops-cli:
     image: ghcr.io/pipeopshq/pipeops-cli:latest
@@ -209,15 +230,15 @@ services:
 
 PipeOps CLI supports the following platforms:
 
-| Platform | Architecture | Status |
-|----------|-------------|---------|
-| Linux | x86_64 | ✅ |
-| Linux | ARM64 | ✅ |
-| Linux | ARM | ✅ |
-| macOS | x86_64 (Intel) | ✅ |
-| macOS | ARM64 (M1/M2) | ✅ |
-| Windows | x86_64 | ✅ |
-| FreeBSD | x86_64 | ✅ |
+| Platform | Architecture   | Status |
+| -------- | -------------- | ------ |
+| Linux    | x86_64         | ✅     |
+| Linux    | ARM64          | ✅     |
+| Linux    | ARM            | ✅     |
+| macOS    | x86_64 (Intel) | ✅     |
+| macOS    | ARM64 (M1/M2)  | ✅     |
+| Windows  | x86_64         | ✅     |
+| FreeBSD  | x86_64         | ✅     |
 
 ---
 
@@ -231,6 +252,7 @@ We welcome contributions! Here's how to get started:
 4. **Submit a pull request** with a clear description
 
 ### Contribution Guidelines
+
 - Follow Go best practices and conventions
 - Write clear, commented code
 - Include tests for new functionality
@@ -284,6 +306,7 @@ This project is licensed under the [MIT License](LICENSE).
 ## 🙏 Acknowledgments
 
 Special thanks to:
+
 - All contributors and users of PipeOps CLI
 - The Go community for excellent tools and libraries
 - GitHub for providing CI/CD infrastructure
@@ -291,4 +314,4 @@ Special thanks to:
 
 ---
 
-*Made with ❤️ by the PipeOps team*
+_Made with ❤️ by the PipeOps team_
