@@ -1,22 +1,22 @@
-# PipeOps CLI Documentation
+# Tailscale Kubernetes CLI Documentation
 
-Welcome to the comprehensive documentation for PipeOps CLI - a powerful command-line interface designed to simplify managing cloud-native environments, deploying projects, and interacting with the PipeOps platform.
+Welcome to the comprehensive documentation for Tailscale Kubernetes CLI - a powerful command-line interface designed to simplify Tailscale installation, configuration, and management for Kubernetes clusters with Tailscale Funnel support.
 
-## 🚀 What is PipeOps CLI?
+## 🚀 What is Tailscale Kubernetes CLI?
 
-PipeOps CLI is a modern, cross-platform command-line tool that provides a unified interface for:
+Tailscale Kubernetes CLI is a modern, cross-platform command-line tool that provides a unified interface for:
 
-- **🔐 Authentication**: Secure OAuth-based authentication with PKCE flow
-- **📦 Project Management**: Create, manage, and deploy projects seamlessly
-- **🚀 Server Management**: Provision and configure servers across multiple environments
-- **🔧 Pipeline Management**: Create, manage, and deploy CI/CD pipelines
-- **🤖 Agent Setup**: Install and configure PipeOps agents for various platforms
-- **🌐 Cross-Platform Support**: Available for Linux, Windows, macOS, and FreeBSD
+- **🔐 Tailscale Installation**: Automatic Tailscale installation and configuration
+- **🌐 Tailscale Funnel**: Easy setup for public port 80 exposure via Tailscale Funnel
+- **🚀 Kubernetes Integration**: Native support for k3s, minikube, k3d, and kind clusters
+- **🔧 Ingress Management**: Automatic ingress configuration with Tailscale annotations
+- **📦 Operator Setup**: Automated Tailscale Kubernetes operator installation
+- **🌍 Public Access**: Secure public internet access to your Kubernetes services
 
 ## 🎯 Key Features
 
 - **Beautiful Terminal UI**: Rich interface with colors, progress indicators, and intuitive design
-- **Comprehensive Command Set**: Over 20 commands covering all aspects of cloud-native management
+- **Comprehensive Command Set**: Commands covering Tailscale installation and Kubernetes integration
 - **Docker Support**: Run in containers with full functionality
 - **CI/CD Ready**: Perfect for automation and integration workflows
 - **Extensive Documentation**: Detailed guides, examples, and API references
@@ -32,11 +32,9 @@ PipeOps CLI is a modern, cross-platform command-line tool that provides a unifie
 === "Commands"
 
     - [Overview](commands/overview.md) - Complete command reference
-    - [Authentication](commands/auth.md) - Login, logout, and user management
-    - [Projects](commands/projects.md) - Project creation and management
-    - [Deployments](commands/deployments.md) - Deploy applications and pipelines
-    - [Agents](commands/agents.md) - Install and manage PipeOps agents
+    - [Agent Management](commands/agents.md) - Install and manage Tailscale agents
     - [K3s](commands/k3s.md) - Kubernetes cluster management
+    - [Proxy](commands/proxy.md) - Proxy and tunnel management
 
 === "Advanced"
 
@@ -46,21 +44,21 @@ PipeOps CLI is a modern, cross-platform command-line tool that provides a unifie
 
 ## 🏃‍♂️ Quick Start
 
-Get started with PipeOps CLI in just a few steps:
+Get started with Tailscale Kubernetes CLI in just a few steps:
 
 1. **Install the CLI**:
    ```bash
    curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.sh | sh
    ```
 
-2. **Authenticate**:
+2. **Install Tailscale and setup cluster**:
    ```bash
-   pipeops auth login
+   pipeops agent install tskey-auth-your-key-here
    ```
 
-3. **List your projects**:
+3. **Check Tailscale status**:
    ```bash
-   pipeops project list
+   tailscale status
    ```
 
 4. **Get help**:
@@ -72,15 +70,16 @@ Get started with PipeOps CLI in just a few steps:
 
 ### Latest Features
 
-- **Enhanced Agent Installation**: Full support for PipeOps agent installation with intelligent cluster detection
+- **Tailscale Funnel Integration**: Full support for Tailscale Funnel with automatic port 80 exposure
+- **Kubernetes Operator**: Automated Tailscale Kubernetes operator installation and configuration
 - **Multi-Platform Support**: Native support for k3s, minikube, k3d, and kind clusters
-- **Monitoring Integration**: Built-in Prometheus, Loki, Grafana, and OpenCost stack
-- **Worker Node Management**: Easy joining of worker nodes to existing clusters
+- **Ingress Management**: Automatic ingress configuration with Tailscale annotations
+- **Public Access**: Secure public internet access to your Kubernetes services via Tailscale Funnel
 
 ### Recent Updates
 
-- Improved authentication flow with better error handling
-- Enhanced project management capabilities
+- Enhanced Tailscale installation with better error handling
+- Improved Kubernetes cluster integration
 - Better Docker integration and container support
 - Comprehensive documentation and examples
 
