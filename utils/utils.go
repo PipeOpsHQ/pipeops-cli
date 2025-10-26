@@ -43,6 +43,34 @@ func RunCommand(name string, args ...string) (string, error) {
 	return outStr, nil
 }
 
+// RunCommandWithEnv runs a command with custom environment variables
+func RunCommandWithEnv(name string, args []string, env []string) (string, error) {
+	cmd := exec.Command(name, args...)
+	cmd.Env = env
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	outStr := strings.TrimSpace(stdout.String())
+	errStr := strings.TrimSpace(stderr.String())
+
+	log.Printf("Command executed: %s %s", name, strings.Join(args, " "))
+	if outStr != "" {
+		log.Printf("stdout: %s", outStr)
+	}
+	if errStr != "" {
+		log.Printf("stderr: %s", errStr)
+	}
+
+	if err != nil {
+		if errStr != "" {
+			return outStr, errors.New(errStr)
+		}
+		return outStr, err
+	}
+	return outStr, nil
+}
+
 // IsValidURL checks if the provided string is a valid URL.
 func IsValidURL(testURL string) bool {
 	parsedURL, err := url.ParseRequestURI(testURL)
@@ -126,11 +154,13 @@ func saveConfig() error {
 	err := viper.WriteConfig()
 	if err != nil {
 		// Handle the case where the configuration file doesn't exist yet
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			err = viper.SafeWriteConfig()
+		if configFileNotFoundError, ok := err.(viper.ConfigFileNotFoundError); ok {
+			_ = configFileNotFoundError // Use the error to avoid unused variable warning
+			return viper.SafeWriteConfig()
 		}
+		return err
 	}
-	return err
+	return nil
 }
 
 // GetBaseName returns the base name of a directory path
