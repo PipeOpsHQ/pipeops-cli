@@ -119,7 +119,6 @@ nav:
     - Deployments: commands/deployments.md
     - Servers: commands/servers.md
     - Agents: commands/agents.md
-    - K3s: commands/k3s.md
   - Advanced:
     - Docker Usage: advanced/docker.md
     - CI/CD Integration: advanced/ci-cd.md

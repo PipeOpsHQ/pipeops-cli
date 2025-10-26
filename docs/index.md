@@ -1,6 +1,6 @@
 # PipeOps CLI Documentation
 
-Welcome to the official documentation for PipeOps CLI — a fast, cross-platform command-line tool for authenticating with PipeOps, managing projects, provisioning servers, deploying pipelines, and working with agents and Kubernetes (k3s) clusters.
+Welcome to the official documentation for PipeOps CLI — a fast, cross-platform command-line tool for authenticating with PipeOps, managing projects, provisioning servers, deploying pipelines, and working with agents for Kubernetes cluster management.
 
 ## 🚀 What is PipeOps CLI?
 
@@ -11,13 +11,12 @@ PipeOps CLI provides a unified interface to:
 - 🚀 Provision and manage servers and environments
 - 🔧 Create, manage, and deploy CI/CD pipelines
 - 🤖 Install and manage PipeOps agents
-- ☸️ Work with lightweight Kubernetes (k3s) clusters
 - 📊 Monitor status with rich terminal output or JSON
 
 ## 🎯 Key Features
 
 - Beautiful terminal UX with colors, spinners, and progress indicators
-- Comprehensive command set for projects, servers, pipelines, agents, and k3s
+- Comprehensive command set for projects, servers, pipelines, and agents
 - Docker-friendly: run the CLI in containers
 - CI/CD ready: deterministic commands for automation
 - Extensive documentation with examples and references
@@ -37,7 +36,6 @@ PipeOps CLI provides a unified interface to:
     - [Projects](commands/project.md) — Create, list, and manage projects
     - [Deploy](commands/deploy.md) — Pipelines and deployment workflows
     - [Servers](commands/server.md) — Provisioning and server operations
-    - [K3s](commands/k3s.md) — Kubernetes cluster management
     - [Agents](commands/agents.md) — Install and manage PipeOps agents
 
 === "Advanced"
@@ -80,7 +78,7 @@ Get started with PipeOps CLI in a few steps:
 
 - Secure OAuth login with PKCE for device-friendly authentication
 - Project lifecycle commands: create, list, configure, deploy
-- k3s support for lightweight Kubernetes workflows
+- Agent management for Kubernetes cluster integration
 - Agent installation and management across major platforms
 - JSON output mode for scripting and automation
 
