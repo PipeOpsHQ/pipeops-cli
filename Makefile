@@ -315,6 +315,12 @@ help:
 	@echo "  pre-release    Run pre-release checks"
 	@echo "  package        Package for distribution"
 	@echo ""
+	@echo "$(YELLOW)Documentation:$(RESET)"
+	@echo "  docs-build     Build documentation"
+	@echo "  docs-serve     Serve documentation locally"
+	@echo "  docs-clean     Clean documentation build artifacts"
+	@echo "  docs-install   Install documentation dependencies"
+	@echo ""
 	@echo "$(YELLOW)Utility:$(RESET)"
 	@echo "  clean          Clean build artifacts"
 	@echo "  info           Show project information"
@@ -322,7 +328,7 @@ help:
 	@echo ""
 
 # Phony targets
-.PHONY: all build build-dev build-race run test test-coverage bench lint fmt tidy generate verify clean install cross-compile package docker-build docker-run docker-push release release-dry-run tag dev-setup pre-release check info help
+.PHONY: all build build-dev build-race run test test-coverage bench lint fmt tidy generate verify clean install cross-compile package docker-build docker-run docker-push release release-dry-run tag dev-setup pre-release check info help docs-build docs-serve docs-clean docs-install
 
 # Security-focused build targets
 .PHONY: build-secure build-enterprise build-public
@@ -360,4 +366,47 @@ build-compressed: build-stripped
 		upx --best --ultra-brute bin/pipeops; \
 	else \
 		echo "UPX not installed, skipping compression"; \
+	fi
+
+# Documentation targets
+.PHONY: docs-build docs-serve docs-clean docs-install
+
+# Build documentation
+docs-build:
+	@echo "$(BLUE)Building documentation...$(RESET)"
+	@if [ -f "scripts/build-docs.sh" ]; then \
+		./scripts/build-docs.sh build; \
+	else \
+		echo "$(RED)✗ Documentation build script not found$(RESET)"; \
+		exit 1; \
+	fi
+
+# Serve documentation locally
+docs-serve:
+	@echo "$(BLUE)Serving documentation locally...$(RESET)"
+	@if [ -f "scripts/build-docs.sh" ]; then \
+		./scripts/build-docs.sh serve; \
+	else \
+		echo "$(RED)✗ Documentation build script not found$(RESET)"; \
+		exit 1; \
+	fi
+
+# Clean documentation build artifacts
+docs-clean:
+	@echo "$(BLUE)Cleaning documentation build artifacts...$(RESET)"
+	@if [ -f "scripts/build-docs.sh" ]; then \
+		./scripts/build-docs.sh clean; \
+	else \
+		echo "$(RED)✗ Documentation build script not found$(RESET)"; \
+		exit 1; \
+	fi
+
+# Install documentation dependencies
+docs-install:
+	@echo "$(BLUE)Installing documentation dependencies...$(RESET)"
+	@if [ -f "scripts/build-docs.sh" ]; then \
+		./scripts/build-docs.sh install; \
+	else \
+		echo "$(RED)✗ Documentation build script not found$(RESET)"; \
+		exit 1; \
 	fi

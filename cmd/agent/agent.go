@@ -14,4 +14,6 @@ func NewAgent(rootCmd *cobra.Command) *agentModel {
 
 func (a *agentModel) Register() {
 	a.install()
+	a.join()
+	a.info()
 }
