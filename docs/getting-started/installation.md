@@ -2,7 +2,7 @@
 
 This guide covers various methods to install PipeOps CLI on different platforms.
 
-## 🚀 Quick Install
+## Quick Install
 
 ### macOS & Linux (Recommended)
 
@@ -26,7 +26,7 @@ For Windows users, use our PowerShell installation script:
 irm https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.ps1 | iex
 ```
 
-## 📦 Package Managers
+## Package Managers
 
 ### Homebrew (macOS/Linux)
 
@@ -62,7 +62,7 @@ docker run --rm -it \
   ghcr.io/pipeopshq/pipeops-cli:latest auth status
 ```
 
-## 🔧 Manual Installation
+## Manual Installation
 
 ### Download Binaries
 
@@ -104,7 +104,7 @@ Expand-Archive -Path "pipeops-cli.zip" -DestinationPath "C:\pipeops"
 $env:PATH += ";C:\pipeops"
 ```
 
-## ✅ Verify Installation
+## Verify Installation
 
 After installation, verify that PipeOps CLI is working correctly:
 
@@ -119,7 +119,7 @@ pipeops --help
 pipeops auth status
 ```
 
-## 🔄 Updating
+## Updating
 
 ### Using Package Managers
 
@@ -155,7 +155,7 @@ Download the latest release and replace the existing binary:
 curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.sh | sh
 ```
 
-## 🗑️ Uninstalling
+## Uninstalling
 
 ### macOS & Linux
 
@@ -182,7 +182,7 @@ brew uninstall pipeops
 brew untap pipeops/pipeops
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Permission Issues
 
@@ -228,7 +228,7 @@ export HTTPS_PROXY=http://proxy.company.com:8080
 curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.sh | sh
 ```
 
-## 📋 System Requirements
+## System Requirements
 
 ### Minimum Requirements
 
@@ -243,14 +243,14 @@ curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.
 - **Memory**: 100MB+ available RAM
 - **Network**: Stable internet connection for authentication and API calls
 
-## 🔒 Security Considerations
+## Security Considerations
 
 - Binaries are signed and checksums are provided
 - Always verify checksums before installation
 - Use official installation methods when possible
 - Keep your CLI updated to the latest version
 
-## 📞 Getting Help
+## Getting Help
 
 If you encounter issues during installation:
 

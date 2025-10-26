@@ -2,7 +2,7 @@
 
 Get up and running with PipeOps CLI in just a few minutes. This guide will walk you through the essential steps to start using PipeOps CLI effectively.
 
-## 🚀 Prerequisites
+## Prerequisites
 
 Before you begin, make sure you have:
 
@@ -10,7 +10,7 @@ Before you begin, make sure you have:
 - A PipeOps account (sign up at [pipeops.io](https://pipeops.io))
 - Basic familiarity with command-line interfaces
 
-## 📋 Step 1: Verify Installation
+## Step 1: Verify Installation
 
 First, let's make sure PipeOps CLI is properly installed:
 
@@ -40,7 +40,7 @@ Available Commands:
   help        Help about any command
 ```
 
-## 🔐 Step 2: Authenticate
+## Step 2: Authentication
 
 Authenticate with your PipeOps account:
 
@@ -71,7 +71,7 @@ pipeops auth status
 
 You should see your user information and authentication status.
 
-## 📦 Step 3: Explore Your Projects
+## Step 3: Project Management
 
 List your existing projects:
 
@@ -85,7 +85,7 @@ If you don't have any projects yet, you can create one:
 pipeops project create my-first-project
 ```
 
-## 🚀 Step 4: Deploy Your First Application
+## Step 4: Deployment
 
 Let's deploy a simple application to see PipeOps CLI in action:
 
@@ -100,7 +100,7 @@ pipeops deploy status hello-world
 pipeops deploy logs hello-world
 ```
 
-## 🤖 Step 5: Set Up an Agent (Optional)
+## Step 5: Agent Management
 
 If you want to manage Kubernetes clusters, install a PipeOps agent:
 
@@ -112,7 +112,7 @@ pipeops agent install your-token-here
 pipeops agent install --existing-cluster --cluster-name="my-cluster"
 ```
 
-## 📊 Step 6: Monitor and Manage
+## Step 6: Monitoring
 
 Use these commands to monitor and manage your resources:
 
@@ -173,7 +173,7 @@ pipeops deploy create --name production --image my-app:$BUILD_NUMBER
 pipeops deploy status production
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -203,7 +203,7 @@ PipeOps CLI stores configuration in `~/.pipeops.json`:
 }
 ```
 
-## 📚 Next Steps
+## Next Steps
 
 Now that you're up and running, explore these areas:
 
@@ -214,7 +214,7 @@ Now that you're up and running, explore these areas:
 - **[Docker Usage](advanced/docker.md)**: Containerized workflows
 - **[CI/CD Integration](advanced/ci-cd.md)**: Automation and pipelines
 
-## 🆘 Getting Help
+## Getting Help
 
 If you run into issues:
 
@@ -224,7 +224,7 @@ If you run into issues:
 4. **Review [troubleshooting guide](advanced/troubleshooting.md)**
 5. **Join our [Discord community](https://discord.gg/pipeops)**
 
-## 🎉 Congratulations!
+## Congratulations!
 
 You've successfully set up PipeOps CLI and completed your first operations. You're now ready to:
 

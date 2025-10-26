@@ -2,18 +2,18 @@
 
 Welcome to the official documentation for PipeOps CLI — a fast, cross-platform command-line tool for authenticating with PipeOps, managing projects, provisioning servers, deploying pipelines, and working with agents for Kubernetes cluster management.
 
-## 🚀 What is PipeOps CLI?
+## What is PipeOps CLI?
 
 PipeOps CLI provides a unified interface to:
 
-- 🔐 Authenticate securely (OAuth with PKCE)
-- 📦 Create, list, and manage PipeOps projects
-- 🚀 Provision and manage servers and environments
-- 🔧 Create, manage, and deploy CI/CD pipelines
-- 🤖 Install and manage PipeOps agents
-- 📊 Monitor status with rich terminal output or JSON
+- Authenticate securely (OAuth with PKCE)
+- Create, list, and manage PipeOps projects
+- Provision and manage servers and environments
+- Create, manage, and deploy CI/CD pipelines
+- Install and manage PipeOps agents
+- Monitor status with rich terminal output or JSON
 
-## 🎯 Key Features
+## Key Features
 
 - Beautiful terminal UX with colors, spinners, and progress indicators
 - Comprehensive command set for projects, servers, pipelines, and agents
@@ -21,7 +21,7 @@ PipeOps CLI provides a unified interface to:
 - CI/CD ready: deterministic commands for automation
 - Extensive documentation with examples and references
 
-## 📖 Quick Navigation
+## Quick Navigation
 
 === "Getting Started"
 
@@ -44,7 +44,7 @@ PipeOps CLI provides a unified interface to:
     - [CI/CD Integration](advanced/ci-cd.md) — Automation workflows
     - [Troubleshooting](advanced/troubleshooting.md) — Common issues and solutions
 
-## 🏃 Quick Start
+## Quick Start
 
 Get started with PipeOps CLI in a few steps:
 
@@ -72,7 +72,7 @@ Get started with PipeOps CLI in a few steps:
         pipeops auth --help
         pipeops project --help
 
-## 🌟 What's New
+## What's New
 
 ### Latest Features
 
@@ -89,7 +89,7 @@ Get started with PipeOps CLI in a few steps:
 - Better Docker ergonomics and examples
 - Expanded command help and documentation
 
-## 📊 Platform Support
+## Platform Support
 
 | Platform | Architecture | Status |
 | -------- | ------------ | ------ |
@@ -101,15 +101,15 @@ Get started with PipeOps CLI in a few steps:
 | Windows  | x86_64       | ✅     |
 | FreeBSD  | x86_64       | ✅     |
 
-## 🤝 Community & Support
+## Community & Support
 
-- 📖 Documentation: Comprehensive guides and references
-- 🐛 Issues: https://github.com/PipeOpsHQ/pipeops-cli/issues
-- 💬 Discussions: https://github.com/PipeOpsHQ/pipeops-cli/discussions
-- 🗣️ Discord: https://discord.gg/pipeops
-- 📧 Email: support@pipeops.io
+- Documentation: Comprehensive guides and references
+- Issues: https://github.com/PipeOpsHQ/pipeops-cli/issues
+- Discussions: https://github.com/PipeOpsHQ/pipeops-cli/discussions
+- Discord: https://discord.gg/pipeops
+- Email: support@pipeops.io
 
-## 📄 License
+## License
 
 This project is licensed under the [MIT License](reference/license.md).
 

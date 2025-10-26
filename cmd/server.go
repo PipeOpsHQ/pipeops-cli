@@ -7,10 +7,10 @@ import (
 
 var serverCmd = &cobra.Command{
 	Use:   "server",
-	Short: "🖥️ Manage server-related operations.",
-	Long: `🖥️ The server command provides a set of subcommands for managing
+	Short: "Manage server-related operations.",
+	Long: `The server command provides a set of subcommands for managing
 server-related operations on PipeOps, such as provisioning, configuration, and
-interactions with servers. 🌐
+interactions with servers.
 
 Examples:
   - List all servers:
