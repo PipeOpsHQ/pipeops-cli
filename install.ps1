@@ -103,7 +103,7 @@ function Install-Binary {
     param([string]$Version)
 
     $arch = Get-Architecture
-    $filename = "${BinaryName}_Windows_${arch}.zip"
+    $filename = "${BinaryName}-cli_Windows_${arch}.zip"
     $url = "https://github.com/$Repo/releases/download/$Version/$filename"
 
     Write-Status "Downloading $filename..."
