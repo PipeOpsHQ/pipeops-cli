@@ -184,29 +184,93 @@ export PIPEOPS_OUTPUT_FORMAT="json"
 pipeops project list --format text
 ```
 
-## 🔄 Update Configuration
+## 🔄 Update and Maintenance Configuration
 
-### Automatic Updates
+### Update Settings
+
+Configure how PipeOps CLI handles updates:
 
 ```bash
-# Enable automatic updates
+# Enable/disable automatic updates
 pipeops config set auto_update true
 
 # Set update channel
 pipeops config set update_channel "stable"  # stable, beta, alpha
+
+# Set update check interval
+pipeops config set update_check_interval "24h"  # 1h, 24h, 7d
+
+# Skip version-specific updates
+pipeops config set skip_versions "v1.0.1,v1.0.2"
+
+# Enable pre-release updates
+pipeops config set allow_prerelease true
 ```
 
-### Manual Updates
+### Update Notifications
+
+Control update notification behavior:
 
 ```bash
-# Check for updates
+# Disable update notifications
+pipeops config set show_update_notifications false
+
+# Set notification frequency
+pipeops config set notification_frequency "weekly"  # daily, weekly, monthly
+
+# Enable update reminders
+pipeops config set update_reminders true
+```
+
+### Manual Update Management
+
+```bash
+# Check for updates without installing
 pipeops update check
 
 # Update to latest version
 pipeops update
 
 # Update to specific version
-pipeops update --version 1.0.0
+pipeops update --version v1.2.0
+
+# List available versions
+pipeops update list-versions
+
+# View update history
+pipeops update history
+
+# Rollback to previous version
+pipeops update rollback
+```
+
+### Update Verification
+
+```bash
+# Verify update integrity
+pipeops update verify
+
+# Check update signatures
+pipeops update check-signature
+
+# Validate installation
+pipeops update validate
+```
+
+### Backup and Recovery
+
+```bash
+# Create configuration backup before updates
+pipeops config backup
+
+# Restore configuration after issues
+pipeops config restore
+
+# Export configuration
+pipeops config export --file backup.json
+
+# Import configuration
+pipeops config import --file backup.json
 ```
 
 ## 🌐 Proxy Configuration
@@ -307,7 +371,124 @@ export PIPEOPS_OUTPUT_FORMAT="json"
 export PIPEOPS_SKIP_UPDATE_CHECK="true"
 ```
 
-## 🐛 Troubleshooting Configuration
+## 🧹 Maintenance and Cleanup
+
+### Regular Maintenance
+
+Perform regular maintenance to keep PipeOps CLI running smoothly:
+
+```bash
+# Clean cache files
+pipeops cache clean
+
+# Remove old log files
+pipeops logs clean --older-than 30d
+
+# Compact configuration
+pipeops config compact
+
+# Verify installation integrity
+pipeops doctor
+```
+
+### Cache Management
+
+```bash
+# View cache usage
+pipeops cache status
+
+# Clear specific cache
+pipeops cache clear --type api  # api, auth, updates
+
+# Set cache limits
+pipeops config set cache_size_limit "100MB"
+pipeops config set cache_ttl "1h"
+```
+
+### Log Management
+
+```bash
+# Set log rotation
+pipeops config set log_max_size "10MB"
+pipeops config set log_max_age "7d"
+pipeops config set log_max_backups 5
+
+# View log locations
+pipeops logs location
+
+# Archive old logs
+pipeops logs archive --older-than 90d
+```
+
+### Performance Optimization
+
+```bash
+# Optimize configuration
+pipeops config optimize
+
+# Enable performance monitoring
+pipeops config set enable_metrics true
+
+# Set connection pooling
+pipeops config set max_connections 10
+pipeops config set connection_timeout "30s"
+```
+
+## �️ Uninstall Configuration
+
+### Pre-uninstall Checklist
+
+Before uninstalling, save important data:
+
+```bash
+# Export all configurations
+pipeops config export-all --output ~/pipeops-backup/
+
+# List active connections
+pipeops server list --active
+
+# Export project settings
+pipeops project export-all --format json
+
+# Create complete backup
+pipeops backup create --include-all
+```
+
+### Clean Uninstall
+
+Remove all traces of PipeOps CLI:
+
+```bash
+# Remove configuration files
+rm -rf ~/.pipeops*
+
+# Remove cache directories
+rm -rf ~/.cache/pipeops/
+rm -rf ~/.local/share/pipeops/
+
+# Remove from system PATH
+# Edit shell profile files and remove PipeOps entries
+
+# Verify complete removal
+find / -name "*pipeops*" 2>/dev/null | grep -v "/proc"
+```
+
+### Selective Cleanup
+
+Remove specific components:
+
+```bash
+# Remove only cache
+pipeops cache clean --all
+
+# Remove logs but keep config
+rm -rf ~/.local/share/pipeops/logs/
+
+# Reset to default configuration
+pipeops config reset --keep-auth
+```
+
+## �🐛 Troubleshooting Configuration
 
 ### Common Issues
 
@@ -322,6 +503,9 @@ ls -la ~/.pipeops.json
 
 # Validate config file
 pipeops config validate
+
+# Reset corrupted config
+pipeops config reset
 ```
 
 #### Environment Variables Not Working
@@ -330,21 +514,41 @@ pipeops config validate
 # Check environment variables
 env | grep PIPEOPS
 
-# Test configuration
-pipeops config check
+# Test configuration precedence
+pipeops config debug
+
+# Reload environment
+source ~/.bashrc  # or ~/.zshrc
 ```
 
 #### Authentication Issues
 
 ```bash
-# Check token
+# Check token validity
 echo $PIPEOPS_TOKEN
 
 # Test authentication
 pipeops auth status
 
+# Clear auth cache
+pipeops auth clear-cache
+
 # Re-authenticate
 pipeops auth login
+```
+
+#### Performance Issues
+
+```bash
+# Check system resources
+pipeops system status
+
+# Monitor API calls
+pipeops config set debug_api_calls true
+
+# Optimize network settings
+pipeops config set request_timeout "60s"
+pipeops config set retry_attempts 3
 ```
 
 ## 📚 Related Documentation

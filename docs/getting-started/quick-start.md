@@ -224,6 +224,117 @@ If you run into issues:
 4. **Review [troubleshooting guide](advanced/troubleshooting.md)**
 5. **Join our [Discord community](https://discord.gg/pipeops)**
 
+## Maintenance and Updates
+
+### Keeping PipeOps CLI Updated
+
+Regular updates ensure you have the latest features and security improvements:
+
+```bash
+# Check for updates
+pipeops update check
+
+# Update to latest version
+pipeops update
+
+# View current version
+pipeops --version
+```
+
+### Update Notifications
+
+PipeOps CLI will notify you when updates are available:
+
+```
+🔔 A new version of PipeOps CLI is available!
+   Current: v1.0.0
+   Latest:  v1.1.0
+   
+   Run 'pipeops update' to upgrade
+```
+
+### Automatic Updates
+
+Enable automatic updates for seamless maintenance:
+
+```bash
+# Enable automatic updates
+pipeops config set auto_update true
+
+# Set update channel (stable, beta, alpha)
+pipeops config set update_channel stable
+```
+
+## Backup and Migration
+
+### Export Configuration
+
+Before major updates, backup your configuration:
+
+```bash
+# Export current configuration
+pipeops config export > pipeops-config-backup.json
+
+# Backup authentication
+cp ~/.pipeops.json ~/pipeops-backup.json
+```
+
+### Import Configuration
+
+Restore configuration on a new machine:
+
+```bash
+# Import configuration
+pipeops config import pipeops-config-backup.json
+
+# Or manually copy
+cp ~/pipeops-backup.json ~/.pipeops.json
+```
+
+## Uninstalling
+
+If you need to remove PipeOps CLI:
+
+### Quick Uninstall
+
+```bash
+# Using package manager (Homebrew)
+brew uninstall pipeops
+
+# Manual removal (Linux/macOS)
+sudo rm -f /usr/local/bin/pipeops
+rm -f ~/.pipeops.json
+
+# Windows (PowerShell)
+Remove-Item "$env:USERPROFILE\bin\pipeops.exe" -Force
+Remove-Item "$env:USERPROFILE\.pipeops.json" -Force
+```
+
+### Complete Cleanup
+
+For complete removal including all data:
+
+```bash
+# Remove all configuration and cache
+rm -rf ~/.pipeops*
+rm -rf ~/.cache/pipeops/
+rm -rf ~/.local/share/pipeops/
+
+# Verify removal
+which pipeops  # Should return "not found"
+```
+
+### Before Uninstalling
+
+Consider these steps before removing PipeOps CLI:
+
+1. **Export configurations**: `pipeops config export`
+2. **Document active deployments**: `pipeops deploy list`
+3. **Note connected servers**: `pipeops server list`
+4. **Backup project settings**: `pipeops project list --json`
+
+For detailed uninstall instructions, see the [Installation Guide](installation.md#uninstalling).
+
 ## Congratulations!
 
 You've successfully set up PipeOps CLI and completed your first operations. You're now ready to:
@@ -232,5 +343,6 @@ You've successfully set up PipeOps CLI and completed your first operations. You'
 - ✅ Monitor your infrastructure
 - ✅ Set up automated workflows
 - ✅ Scale your applications
+- ✅ Keep your CLI updated and maintained
 
 Happy deploying! 🚀
