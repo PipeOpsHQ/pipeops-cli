@@ -182,11 +182,15 @@ Manage PipeOps agents for Kubernetes clusters.
 Install PipeOps agent and Kubernetes cluster.
 
 ```bash
-# Install with token
-pipeops agent install your-token-here
+# Install with token (requires authentication first)
+pipeops auth login
+pipeops agent install
+
+# Install with service account token
+pipeops agent install your-pipeops-token-here
 
 # Install using environment variables
-export PIPEOPS_TOKEN="your-token"
+export PIPEOPS_TOKEN="your-pipeops-token"
 export CLUSTER_NAME="my-cluster"
 pipeops agent install
 
