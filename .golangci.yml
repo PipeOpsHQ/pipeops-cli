@@ -1,8 +1,34 @@
+version: 2
+
 linters:
   enable:
-  - gofmt
-  - nolintlint
+    - govet
+    - errcheck
+    - staticcheck
+    - ineffassign
+    - unused
+    - gocyclo
+    - gosec
+    - misspell
+    - nolintlint
+    - unconvert
+    - unparam
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  gosec:
+    excludes:
+      - G204  # Subprocess launched with variable
+      - G304  # File path provided as taint input
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
 
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-use-default: false
+
+run:
+  timeout: 5m
