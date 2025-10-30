@@ -84,7 +84,7 @@ var rootCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if cmd.Flag("version").Changed {
-			fmt.Println("🚀 Tailscale Kubernetes CLI Version:", Version)
+			fmt.Println("🚀 PipeOps CLI Version:", Version)
 			return
 		}
 
