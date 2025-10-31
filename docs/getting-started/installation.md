@@ -9,7 +9,7 @@ This guide covers various methods to install PipeOps CLI on different platforms.
 The easiest way to install PipeOps CLI is using our installation script:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.sh | sh
+curl -fsSL https://get.pipeops.dev/cli.sh | bash
 ```
 
 This script will:
@@ -23,7 +23,7 @@ This script will:
 For Windows users, use our PowerShell installation script:
 
 ```powershell
-irm https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.ps1 | iex
+irm https://get.pipeops.dev/cli.ps1 | iex
 ```
 
 ## Package Managers
@@ -70,38 +70,29 @@ Download the appropriate binary for your platform from the [releases page](https
 
 #### Linux
 ```bash
-# x86_64
-wget https://github.com/PipeOpsHQ/pipeops-cli/releases/latest/download/pipeops-cli_Linux_x86_64.tar.gz
-tar -xzf pipeops-cli_Linux_x86_64.tar.gz
-sudo mv pipeops /usr/local/bin/
+# Install using installer domain (auto-detects arch)
+curl -fsSL https://get.pipeops.dev/cli.sh | bash
 
-# ARM64
-wget https://github.com/PipeOpsHQ/pipeops-cli/releases/latest/download/pipeops-cli_Linux_arm64.tar.gz
-tar -xzf pipeops-cli_Linux_arm64.tar.gz
-sudo mv pipeops /usr/local/bin/
+# Pin to a specific version
+VERSION=v1.2.0 curl -fsSL https://get.pipeops.dev/cli.sh | bash
 ```
 
 #### macOS
 ```bash
-# Intel Mac
-wget https://github.com/PipeOpsHQ/pipeops-cli/releases/latest/download/pipeops-cli_Darwin_x86_64.tar.gz
-tar -xzf pipeops-cli_Darwin_x86_64.tar.gz
-sudo mv pipeops /usr/local/bin/
+# Install using installer domain (auto-detects arch)
+curl -fsSL https://get.pipeops.dev/cli.sh | bash
 
-# Apple Silicon (M1/M2)
-wget https://github.com/PipeOpsHQ/pipeops-cli/releases/latest/download/pipeops-cli_Darwin_arm64.tar.gz
-tar -xzf pipeops-cli_Darwin_arm64.tar.gz
-sudo mv pipeops /usr/local/bin/
+# Pin to a specific version
+VERSION=v1.2.0 curl -fsSL https://get.pipeops.dev/cli.sh | bash
 ```
 
 #### Windows
 ```powershell
-# Download the Windows binary
-Invoke-WebRequest -Uri "https://github.com/PipeOpsHQ/pipeops-cli/releases/latest/download/pipeops-cli_Windows_x86_64.zip" -OutFile "pipeops-cli.zip"
+# Install using installer domain
+irm https://get.pipeops.dev/cli.ps1 | iex
 
-# Extract and add to PATH
-Expand-Archive -Path "pipeops-cli.zip" -DestinationPath "C:\pipeops"
-$env:PATH += ";C:\pipeops"
+# Pin to a specific version
+$env:VERSION = 'v1.2.0'; irm https://get.pipeops.dev/cli.ps1 | iex
 ```
 
 ## Verify Installation
@@ -177,12 +168,10 @@ For manual updates, download and replace the binary:
 
 ```bash
 # Method 1: Re-run installer (overwrites existing installation)
-curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.sh | sh
+curl -fsSL https://get.pipeops.dev/cli.sh | bash
 
-# Method 2: Download specific version
-wget https://github.com/PipeOpsHQ/pipeops-cli/releases/download/v1.2.0/pipeops-cli_Linux_x86_64.tar.gz
-tar -xzf pipeops-cli_Linux_x86_64.tar.gz
-sudo mv pipeops /usr/local/bin/
+# Method 2: Install specific version
+VERSION=v1.2.0 curl -fsSL https://get.pipeops.dev/cli.sh | bash
 ```
 
 ### Update Configuration
@@ -391,7 +380,7 @@ export HTTP_PROXY=http://proxy.company.com:8080
 export HTTPS_PROXY=http://proxy.company.com:8080
 
 # Then run installation
-curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.sh | sh
+curl -fsSL https://get.pipeops.dev/cli.sh | bash
 ```
 
 ## System Requirements

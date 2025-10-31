@@ -50,7 +50,7 @@ Get started with PipeOps CLI in a few steps:
 
 1.  Install the CLI (macOS/Linux):
 
-         curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.sh | sh
+         curl -fsSL https://get.pipeops.dev/cli.sh | bash
 
     For Windows and alternative methods, see the Installation guide.
 
