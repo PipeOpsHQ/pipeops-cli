@@ -1,4 +1,4 @@
-site_name: PipeOps CLI 
+site_name: PipeOps CLI Documentation
 site_description: Comprehensive documentation for PipeOps CLI - A powerful command-line interface for managing cloud-native environments
 site_url: https://pipeopshq.github.io/pipeops-cli
 repo_url: https://github.com/PipeOpsHQ/pipeops-cli
@@ -119,6 +119,7 @@ nav:
     - Deployments: commands/deployments.md
     - Servers: commands/servers.md
     - Agents: commands/agents.md
+    - K3s: commands/k3s.md
   - Advanced:
     - Docker Usage: advanced/docker.md
     - CI/CD Integration: advanced/ci-cd.md

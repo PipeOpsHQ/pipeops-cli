@@ -58,11 +58,17 @@ PipeOps CLI is a powerful, cross-platform command-line tool that streamlines clo
 
 ## Quick Install
 
-### macOS & Linux (recommended)
+### macOS & Linux (Recommended)
 
-    curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.sh | sh
+```bash
+curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.sh | sh
+```
 
 ### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.ps1 | iex
+```
 
     irm https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.ps1 | iex
 
@@ -70,14 +76,22 @@ PipeOps CLI is a powerful, cross-platform command-line tool that streamlines clo
 
 #### Homebrew (macOS/Linux)
 
-    brew tap pipeops/pipeops
-    brew install pipeops
+```bash
+brew tap pipeops/pipeops
+brew install pipeops
+```
 
 #### Docker
 
-    docker run --rm -it ghcr.io/pipeopshq/pipeops-cli:latest --help
+```bash
+docker run --rm -it ghcr.io/pipeopshq/pipeops-cli:latest --help
+```
 
-#### Go install
+#### Go Install
+
+```bash
+go install github.com/PipeOpsHQ/pipeops-cli@latest
+```
 
     go install github.com/PipeOpsHQ/pipeops-cli@latest
 
@@ -106,34 +120,49 @@ PipeOps CLI is a powerful, cross-platform command-line tool that streamlines clo
 
 2. **Verify authentication status**
 
-       pipeops auth status
+### 1. Authenticate with PipeOps
 
-3. **List your projects**
+```bash
+pipeops auth login
+```
 
-       pipeops project list
+### 2. Check your authentication status
 
-4. **Get help for any command**
+```bash
+pipeops auth status
+```
 
-       pipeops --help
-       pipeops auth --help
-       pipeops project --help
+### 3. List your projects
+
+```bash
+pipeops project list
+```
+
+### 4. Get help for any command
+
+```bash
+pipeops --help
+pipeops auth --help
+pipeops project --help
+```
 
 ---
 
 ## Commands Overview
 
-| Command           | Description                            | Examples                                           |
-| ----------------- | -------------------------------------- | -------------------------------------------------- |
-| `pipeops auth`    | Manage authentication and user details | `pipeops auth login`, `pipeops auth status`        |
-| `pipeops project` | Manage, list, and deploy projects      | `pipeops project list`, `pipeops project create`   |
-| `pipeops deploy`  | Manage and deploy CI/CD pipelines      | `pipeops deploy pipeline`, `pipeops deploy status` |
-| `pipeops server`  | Manage server-related operations       | `pipeops server list`                              |
-| `pipeops agent`   | Install and manage PipeOps agents      | `pipeops agent install`, `pipeops agent status`    |
+| Command           | Description                               | Examples                                           |
+| ----------------- | ----------------------------------------- | -------------------------------------------------- |
+| `pipeops auth`    | Manage authentication and user details    | `pipeops auth login`, `pipeops auth status`        |
+| `pipeops project` | Manage, list, and deploy PipeOps projects | `pipeops project list`, `pipeops project create`   |
+| `pipeops deploy`  | Manage and deploy CI/CD pipelines         | `pipeops deploy pipeline`, `pipeops deploy status` |
+| `pipeops server`  | Manage server-related operations          | `pipeops server deploy`, `pipeops server status`   |
+| `pipeops k3s`     | Manage K3s clusters                       | `pipeops k3s install`, `pipeops k3s join`          |
+| `pipeops agent`   | Manage PipeOps agents                     | `pipeops agent install`, `pipeops agent status`    |
 
 ### Global Flags
 
-- `--help, -h`: Show help information
-- `--version, -v`: Display version information
+- `--help, -h`: Show help for any command
+- `--version, -v`: Show version information
 - `--json`: Output results in JSON format
 - `--quiet, -q`: Reduce non-essential output
 
@@ -141,21 +170,17 @@ PipeOps CLI is a powerful, cross-platform command-line tool that streamlines clo
 
 ## Configuration
 
-Configuration is stored at `~/.pipeops.json` and includes:
+PipeOps CLI stores configuration in `~/.pipeops.json`. This includes:
 
-- **Authentication tokens**: Secure OAuth credentials
-- **User preferences**: Default settings and customizations
-- **API settings**: Endpoint configurations
+- Authentication tokens
+- User preferences
+- Default settings
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PIPEOPS_CONFIG_PATH` | Custom config file location | `~/.pipeops.json` |
-| `PIPEOPS_API_URL` | Override API endpoint | Default API URL |
-| `PIPEOPS_LOG_LEVEL` | Set logging level | `info` |
-
-Supported log levels: `debug`, `info`, `warn`, `error`
+- `PIPEOPS_CONFIG_PATH`: Custom config file location
+- `PIPEOPS_API_URL`: Custom API endpoint
+- `PIPEOPS_LOG_LEVEL`: Log level (debug, info, warn, error)
 
 ---
 
@@ -163,56 +188,62 @@ Supported log levels: `debug`, `info`, `warn`, `error`
 
 ### Prerequisites
 
-- Go 1.23+
-- Git
+- [Go](https://golang.org/) 1.23 or later
+- [Git](https://git-scm.com/)
 
 ### Setup
 
-    # Clone
-    git clone https://github.com/PipeOpsHQ/pipeops-cli.git
-    cd pipeops-cli
+```bash
+# Clone the repository
+git clone https://github.com/PipeOpsHQ/pipeops-cli.git
+cd pipeops-cli
 
-    # Dependencies
-    go mod download
+# Install dependencies
+go mod download
 
-    # Build
-    make build
+# Build the CLI
+make build
 
-    # Test
-    make test
+# Run tests
+make test
 
-    # Lint
-    make lint
+# Run linter
+make lint
+```
 
-### Make targets
+### Available Make Targets
 
-    make build          # Build the binary
-    make test           # Run tests
-    make lint           # Run linter
-    make clean          # Clean build artifacts
-    make install        # Install locally
-    make release        # Create release build
-    make docker-build   # Build Docker image
-    make docker-run     # Run in Docker
+```bash
+make build          # Build the binary
+make test           # Run tests
+make lint           # Run linter
+make clean          # Clean build artifacts
+make install        # Install locally
+make release        # Create release build
+make docker-build   # Build Docker image
+make docker-run     # Run in Docker
+```
 
-### Project structure
+### Project Structure
 
-    pipeops-cli/
-    ├── cmd/                 # CLI commands
-    │   ├── auth/           # Authentication commands
-    │   ├── project/        # Project management commands
-    │   ├── deploy/         # Deployment commands
-    │   └── ...
-    ├── internal/           # Internal packages
-    │   ├── auth/           # Authentication logic
-    │   ├── client/         # HTTP client
-    │   ├── config/         # Configuration management
-    │   └── ...
-    ├── models/             # Data models
-    ├── utils/              # Utility functions
-    ├── .goreleaser.yml     # Release configuration
-    ├── Dockerfile          # Docker image
-    └── install.sh          # Installation script
+```
+pipeops-cli/
+├── cmd/                 # CLI commands
+│   ├── auth/           # Authentication commands
+│   ├── project/        # Project management commands
+│   ├── deploy/         # Deployment commands
+│   └── ...
+├── internal/           # Internal packages
+│   ├── auth/           # Authentication logic
+│   ├── client/         # HTTP client
+│   ├── config/         # Configuration management
+│   └── ...
+├── models/             # Data models
+├── utils/              # Utility functions
+├── .goreleaser.yml     # Release configuration
+├── Dockerfile         # Docker image
+└── install.sh         # Installation script
+```
 
 ---
 
@@ -220,33 +251,39 @@ Supported log levels: `debug`, `info`, `warn`, `error`
 
 ### Run CLI in Docker
 
-    # Basic usage
-    docker run --rm -it ghcr.io/pipeopshq/pipeops-cli:latest --help
+```bash
+# Basic usage
+docker run --rm -it ghcr.io/pipeopshq/pipeops-cli:latest --help
 
-    # With authentication (mount config)
-    docker run --rm -it \
-      -v ~/.pipeops.json:/root/.pipeops.json \
-      ghcr.io/pipeopshq/pipeops-cli:latest auth status
+# With authentication (mount config)
+docker run --rm -it \
+  -v ~/.pipeops.json:/root/.pipeops.json \
+  ghcr.io/pipeopshq/pipeops-cli:latest auth status
 
-    # Interactive shell
-    docker run --rm -it \
-      -v ~/.pipeops.json:/root/.pipeops.json \
-      --entrypoint /bin/sh \
-      ghcr.io/pipeopshq/pipeops-cli:latest
+# Interactive shell
+docker run --rm -it \
+  -v ~/.pipeops.json:/root/.pipeops.json \
+  --entrypoint /bin/sh \
+  ghcr.io/pipeopshq/pipeops-cli:latest
+```
 
 ### Docker Compose
 
-    version: "3.8"
-    services:
-      pipeops-cli:
-        image: ghcr.io/pipeopshq/pipeops-cli:latest
-        volumes:
-          - ~/.pipeops.json:/root/.pipeops.json
-        command: ["project", "list"]
+```yaml
+version: "3.8"
+services:
+  pipeops-cli:
+    image: ghcr.io/pipeopshq/pipeops-cli:latest
+    volumes:
+      - ~/.pipeops.json:/root/.pipeops.json
+    command: ["project", "list"]
+```
 
 ---
 
 ## Platforms
+
+PipeOps CLI supports the following platforms:
 
 | Platform | Architecture   | Status |
 | -------- | -------------- | ------ |
@@ -271,11 +308,13 @@ We welcome contributions!
 
 ### Guidelines
 
-- **Code Quality**: Follow Go best practices and conventions
-- **Documentation**: Write clear, comprehensive documentation
-- **Testing**: Include tests for new functionality
-- **Compatibility**: Ensure changes work across supported platforms
-- **Collaboration**: Be respectful and constructive in discussions
+### Contribution Guidelines
+
+- Follow Go best practices and conventions
+- Write clear, commented code
+- Include tests for new functionality
+- Update documentation as needed
+- Be respectful and collaborative
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
@@ -324,10 +363,13 @@ Releases are automated via GitHub Actions when tags are pushed:
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+Special thanks to:
+
+- All contributors and users of PipeOps CLI
+- The Go community for excellent tools and libraries
+- GitHub for providing CI/CD infrastructure
+- The open-source community for inspiration and support
 
 ---
 
----
-
-Made with ❤️ by the PipeOps team
+_Made with ❤️ by the PipeOps team_

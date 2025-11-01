@@ -2,7 +2,7 @@
 
 This page provides a comprehensive overview of all PipeOps CLI commands, their usage, and examples.
 
-## Command Structure
+## 📋 Command Structure
 
 PipeOps CLI follows a hierarchical command structure:
 
@@ -10,7 +10,7 @@ PipeOps CLI follows a hierarchical command structure:
 pipeops <command> <subcommand> [flags] [arguments]
 ```
 
-## Authentication Commands
+## 🔐 Authentication Commands
 
 Manage authentication and user details.
 
@@ -50,7 +50,7 @@ Display current user information.
 pipeops auth me
 ```
 
-## Project Commands
+## 📦 Project Commands
 
 Manage PipeOps projects.
 
@@ -93,7 +93,7 @@ pipeops project logs my-project --follow
 pipeops project logs my-project --timestamps
 ```
 
-## Deployment Commands
+## 🚀 Deployment Commands
 
 Manage deployments and pipelines.
 
@@ -148,7 +148,7 @@ pipeops deploy logs my-app
 pipeops deploy logs my-app --follow
 ```
 
-## Server Commands
+## 🖥️ Server Commands
 
 Manage servers and infrastructure.
 
@@ -173,7 +173,7 @@ Deploy to a server.
 pipeops server deploy --name my-app --server server-1
 ```
 
-## Agent Commands
+## ⚙️ Agent Commands
 
 Manage PipeOps agents for Kubernetes clusters.
 
@@ -182,15 +182,11 @@ Manage PipeOps agents for Kubernetes clusters.
 Install PipeOps agent and Kubernetes cluster.
 
 ```bash
-# Install with token (requires authentication first)
-pipeops auth login
-pipeops agent install
-
-# Install with service account token
-pipeops agent install your-pipeops-token-here
+# Install with token
+pipeops agent install your-token-here
 
 # Install using environment variables
-export PIPEOPS_TOKEN="your-pipeops-token"
+export PIPEOPS_TOKEN="your-token"
 export CLUSTER_NAME="my-cluster"
 pipeops agent install
 
@@ -216,8 +212,8 @@ Join worker node to existing cluster.
 pipeops agent join https://192.168.1.100:6443 abc123def456
 
 # Join using environment variables
-export PIPEOPS_SERVER_URL="https://192.168.1.100:6443"
-export PIPEOPS_TOKEN="abc123def456"
+export K3S_URL="https://192.168.1.100:6443"
+export K3S_TOKEN="abc123def456"
 pipeops agent join
 ```
 
@@ -229,7 +225,50 @@ Show cluster information and join commands.
 pipeops agent info
 ```
 
-## Utility Commands
+## ☸️ K3s Commands
+
+Manage K3s clusters.
+
+### `pipeops k3s install`
+
+Install K3s server.
+
+```bash
+# Install K3s
+pipeops k3s install
+
+# Install with specific version
+pipeops k3s install --version v1.28.0
+```
+
+### `pipeops k3s join`
+
+Join worker node to K3s cluster.
+
+```bash
+# Join worker node
+pipeops k3s join --server https://192.168.1.100:6443 --token abc123
+```
+
+### `pipeops k3s restart`
+
+Restart K3s service.
+
+```bash
+# Restart K3s
+pipeops k3s restart
+```
+
+### `pipeops k3s kill`
+
+Stop K3s service.
+
+```bash
+# Stop K3s
+pipeops k3s kill
+```
+
+## 🔧 Utility Commands
 
 ### `pipeops status`
 
@@ -279,7 +318,7 @@ pipeops proxy start --port 8080
 pipeops proxy stop
 ```
 
-## Global Flags
+## 🌐 Global Flags
 
 All commands support these global flags:
 
@@ -292,7 +331,7 @@ All commands support these global flags:
 | `--quiet, -q` | Suppress non-essential output | `pipeops deploy create --quiet` |
 | `--config` | Use custom config file | `pipeops --config ~/.pipeops-custom.json` |
 
-## Command Examples
+## 📝 Command Examples
 
 ### Daily Workflow
 
@@ -337,7 +376,7 @@ pipeops deploy create --name production --image my-app:$BUILD_NUMBER
 pipeops deploy status production
 ```
 
-## Getting Help
+## 🔍 Getting Help
 
 For detailed help on any command:
 
@@ -353,9 +392,10 @@ pipeops project create --help
 pipeops deploy pipeline --help
 ```
 
-## Related Documentation
+## 📚 Related Documentation
 
 - **[Authentication Commands](auth.md)** - Detailed auth command reference
 - **[Project Commands](projects.md)** - Project management guide
 - **[Deployment Commands](deployments.md)** - Deployment operations
 - **[Agent Commands](agents.md)** - Agent installation and management
+- **[K3s Commands](k3s.md)** - K3s cluster management

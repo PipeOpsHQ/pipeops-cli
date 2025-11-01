@@ -2,7 +2,7 @@
 
 Get up and running with PipeOps CLI in just a few minutes. This guide will walk you through the essential steps to start using PipeOps CLI effectively.
 
-## Prerequisites
+## 🚀 Prerequisites
 
 Before you begin, make sure you have:
 
@@ -10,7 +10,7 @@ Before you begin, make sure you have:
 - A PipeOps account (sign up at [pipeops.io](https://pipeops.io))
 - Basic familiarity with command-line interfaces
 
-## Step 1: Verify Installation
+## 📋 Step 1: Verify Installation
 
 First, let's make sure PipeOps CLI is properly installed:
 
@@ -40,7 +40,7 @@ Available Commands:
   help        Help about any command
 ```
 
-## Step 2: Authentication
+## 🔐 Step 2: Authenticate
 
 Authenticate with your PipeOps account:
 
@@ -71,7 +71,7 @@ pipeops auth status
 
 You should see your user information and authentication status.
 
-## Step 3: Project Management
+## 📦 Step 3: Explore Your Projects
 
 List your existing projects:
 
@@ -85,7 +85,7 @@ If you don't have any projects yet, you can create one:
 pipeops project create my-first-project
 ```
 
-## Step 4: Deployment
+## 🚀 Step 4: Deploy Your First Application
 
 Let's deploy a simple application to see PipeOps CLI in action:
 
@@ -100,7 +100,7 @@ pipeops deploy status hello-world
 pipeops deploy logs hello-world
 ```
 
-## Step 5: Agent Management
+## 🤖 Step 5: Set Up an Agent (Optional)
 
 If you want to manage Kubernetes clusters, install a PipeOps agent:
 
@@ -112,7 +112,7 @@ pipeops agent install your-token-here
 pipeops agent install --existing-cluster --cluster-name="my-cluster"
 ```
 
-## Step 6: Monitoring
+## 📊 Step 6: Monitor and Manage
 
 Use these commands to monitor and manage your resources:
 
@@ -173,7 +173,7 @@ pipeops deploy create --name production --image my-app:$BUILD_NUMBER
 pipeops deploy status production
 ```
 
-## Configuration
+## 🔧 Configuration
 
 ### Environment Variables
 
@@ -203,7 +203,7 @@ PipeOps CLI stores configuration in `~/.pipeops.json`:
 }
 ```
 
-## Next Steps
+## 📚 Next Steps
 
 Now that you're up and running, explore these areas:
 
@@ -214,7 +214,7 @@ Now that you're up and running, explore these areas:
 - **[Docker Usage](advanced/docker.md)**: Containerized workflows
 - **[CI/CD Integration](advanced/ci-cd.md)**: Automation and pipelines
 
-## Getting Help
+## 🆘 Getting Help
 
 If you run into issues:
 
@@ -224,118 +224,7 @@ If you run into issues:
 4. **Review [troubleshooting guide](advanced/troubleshooting.md)**
 5. **Join our [Discord community](https://discord.gg/pipeops)**
 
-## Maintenance and Updates
-
-### Keeping PipeOps CLI Updated
-
-Regular updates ensure you have the latest features and security improvements:
-
-```bash
-# Check for updates
-pipeops update check
-
-# Update to latest version
-pipeops update
-
-# View current version
-pipeops --version
-```
-
-### Update Notifications
-
-PipeOps CLI will notify you when updates are available:
-
-```
-🔔 A new version of PipeOps CLI is available!
-   Current: v1.0.0
-   Latest:  v1.1.0
-   
-   Run 'pipeops update' to upgrade
-```
-
-### Automatic Updates
-
-Enable automatic updates for seamless maintenance:
-
-```bash
-# Enable automatic updates
-pipeops config set auto_update true
-
-# Set update channel (stable, beta, alpha)
-pipeops config set update_channel stable
-```
-
-## Backup and Migration
-
-### Export Configuration
-
-Before major updates, backup your configuration:
-
-```bash
-# Export current configuration
-pipeops config export > pipeops-config-backup.json
-
-# Backup authentication
-cp ~/.pipeops.json ~/pipeops-backup.json
-```
-
-### Import Configuration
-
-Restore configuration on a new machine:
-
-```bash
-# Import configuration
-pipeops config import pipeops-config-backup.json
-
-# Or manually copy
-cp ~/pipeops-backup.json ~/.pipeops.json
-```
-
-## Uninstalling
-
-If you need to remove PipeOps CLI:
-
-### Quick Uninstall
-
-```bash
-# Using package manager (Homebrew)
-brew uninstall pipeops
-
-# Manual removal (Linux/macOS)
-sudo rm -f /usr/local/bin/pipeops
-rm -f ~/.pipeops.json
-
-# Windows (PowerShell)
-Remove-Item "$env:USERPROFILE\bin\pipeops.exe" -Force
-Remove-Item "$env:USERPROFILE\.pipeops.json" -Force
-```
-
-### Complete Cleanup
-
-For complete removal including all data:
-
-```bash
-# Remove all configuration and cache
-rm -rf ~/.pipeops*
-rm -rf ~/.cache/pipeops/
-rm -rf ~/.local/share/pipeops/
-
-# Verify removal
-which pipeops  # Should return "not found"
-```
-
-### Before Uninstalling
-
-Consider these steps before removing PipeOps CLI:
-
-1. **Export configurations**: `pipeops config export`
-2. **Document active deployments**: `pipeops deploy list`
-3. **Note connected servers**: `pipeops server list`
-4. **Backup project settings**: `pipeops project list --json`
-
-For detailed uninstall instructions, see the [Installation Guide](installation.md#uninstalling).
-
-## Congratulations!
+## 🎉 Congratulations!
 
 You've successfully set up PipeOps CLI and completed your first operations. You're now ready to:
 
@@ -343,6 +232,5 @@ You've successfully set up PipeOps CLI and completed your first operations. You'
 - ✅ Monitor your infrastructure
 - ✅ Set up automated workflows
 - ✅ Scale your applications
-- ✅ Keep your CLI updated and maintained
 
 Happy deploying! 🚀

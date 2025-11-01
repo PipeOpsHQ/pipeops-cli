@@ -2,14 +2,14 @@
 
 This guide covers various methods to install PipeOps CLI on different platforms.
 
-## Quick Install
+## 🚀 Quick Install
 
 ### macOS & Linux (Recommended)
 
 The easiest way to install PipeOps CLI is using our installation script:
 
 ```bash
-curl -fsSL https://get.pipeops.dev/cli.sh | bash
+curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.sh | sh
 ```
 
 This script will:
@@ -23,10 +23,10 @@ This script will:
 For Windows users, use our PowerShell installation script:
 
 ```powershell
-irm https://get.pipeops.dev/cli.ps1 | iex
+irm https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.ps1 | iex
 ```
 
-## Package Managers
+## 📦 Package Managers
 
 ### Homebrew (macOS/Linux)
 
@@ -62,7 +62,7 @@ docker run --rm -it \
   ghcr.io/pipeopshq/pipeops-cli:latest auth status
 ```
 
-## Manual Installation
+## 🔧 Manual Installation
 
 ### Download Binaries
 
@@ -70,32 +70,41 @@ Download the appropriate binary for your platform from the [releases page](https
 
 #### Linux
 ```bash
-# Install using installer domain (auto-detects arch)
-curl -fsSL https://get.pipeops.dev/cli.sh | bash
+# x86_64
+wget https://github.com/PipeOpsHQ/pipeops-cli/releases/latest/download/pipeops-cli_Linux_x86_64.tar.gz
+tar -xzf pipeops-cli_Linux_x86_64.tar.gz
+sudo mv pipeops /usr/local/bin/
 
-# Pin to a specific version
-VERSION=v1.2.0 curl -fsSL https://get.pipeops.dev/cli.sh | bash
+# ARM64
+wget https://github.com/PipeOpsHQ/pipeops-cli/releases/latest/download/pipeops-cli_Linux_arm64.tar.gz
+tar -xzf pipeops-cli_Linux_arm64.tar.gz
+sudo mv pipeops /usr/local/bin/
 ```
 
 #### macOS
 ```bash
-# Install using installer domain (auto-detects arch)
-curl -fsSL https://get.pipeops.dev/cli.sh | bash
+# Intel Mac
+wget https://github.com/PipeOpsHQ/pipeops-cli/releases/latest/download/pipeops-cli_Darwin_x86_64.tar.gz
+tar -xzf pipeops-cli_Darwin_x86_64.tar.gz
+sudo mv pipeops /usr/local/bin/
 
-# Pin to a specific version
-VERSION=v1.2.0 curl -fsSL https://get.pipeops.dev/cli.sh | bash
+# Apple Silicon (M1/M2)
+wget https://github.com/PipeOpsHQ/pipeops-cli/releases/latest/download/pipeops-cli_Darwin_arm64.tar.gz
+tar -xzf pipeops-cli_Darwin_arm64.tar.gz
+sudo mv pipeops /usr/local/bin/
 ```
 
 #### Windows
 ```powershell
-# Install using installer domain
-irm https://get.pipeops.dev/cli.ps1 | iex
+# Download the Windows binary
+Invoke-WebRequest -Uri "https://github.com/PipeOpsHQ/pipeops-cli/releases/latest/download/pipeops-cli_Windows_x86_64.zip" -OutFile "pipeops-cli.zip"
 
-# Pin to a specific version
-$env:VERSION = 'v1.2.0'; irm https://get.pipeops.dev/cli.ps1 | iex
+# Extract and add to PATH
+Expand-Archive -Path "pipeops-cli.zip" -DestinationPath "C:\pipeops"
+$env:PATH += ";C:\pipeops"
 ```
 
-## Verify Installation
+## ✅ Verify Installation
 
 After installation, verify that PipeOps CLI is working correctly:
 
@@ -110,234 +119,70 @@ pipeops --help
 pipeops auth status
 ```
 
-## Updating
+## 🔄 Updating
 
-Keep your PipeOps CLI up to date to access the latest features and security improvements.
+### Using Package Managers
 
-### Automatic Updates (Recommended)
-
-PipeOps CLI can update itself automatically:
-
+#### Homebrew
 ```bash
-# Check for available updates
-pipeops update check
-
-# Update to the latest version
-pipeops update
-
-# Update to a specific version
-pipeops update --version v1.2.0
-
-# View update history
-pipeops update history
-```
-
-The self-update feature:
-- ✅ Automatically detects your platform
-- ✅ Downloads the correct binary
-- ✅ Preserves your configuration
-- ✅ Creates a backup of the current version
-- ✅ Verifies the update integrity
-
-### Package Manager Updates
-
-#### Homebrew (macOS/Linux)
-```bash
-# Update package lists
 brew update
-
-# Upgrade PipeOps CLI
 brew upgrade pipeops
-
-# Upgrade to a specific version
-brew install pipeops@1.2.0
 ```
 
 #### Go Install
 ```bash
-# Update to latest version
 go install github.com/PipeOpsHQ/pipeops-cli@latest
+```
 
-# Install specific version
-go install github.com/PipeOpsHQ/pipeops-cli@v1.2.0
+### Using CLI Update Command
+
+PipeOps CLI can update itself:
+
+```bash
+# Check for updates
+pipeops update check
+
+# Update to latest version
+pipeops update
 ```
 
 ### Manual Update
 
-For manual updates, download and replace the binary:
+Download the latest release and replace the existing binary:
 
 ```bash
-# Method 1: Re-run installer (overwrites existing installation)
-curl -fsSL https://get.pipeops.dev/cli.sh | bash
-
-# Method 2: Install specific version
-VERSION=v1.2.0 curl -fsSL https://get.pipeops.dev/cli.sh | bash
+# Download latest version
+curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.sh | sh
 ```
 
-### Update Configuration
+## 🗑️ Uninstalling
 
-Control update behavior through configuration:
-
-```bash
-# Disable automatic update checks
-pipeops config set skip_update_check true
-
-# Set update channel
-pipeops config set update_channel stable  # stable, beta, alpha
-
-# Set update check interval
-pipeops config set update_check_interval 24h
-```
-
-### Verify Update
-
-After updating, verify the new version:
-
-```bash
-# Check version
-pipeops --version
-
-# Verify functionality
-pipeops auth status
-pipeops --help
-```
-
-## Uninstalling
-
-Remove PipeOps CLI completely from your system.
-
-### Using Package Managers
-
-#### Homebrew (macOS/Linux)
-```bash
-# Uninstall PipeOps CLI
-brew uninstall pipeops
-
-# Remove tap (optional)
-brew untap pipeops/pipeops
-
-# Clean up any remaining files
-brew cleanup
-```
-
-#### Docker
-```bash
-# Remove Docker images
-docker rmi ghcr.io/pipeopshq/pipeops-cli:latest
-
-# Remove all PipeOps CLI images
-docker images | grep pipeops-cli | awk '{print $3}' | xargs docker rmi
-```
-
-### Manual Uninstall
-
-#### macOS & Linux
+### macOS & Linux
 
 ```bash
 # Remove binary
-sudo rm -f /usr/local/bin/pipeops
+sudo rm /usr/local/bin/pipeops
 
-# Alternative locations
-sudo rm -f /usr/bin/pipeops
-rm -f ~/.local/bin/pipeops
-
-# Remove configuration files
-rm -f ~/.pipeops.json
-rm -rf ~/.pipeops/
-
-# Remove from shell profile (if added manually)
-# Edit ~/.bashrc, ~/.zshrc, etc. and remove PipeOps PATH entries
+# Remove configuration (optional)
+rm ~/.pipeops.json
 ```
 
-#### Windows
+### Windows
 
 ```powershell
-# Remove executable
-Remove-Item "$env:USERPROFILE\bin\pipeops.exe" -Force -ErrorAction SilentlyContinue
-Remove-Item "C:\pipeops\pipeops.exe" -Force -ErrorAction SilentlyContinue
-
-# Remove configuration
-Remove-Item "$env:USERPROFILE\.pipeops.json" -Force -ErrorAction SilentlyContinue
-
-# Remove from PATH
-$currentPath = [Environment]::GetEnvironmentVariable("PATH", [EnvironmentVariableTarget]::User)
-$newPath = ($currentPath.Split(';') | Where-Object { $_ -notlike "*pipeops*" }) -join ';'
-[Environment]::SetEnvironmentVariable("PATH", $newPath, [EnvironmentVariableTarget]::User)
+# Remove from PATH and delete files
+Remove-Item "C:\pipeops\pipeops.exe" -Force
+# Remove from PATH environment variable manually
 ```
 
-### Cleanup Data and Logs
-
-Remove any remaining data:
+### Homebrew
 
 ```bash
-# Remove cache files (Linux/macOS)
-rm -rf ~/.cache/pipeops/
-rm -rf ~/Library/Caches/pipeops/  # macOS only
-
-# Remove log files
-rm -rf ~/.local/share/pipeops/
-rm -rf ~/Library/Logs/pipeops/    # macOS only
-
-# Windows cache cleanup
-# Remove-Item "$env:LOCALAPPDATA\pipeops" -Recurse -Force -ErrorAction SilentlyContinue
+brew uninstall pipeops
+brew untap pipeops/pipeops
 ```
 
-### Verify Uninstall
-
-Confirm complete removal:
-
-```bash
-# Check if binary is removed
-which pipeops
-# Should return: pipeops not found
-
-# Check for remaining files
-ls -la ~/.*pipeops*
-ls -la ~/.local/bin/pipeops*
-ls -la /usr/local/bin/pipeops*
-
-# Check environment variables
-env | grep PIPEOPS
-```
-
-### Troubleshooting Uninstall
-
-If you encounter issues during uninstall:
-
-#### Permission Denied
-```bash
-# Use sudo for system-wide installations
-sudo rm -f /usr/local/bin/pipeops
-
-# Change ownership if needed
-sudo chown $(whoami) /usr/local/bin/pipeops
-rm /usr/local/bin/pipeops
-```
-
-#### Binary in Use
-```bash
-# Check if PipeOps CLI is running
-ps aux | grep pipeops
-
-# Kill any running processes
-pkill -f pipeops
-
-# Try uninstall again
-sudo rm -f /usr/local/bin/pipeops
-```
-
-#### Multiple Installations
-```bash
-# Find all installations
-find /usr -name "pipeops" 2>/dev/null
-find ~ -name "pipeops" 2>/dev/null
-
-# Remove all found instances
-sudo find /usr -name "pipeops" -delete 2>/dev/null
-find ~ -name "pipeops" -delete 2>/dev/null
-```
-
-## Troubleshooting
+## 🐛 Troubleshooting
 
 ### Permission Issues
 
@@ -380,10 +225,10 @@ export HTTP_PROXY=http://proxy.company.com:8080
 export HTTPS_PROXY=http://proxy.company.com:8080
 
 # Then run installation
-curl -fsSL https://get.pipeops.dev/cli.sh | bash
+curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.sh | sh
 ```
 
-## System Requirements
+## 📋 System Requirements
 
 ### Minimum Requirements
 
@@ -398,14 +243,14 @@ curl -fsSL https://get.pipeops.dev/cli.sh | bash
 - **Memory**: 100MB+ available RAM
 - **Network**: Stable internet connection for authentication and API calls
 
-## Security Considerations
+## 🔒 Security Considerations
 
 - Binaries are signed and checksums are provided
 - Always verify checksums before installation
 - Use official installation methods when possible
 - Keep your CLI updated to the latest version
 
-## Getting Help
+## 📞 Getting Help
 
 If you encounter issues during installation:
 
