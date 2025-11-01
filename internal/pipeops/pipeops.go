@@ -7,14 +7,16 @@ import (
 	"time"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
+	"github.com/PipeOpsHQ/pipeops-cli/libs"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
 	sdk "github.com/PipeOpsHQ/pipeops-go-sdk/pipeops"
 )
 
 // Client represents the PipeOps client wrapping the Go SDK
 type Client struct {
-	sdkClient *sdk.Client
-	config    *config.Config
+	sdkClient    *sdk.Client
+	config       *config.Config
+	legacyClient libs.HttpClients // Fallback for features not yet in SDK
 }
 
 // NewClient creates a new PipeOps client
@@ -28,9 +30,13 @@ func NewClient() *Client {
 		sdkClient, _ = sdk.NewClient("")
 	}
 
+	// Initialize legacy client for features not yet in SDK
+	legacyClient := libs.NewHttpClient()
+
 	return &Client{
-		sdkClient: sdkClient,
-		config:    cfg,
+		sdkClient:    sdkClient,
+		config:       cfg,
+		legacyClient: legacyClient,
 	}
 }
 
@@ -55,9 +61,13 @@ func NewClientWithConfig(cfg *config.Config) *Client {
 		sdkClient.SetToken(cfg.OAuth.AccessToken)
 	}
 
+	// Initialize legacy client for features not yet in SDK
+	legacyClient := libs.NewHttpClient()
+
 	return &Client{
-		sdkClient: sdkClient,
-		config:    cfg,
+		sdkClient:    sdkClient,
+		config:       cfg,
+		legacyClient: legacyClient,
 	}
 }
 
@@ -350,9 +360,9 @@ func (c *Client) GetContainers(projectID string, addonID string) (*models.ListCo
 		return nil, errors.New("not authenticated")
 	}
 
-	// Containers may be part of Services or a separate endpoint
-	// This may need specific SDK implementation
-	return nil, errors.New("containers not yet implemented with SDK")
+	// Use legacy client as fallback since SDK doesn't support containers yet
+	token := c.config.OAuth.AccessToken
+	return c.legacyClient.GetContainers(token, projectID, addonID)
 }
 
 // StartExec starts an exec session
@@ -361,9 +371,9 @@ func (c *Client) StartExec(req *models.ExecRequest) (*models.ExecResponse, error
 		return nil, errors.New("not authenticated")
 	}
 
-	// Exec sessions may need WebSocket/terminal support
-	// This may need specific SDK implementation
-	return nil, errors.New("exec not yet implemented with SDK")
+	// Use legacy client as fallback since SDK doesn't support exec yet
+	token := c.config.OAuth.AccessToken
+	return c.legacyClient.StartExec(token, req)
 }
 
 // StartShell starts a shell session
@@ -372,9 +382,9 @@ func (c *Client) StartShell(req *models.ShellRequest) (*models.ShellResponse, er
 		return nil, errors.New("not authenticated")
 	}
 
-	// Shell sessions may need WebSocket/terminal support
-	// This may need specific SDK implementation
-	return nil, errors.New("shell not yet implemented with SDK")
+	// Use legacy client as fallback since SDK doesn't support shell yet
+	token := c.config.OAuth.AccessToken
+	return c.legacyClient.StartShell(token, req)
 }
 
 // GetAddons retrieves a list of addons

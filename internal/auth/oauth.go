@@ -369,12 +369,13 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 		return fmt.Errorf("token exchange failed: %s", string(body))
 	}
 
-	// Parse token response
+	// Parse token response - new format includes redirect_url
 	var tokenResp struct {
 		AccessToken  string `json:"access_token"`
 		RefreshToken string `json:"refresh_token"`
 		ExpiresIn    int    `json:"expires_in"`
 		TokenType    string `json:"token_type"`
+		RedirectURL  string `json:"redirect_url,omitempty"` // New field for redirect handling
 	}
 
 	if err := json.Unmarshal(body, &tokenResp); err != nil {
@@ -385,6 +386,16 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 	s.config.OAuth.AccessToken = tokenResp.AccessToken
 	s.config.OAuth.RefreshToken = tokenResp.RefreshToken
 	s.config.OAuth.ExpiresAt = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
+
+	// Handle redirect URL if provided by the API
+	if tokenResp.RedirectURL != "" {
+		fmt.Printf("🔗 API provided redirect URL: %s\n", tokenResp.RedirectURL)
+		// Optionally open the redirect URL in browser for any post-auth steps
+		if err := OpenBrowser(tokenResp.RedirectURL); err != nil {
+			fmt.Printf("⚠️  Could not open redirect URL automatically: %v\n", err)
+			fmt.Printf("   You can manually visit: %s\n", tokenResp.RedirectURL)
+		}
+	}
 
 	fmt.Println("🎉 Authentication successful!")
 	fmt.Println("✅ You're now logged in to PipeOps")
