@@ -11,11 +11,20 @@ type Addon struct {
 	Version     string            `json:"version"`
 	Status      string            `json:"status"`
 	Image       string            `json:"image"`
+	Icon        string            `json:"icon,omitempty"`
 	Tags        []string          `json:"tags,omitempty"`
 	Ports       []int             `json:"ports,omitempty"`
 	EnvVars     map[string]string `json:"env_vars,omitempty"`
 	CreatedAt   time.Time         `json:"created_at"`
 	UpdatedAt   time.Time         `json:"updated_at"`
+}
+
+// Service represents a service in a project
+type Service struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Status    string `json:"status"`
+	ProjectID string `json:"project_id"`
 }
 
 // AddonListResponse represents the response when listing addons

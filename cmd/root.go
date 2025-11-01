@@ -69,7 +69,18 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Check for updates periodically (but don't block the command)
-		go checkForUpdatesBackground(cmd)
+		ctx := cmd.Context()
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		go func() {
+			if err := checkForUpdatesBackground(ctx, cmd); err != nil {
+				// Log errors to stderr for debugging if verbose mode is enabled
+				if verbose, _ := cmd.Flags().GetBool("verbose"); verbose {
+					fmt.Fprintf(os.Stderr, "Update check warning: %v\n", err)
+				}
+			}
+		}()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if cmd.Flag("version").Changed {
@@ -83,15 +94,15 @@ var rootCmd = &cobra.Command{
 }
 
 // checkForUpdatesBackground runs a background update check
-func checkForUpdatesBackground(cmd *cobra.Command) {
+func checkForUpdatesBackground(ctx context.Context, cmd *cobra.Command) error {
 	// Skip update check if specifically disabled
 	if shouldSkipUpdateCheck(cmd) {
-		return
+		return nil
 	}
 
 	// Check if it's been more than 24 hours since last check
 	if !shouldCheckForUpdates() {
-		return
+		return nil
 	}
 
 	// Get current version
@@ -104,17 +115,18 @@ func checkForUpdatesBackground(cmd *cobra.Command) {
 	updateService := updater.NewUpdateService(currentVersion)
 
 	// Check for updates with a short timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	checkCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	release, hasUpdate, err := updateService.CheckForUpdates(ctx)
+	release, hasUpdate, err := updateService.CheckForUpdates(checkCtx)
 	if err != nil {
-		// Silently ignore errors in background check
-		return
+		return fmt.Errorf("update check failed: %w", err)
 	}
 
 	// Update last check time
-	updateLastCheckTime()
+	if err := updateLastCheckTime(); err != nil {
+		return fmt.Errorf("failed to update check time: %w", err)
+	}
 
 	// If update available, show notification
 	if hasUpdate {
@@ -122,6 +134,8 @@ func checkForUpdatesBackground(cmd *cobra.Command) {
 		fmt.Printf("   Run 'pipeops update' to install the latest version\n")
 		fmt.Printf("   Run 'pipeops update check' to see what's new\n\n")
 	}
+
+	return nil
 }
 
 // shouldSkipUpdateCheck determines if update checking should be skipped
@@ -168,6 +182,9 @@ func loadConfigSafely() Config {
 
 	home, err := os.UserHomeDir()
 	if err != nil {
+		if os.Getenv("PIPEOPS_DEBUG") == "true" {
+			fmt.Fprintf(os.Stderr, "Warning: failed to get home directory: %v\n", err)
+		}
 		return config
 	}
 
@@ -179,34 +196,42 @@ func loadConfigSafely() Config {
 
 	dataBytes, err := os.ReadFile(filename)
 	if err != nil {
+		if os.Getenv("PIPEOPS_DEBUG") == "true" {
+			fmt.Fprintf(os.Stderr, "Warning: failed to read config: %v\n", err)
+		}
 		return config
 	}
 
-	// Ignore unmarshal errors for background check
-	json.Unmarshal(dataBytes, &config)
+	if err := json.Unmarshal(dataBytes, &config); err != nil {
+		if os.Getenv("PIPEOPS_DEBUG") == "true" {
+			fmt.Fprintf(os.Stderr, "Warning: failed to parse config: %v\n", err)
+		}
+	}
 	return config
 }
 
 // updateLastCheckTime updates the last update check time
-func updateLastCheckTime() {
+func updateLastCheckTime() error {
 	config := loadConfigSafely()
 	config.Updates.LastUpdateCheck = time.Now()
 
-	// Save config safely
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return
+		return fmt.Errorf("failed to get home directory: %w", err)
 	}
 
 	filename := fmt.Sprintf("%s/.pipeops.json", home)
 
 	dataBytes, err := json.Marshal(config)
 	if err != nil {
-		return
+		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	// Ignore errors in background update
-	os.WriteFile(filename, dataBytes, 0600)
+	if err := os.WriteFile(filename, dataBytes, 0600); err != nil {
+		return fmt.Errorf("failed to write config: %w", err)
+	}
+
+	return nil
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -258,44 +283,39 @@ func initConfig() {
 	}
 }
 
-func GetConfig() Config {
+func GetConfig() (Config, error) {
 	var filename string
 
 	home, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return Config{}, fmt.Errorf("failed to get user home directory: %w", err)
 	}
 
 	filename = fmt.Sprintf("%s/%s", home, ".pipeops.json")
 
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		fmt.Println("Config file does not exist")
-		os.Exit(1)
+		return Config{}, fmt.Errorf("config file does not exist: %s", filename)
 	}
 
 	dataBytes, err := os.ReadFile(filename)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return Config{}, fmt.Errorf("failed to read config file: %w", err)
 	}
 
 	err = json.Unmarshal(dataBytes, &Conf)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return Config{}, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
-	return Conf
+	return Conf, nil
 }
 
-func SaveConfig() {
+func SaveConfig() error {
 	var filename string
 
 	home, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return fmt.Errorf("failed to get user home directory: %w", err)
 	}
 
 	filename = fmt.Sprintf("%s/%s", home, ".pipeops.json")
@@ -304,18 +324,17 @@ func SaveConfig() {
 
 	dataBytes, err := json.Marshal(Conf)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
 	err = os.WriteFile(filename, dataBytes, 0600)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
 	if err := os.Chmod(filename, 0600); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return fmt.Errorf("failed to set config file permissions: %w", err)
 	}
+
+	return nil
 }

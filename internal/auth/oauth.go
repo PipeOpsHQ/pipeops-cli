@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -15,8 +16,9 @@ import (
 
 // PKCEOAuthService handles OAuth2 authentication with PKCE
 type PKCEOAuthService struct {
-	config *config.Config
-	client *http.Client
+	config       *config.Config
+	client       *http.Client
+	callbackPort int
 }
 
 // NewPKCEOAuthService creates a new PKCE OAuth service
@@ -47,11 +49,20 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 		return fmt.Errorf("failed to generate state: %w", err)
 	}
 
+	// Find available port for callback server
+	port, err := s.findAvailablePort()
+	if err != nil {
+		return fmt.Errorf("failed to find available port: %w", err)
+	}
+	s.callbackPort = port
+
+	redirectURI := fmt.Sprintf("http://localhost:%d/callback", port)
+
 	// Build authorization URL with PKCE
 	authURL := fmt.Sprintf("%s/oauth/authorize?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=%s&code_challenge=%s&code_challenge_method=%s",
 		s.config.OAuth.BaseURL,
 		s.config.OAuth.ClientID,
-		url.QueryEscape("http://localhost:8085/callback"),
+		url.QueryEscape(redirectURI),
 		url.QueryEscape(strings.Join(s.config.OAuth.Scopes, " ")),
 		url.QueryEscape(state),
 		url.QueryEscape(pkceChallenge.CodeChallenge),
@@ -72,7 +83,10 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 
 	// Start callback server
 	callbackChan := make(chan OAuthCallbackResult, 1)
-	server := s.startCallbackServer(callbackChan, state)
+	server, err := s.startCallbackServer(callbackChan, state)
+	if err != nil {
+		return fmt.Errorf("failed to start callback server: %w", err)
+	}
 	defer server.Close()
 
 	// Wait for callback with encouraging feedback
@@ -99,8 +113,30 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 	}
 }
 
+// findAvailablePort finds an available port for the callback server
+func (s *PKCEOAuthService) findAvailablePort() (int, error) {
+	// Try preferred ports first
+	preferredPorts := []int{8085, 8086, 8087, 8088, 8089}
+	for _, port := range preferredPorts {
+		listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+		if err == nil {
+			listener.Close()
+			return port, nil
+		}
+	}
+
+	// If all preferred ports are taken, let the OS assign a port
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, fmt.Errorf("failed to find available port: %w", err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	listener.Close()
+	return port, nil
+}
+
 // startCallbackServer starts HTTP server for OAuth callback
-func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackResult, expectedState string) *http.Server {
+func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackResult, expectedState string) (*http.Server, error) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
@@ -279,21 +315,26 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 	})
 
 	server := &http.Server{
-		Addr:    ":8085",
+		Addr:    fmt.Sprintf(":%d", s.callbackPort),
 		Handler: mux,
 	}
 
-	go server.ListenAndServe()
-	return server
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			resultChan <- OAuthCallbackResult{Error: fmt.Errorf("callback server error: %w", err)}
+		}
+	}()
+	return server, nil
 }
 
 // exchangeCodeForToken exchanges authorization code for access token using PKCE
 func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeVerifier string) error {
 	// Prepare token request with PKCE (no client secret needed for public clients)
+	redirectURI := fmt.Sprintf("http://localhost:%d/callback", s.callbackPort)
 	tokenReq := map[string]string{
 		"grant_type":    "authorization_code",
 		"code":          code,
-		"redirect_uri":  "http://localhost:8085/callback",
+		"redirect_uri":  redirectURI,
 		"client_id":     s.config.OAuth.ClientID,
 		"code_verifier": codeVerifier, // PKCE code verifier
 		"token_format":  "jwt",        // Request JWT tokens if server supports it
@@ -328,12 +369,13 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 		return fmt.Errorf("token exchange failed: %s", string(body))
 	}
 
-	// Parse token response
+	// Parse token response - new format includes redirect_url
 	var tokenResp struct {
 		AccessToken  string `json:"access_token"`
 		RefreshToken string `json:"refresh_token"`
 		ExpiresIn    int    `json:"expires_in"`
 		TokenType    string `json:"token_type"`
+		RedirectURL  string `json:"redirect_url,omitempty"` // New field for redirect handling
 	}
 
 	if err := json.Unmarshal(body, &tokenResp); err != nil {
@@ -344,6 +386,16 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 	s.config.OAuth.AccessToken = tokenResp.AccessToken
 	s.config.OAuth.RefreshToken = tokenResp.RefreshToken
 	s.config.OAuth.ExpiresAt = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
+
+	// Handle redirect URL if provided by the API
+	if tokenResp.RedirectURL != "" {
+		fmt.Printf("🔗 API provided redirect URL: %s\n", tokenResp.RedirectURL)
+		// Optionally open the redirect URL in browser for any post-auth steps
+		if err := OpenBrowser(tokenResp.RedirectURL); err != nil {
+			fmt.Printf("⚠️  Could not open redirect URL automatically: %v\n", err)
+			fmt.Printf("   You can manually visit: %s\n", tokenResp.RedirectURL)
+		}
+	}
 
 	fmt.Println("🎉 Authentication successful!")
 	fmt.Println("✅ You're now logged in to PipeOps")

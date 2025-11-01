@@ -41,7 +41,7 @@ build:
 	@mkdir -p $(BIN_DIR)
 	$(GO) build $(GOFLAGS) -ldflags "-s -w \
 		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultClientID=pipeops_public_client' \
-		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultAPIURL=http://localhost:8002' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultAPIURL=https://api.pipeops.sh' \
 		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/updater.DefaultGitHubRepo=PipeOpsHQ/pipeops-cli' \
 		-X github.com/PipeOpsHQ/pipeops-cli/cmd.Version=$(VERSION) \
 		-X github.com/PipeOpsHQ/pipeops-cli/cmd.BuildDate=$(shell date -u +%Y-%m-%dT%H:%M:%SZ) \
@@ -64,7 +64,7 @@ build-race:
 	@mkdir -p $(BIN_DIR)
 	$(GO) build $(GOFLAGS) -race -ldflags "-s -w \
 		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultClientID=pipeops_public_client' \
-		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultAPIURL=' \
+		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/config.DefaultAPIURL=https://api.pipeops.sh' \
 		-X 'github.com/PipeOpsHQ/pipeops-cli/internal/updater.DefaultGitHubRepo=PipeOpsHQ/pipeops-cli' \
 		-X github.com/PipeOpsHQ/pipeops-cli/cmd.Version=$(VERSION) \
 		-X github.com/PipeOpsHQ/pipeops-cli/cmd.BuildDate=$(shell date -u +%Y-%m-%dT%H:%M:%SZ) \

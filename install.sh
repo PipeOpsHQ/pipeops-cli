@@ -62,7 +62,8 @@ detect_platform() {
     case "$(uname -m)" in
         x86_64|amd64)   arch="x86_64" ;;
         arm64|aarch64)  arch="arm64" ;;
-        armv7*|armv6*)  arch="arm" ;;
+        armv7*)         arch="armv6" ;;  # Map armv7 to armv6 (closest available)
+        armv6*)         arch="armv6" ;;
         i386|i686)      arch="i386" ;;
         *)              print_error "Unsupported architecture: $(uname -m)" && exit 1 ;;
     esac
@@ -113,9 +114,9 @@ install_binary() {
 
     # Construct filename based on platform
     if [ "$PLATFORM" = "Windows" ]; then
-        filename="${BINARY_NAME}_${PLATFORM}_${ARCH}.zip"
+        filename="${BINARY_NAME}-cli_${PLATFORM}_${ARCH}.zip"
     else
-        filename="${BINARY_NAME}_${PLATFORM}_${ARCH}.tar.gz"
+        filename="${BINARY_NAME}-cli_${PLATFORM}_${ARCH}.tar.gz"
     fi
 
     url="https://github.com/${REPO}/releases/download/${VERSION}/${filename}"

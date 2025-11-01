@@ -7,11 +7,56 @@
 [![GitHub Release](https://img.shields.io/github/release/PipeOpsHQ/pipeops-cli.svg)](https://github.com/PipeOpsHQ/pipeops-cli/releases)
 [![Docker Pulls](https://img.shields.io/docker/pulls/pipeops/pipeops-cli.svg)](https://hub.docker.com/r/pipeops/pipeops-cli)
 
-PipeOps CLI is a powerful command-line interface designed to simplify managing cloud-native environments, deploying projects, and interacting with the PipeOps platform. With PipeOps CLI, you can provision servers, deploy applications, manage projects, and monitor your infrastructure seamlessly.
+PipeOps CLI is a powerful, cross-platform command-line tool that streamlines cloud-native development and deployment workflows. Securely authenticate with OAuth, manage projects and servers, deploy CI/CD pipelines, and monitor infrastructure—all from your terminal with a developer-friendly interface.
+
+## Why PipeOps CLI?
+
+- **Unified Workflow**: Manage your entire development lifecycle from a single CLI
+- **Developer-First**: Designed for productivity with intuitive commands and rich output  
+- **Secure by Default**: OAuth PKCE authentication with secure credential management
+- **Platform Agnostic**: Works consistently across Linux, macOS, Windows, and FreeBSD
+- **CI/CD Ready**: Perfect for automation scripts and continuous integration pipelines
+- **Real-time Feedback**: Live status updates and progress indicators for long-running operations
 
 ---
 
-## 🚀 Quick Install
+## Table of Contents
+
+- [PipeOps CLI](#pipeops-cli)
+  - [Why PipeOps CLI?](#why-pipeops-cli)
+  - [Table of Contents](#table-of-contents)
+  - [Quick Install](#quick-install)
+    - [macOS \& Linux (recommended)](#macos--linux-recommended)
+    - [Windows (PowerShell)](#windows-powershell)
+    - [Package managers](#package-managers)
+      - [Homebrew (macOS/Linux)](#homebrew-macoslinux)
+      - [Docker](#docker)
+      - [Go install](#go-install)
+  - [Features](#features)
+  - [Quick Start](#quick-start)
+  - [Commands Overview](#commands-overview)
+    - [Global Flags](#global-flags)
+  - [Configuration](#configuration)
+    - [Environment Variables](#environment-variables)
+  - [Development](#development)
+    - [Prerequisites](#prerequisites)
+    - [Setup](#setup)
+    - [Make targets](#make-targets)
+    - [Project structure](#project-structure)
+  - [Docker Usage](#docker-usage)
+    - [Run CLI in Docker](#run-cli-in-docker)
+    - [Docker Compose](#docker-compose)
+  - [Platforms](#platforms)
+  - [Contributing](#contributing)
+    - [Guidelines](#guidelines)
+  - [Documentation](#documentation)
+  - [Support \& Community](#support--community)
+  - [Release Process](#release-process)
+  - [License](#license)
+
+---
+
+## Quick Install
 
 ### macOS & Linux (Recommended)
 
@@ -25,7 +70,9 @@ curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.
 irm https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.ps1 | iex
 ```
 
-### Package Managers
+    irm https://raw.githubusercontent.com/PipeOpsHQ/pipeops-cli/main/install.ps1 | iex
+
+### Package managers
 
 #### Homebrew (macOS/Linux)
 
@@ -46,24 +93,32 @@ docker run --rm -it ghcr.io/pipeopshq/pipeops-cli:latest --help
 go install github.com/PipeOpsHQ/pipeops-cli@latest
 ```
 
-**📋 [Complete Installation Guide](INSTALL.md)** - More installation methods and troubleshooting
+    go install github.com/PipeOpsHQ/pipeops-cli@latest
+
+📋 For more options and troubleshooting, see our [Installation Guide](docs/getting-started/installation.md)
 
 ---
 
-## ✨ Features
+## Features
 
-- **🔐 OAuth Authentication**: Secure authentication with PKCE flow
-- **📦 Project Management**: Create, manage, and deploy projects
-- **🚀 Server Management**: Provision and configure servers across multiple environments
-- **🔧 Pipeline Management**: Create, manage, and deploy CI/CD pipelines
-- **🤖 Agent Setup**: Install and configure PipeOps agents for various platforms
-- **🌐 Cross-Platform Support**: Available for Linux, Windows, macOS, and FreeBSD
-- **📊 Status Monitoring**: Real-time status updates and monitoring
-- **🎨 Beautiful UI**: Rich terminal interface with colors and progress indicators
+- **Secure Authentication**: OAuth with PKCE for secure, device-friendly login
+- **Project Management**: Complete lifecycle management - create, list, configure, and deploy projects
+- **Server Operations**: Server provisioning and environment management
+- **CI/CD Integration**: Pipeline management and deployment automation
+- **Agent Management**: Install and manage PipeOps agents across platforms
+- **Cross-Platform**: Native support for Linux, macOS, Windows, and FreeBSD
+- **Developer Experience**: Real-time status updates, rich output formatting, and JSON mode
+- **Terminal UX**: Clean interface with progress indicators and color-coded output
 
 ---
 
-## 🏃‍♂️ Quick Start
+## Quick Start
+
+1. **Log in to your PipeOps account**
+
+       pipeops auth login
+
+2. **Verify authentication status**
 
 ### 1. Authenticate with PipeOps
 
@@ -93,7 +148,7 @@ pipeops project --help
 
 ---
 
-## 📖 Commands Overview
+## Commands Overview
 
 | Command           | Description                               | Examples                                           |
 | ----------------- | ----------------------------------------- | -------------------------------------------------- |
@@ -109,11 +164,11 @@ pipeops project --help
 - `--help, -h`: Show help for any command
 - `--version, -v`: Show version information
 - `--json`: Output results in JSON format
-- `--quiet, -q`: Suppress non-essential output
+- `--quiet, -q`: Reduce non-essential output
 
 ---
 
-## 🔧 Configuration
+## Configuration
 
 PipeOps CLI stores configuration in `~/.pipeops.json`. This includes:
 
@@ -129,7 +184,7 @@ PipeOps CLI stores configuration in `~/.pipeops.json`. This includes:
 
 ---
 
-## 🛠️ Development
+## Development
 
 ### Prerequisites
 
@@ -192,7 +247,7 @@ pipeops-cli/
 
 ---
 
-## 🐳 Docker Usage
+## Docker Usage
 
 ### Run CLI in Docker
 
@@ -226,7 +281,7 @@ services:
 
 ---
 
-## 🌐 Available Platforms
+## Platforms
 
 PipeOps CLI supports the following platforms:
 
@@ -242,14 +297,16 @@ PipeOps CLI supports the following platforms:
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-We welcome contributions! Here's how to get started:
+We welcome contributions!
 
-1. **Fork the repository** and create your feature branch
-2. **Follow the coding standards** and write tests for new features
-3. **Test your changes** with `make test` and `make lint`
-4. **Submit a pull request** with a clear description
+1. Fork the repository and create a feature branch
+2. Follow coding standards and add tests
+3. Validate with `make test` and `make lint`
+4. Open a PR with a clear description
+
+### Guidelines
 
 ### Contribution Guidelines
 
@@ -259,51 +316,52 @@ We welcome contributions! Here's how to get started:
 - Update documentation as needed
 - Be respectful and collaborative
 
-[📋 Detailed Contributing Guide](CONTRIBUTING.md)
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
-## 📚 Documentation
+## Documentation
 
-- **[Installation Guide](INSTALL.md)** - Comprehensive installation instructions
-- **[API Documentation](https://docs.pipeops.io)** - Complete API reference
-- **[User Guide](https://docs.pipeops.io/cli)** - Detailed usage instructions
-- **[Examples](examples/)** - Usage examples and scripts
-
----
-
-## 🆘 Support & Community
-
-- **📖 Documentation**: [docs.pipeops.io](https://docs.pipeops.io)
-- **🐛 Issues**: [GitHub Issues](https://github.com/PipeOpsHQ/pipeops-cli/issues)
-- **💬 Discussions**: [GitHub Discussions](https://github.com/PipeOpsHQ/pipeops-cli/discussions)
-- **🗣️ Discord**: [Join our community](https://discord.gg/pipeops)
-- **📧 Email**: [support@pipeops.io](mailto:support@pipeops.io)
-- **🐦 Twitter**: [@PipeOpsHQ](https://twitter.com/pipeops)
+- **[Installation Guide](docs/getting-started/installation.md)** - Complete installation instructions
+- **[Quick Start Guide](docs/getting-started/quick-start.md)** - Get up and running quickly
+- **[Commands Reference](docs/commands/overview.md)** - Detailed command documentation
+- **[API Reference](https://docs.pipeops.io)** - Complete API documentation
+- **[CLI User Guide](https://docs.pipeops.io/cli)** - In-depth CLI usage guide
 
 ---
 
-## 🔄 Release Process
+## Support & Community
+
+- **[Documentation](https://docs.pipeops.io)** - Complete guides and references
+- **[GitHub Issues](https://github.com/PipeOpsHQ/pipeops-cli/issues)** - Bug reports and feature requests
+- **[GitHub Discussions](https://github.com/PipeOpsHQ/pipeops-cli/discussions)** - Community discussions
+- **[Discord](https://discord.gg/pipeops)** - Real-time community chat
+- **[Email Support](mailto:support@pipeops.io)** - Direct technical support
+- **[Twitter](https://twitter.com/PipeOpsHQ)** - Latest news and updates
+
+---
+
+## Release Process
 
 Releases are automated via GitHub Actions when tags are pushed:
 
-1. **Create a new tag**: `git tag -a v1.0.0 -m "Release v1.0.0"`
-2. **Push the tag**: `git push origin v1.0.0`
-3. **GitHub Actions** will automatically:
-   - Build binaries for all platforms
-   - Create GitHub release with binaries
+1. **Create a release tag**
+
+       git tag -a v1.0.0 -m "Release v1.0.0"
+
+2. **Push the tag**
+
+       git push origin v1.0.0
+
+3. **Automated CI process**
+   - Build binaries for all supported platforms
+   - Create GitHub release with artifacts and changelog
    - Push Docker images to registry
-   - Update package managers (Homebrew, AUR, etc.)
+   - Update package managers (Homebrew, etc.)
 
 ---
 
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
-
----
-
-## 🙏 Acknowledgments
+## License
 
 Special thanks to:
 

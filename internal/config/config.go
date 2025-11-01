@@ -115,15 +115,15 @@ func Load() (*Config, error) {
 	}
 
 	// Override with environment variables if available
-	// if apiURL := os.Getenv("PIPEOPS_API_URL"); apiURL != "" {
-	// 	cfg.OAuth.BaseURL = apiURL
-	// }
-	// if clientID := os.Getenv("PIPEOPS_CLIENT_ID"); clientID != "" {
-	// 	cfg.OAuth.ClientID = clientID
-	// }
-	// if debug := os.Getenv("PIPEOPS_DEBUG"); debug == "true" {
-	// 	cfg.Settings.Debug = true
-	// }
+	if apiURL := os.Getenv("PIPEOPS_API_URL"); apiURL != "" {
+		cfg.OAuth.BaseURL = apiURL
+	}
+	if clientID := os.Getenv("PIPEOPS_CLIENT_ID"); clientID != "" {
+		cfg.OAuth.ClientID = clientID
+	}
+	if debug := os.Getenv("PIPEOPS_DEBUG"); debug == "true" {
+		cfg.Settings.Debug = true
+	}
 
 	return &cfg, nil
 }
