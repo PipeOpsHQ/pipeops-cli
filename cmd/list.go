@@ -183,7 +183,7 @@ Examples:
 					*models.Project
 					IsLinked bool `json:"is_linked"`
 				}
-				
+
 				var projectsWithLink []ProjectWithLink
 				for _, project := range projectsResp.Projects {
 					p := project // Create a copy to avoid pointer issues
@@ -197,13 +197,13 @@ Examples:
 				// Enhanced table display
 				fmt.Printf("\n📊 PROJECTS OVERVIEW\n")
 				fmt.Printf("├─ Total: %d projects\n", len(projectsResp.Projects))
-				
+
 				// Count projects by status
 				statusCounts := make(map[string]int)
 				for _, project := range projectsResp.Projects {
 					statusCounts[project.Status]++
 				}
-				
+
 				if len(statusCounts) > 0 {
 					fmt.Printf("└─ Status: ")
 					i := 0
@@ -216,9 +216,9 @@ Examples:
 					}
 					fmt.Printf("\n")
 				}
-				
+
 				fmt.Printf("\n")
-				
+
 				// Prepare enhanced table data
 				headers := []string{"", "PROJECT ID", "PROJECT NAME", "STATUS", "ENVIRONMENT", "LAST UPDATED", "CREATED"}
 				var rows [][]string
@@ -229,10 +229,10 @@ Examples:
 					if project.ID == linkedProjectID {
 						linkedIndicator = "→ "
 					}
-					
+
 					name := utils.TruncateString(project.Name, 25)
 					status := utils.GetStatusIcon(project.Status) + " " + project.Status
-					
+
 					// Get environment - using status as a proxy for environment
 					environment := "production" // Default
 					if project.Status == "development" || project.Status == "dev" {
@@ -240,7 +240,7 @@ Examples:
 					} else if project.Status == "staging" {
 						environment = "staging"
 					}
-					
+
 					// Format dates
 					created := utils.FormatDateShort(project.CreatedAt)
 					updated := utils.FormatDateShort(project.UpdatedAt)
@@ -257,16 +257,16 @@ Examples:
 				}
 
 				utils.PrintTable(headers, rows, opts)
-				
+
 				// Show linked project info
 				if linkedProjectID != "" {
 					fmt.Printf("\n→ Linked to current directory\n")
 				}
-				
+
 				// Enhanced tips section
 				if !opts.Quiet {
 					fmt.Printf("\n💡 QUICK ACTIONS\n")
-					
+
 					if linkedProjectID != "" {
 						fmt.Printf("├─ Deploy linked project: pipeops deploy\n")
 						fmt.Printf("├─ View linked status: pipeops status\n")
@@ -275,12 +275,12 @@ Examples:
 						fmt.Printf("├─ Link a project: pipeops link <project-id>\n")
 						fmt.Printf("├─ Interactive link: pipeops link\n")
 					}
-					
+
 					fmt.Printf("├─ View details: pipeops status <project-id>\n")
 					fmt.Printf("├─ View logs: pipeops logs --project <project-id>\n")
 					fmt.Printf("├─ List addons: pipeops list --addons\n")
 					fmt.Printf("└─ Deploy addon: pipeops deploy --addon <addon-id>\n")
-					
+
 					// Add filtering hint
 					fmt.Printf("\n🔍 COMING SOON\n")
 					fmt.Printf("├─ Filter by status: pipeops list --status active\n")

@@ -151,7 +151,7 @@ Examples:
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
 		force, _ := cmd.Flags().GetBool("force")
-		
+
 		currentDir, err := os.Getwd()
 		if err != nil {
 			utils.HandleError(err, "Error getting current directory", opts)
@@ -161,14 +161,14 @@ Examples:
 		// Check if any project is linked
 		context, contextErr := utils.LoadProjectContext()
 		hasContext := contextErr == nil
-		
+
 		// Check for legacy .pipeops file
 		legacyFile := filepath.Join(currentDir, ".pipeops")
 		hasLegacy := false
 		if _, err := os.Stat(legacyFile); err == nil {
 			hasLegacy = true
 		}
-		
+
 		// Check for new context directory
 		contextDir := filepath.Join(currentDir, ".pipeops")
 		contextFile := filepath.Join(contextDir, "project.json")
@@ -222,7 +222,7 @@ Examples:
 		// Success message
 		if len(removedItems) > 0 {
 			utils.PrintSuccess("Successfully unlinked project from current directory", opts)
-			
+
 			if !opts.Quiet {
 				fmt.Printf("\n🗑️  REMOVED\n")
 				for i, item := range removedItems {
@@ -232,7 +232,7 @@ Examples:
 						fmt.Printf("├─ %s\n", item)
 					}
 				}
-				
+
 				fmt.Printf("\n💡 NEXT STEPS\n")
 				fmt.Printf("├─ Link another project: pipeops link\n")
 				fmt.Printf("├─ List projects: pipeops list\n")
@@ -248,7 +248,7 @@ Examples:
 func init() {
 	rootCmd.AddCommand(linkCmd)
 	rootCmd.AddCommand(unlinkCmd)
-	
+
 	// Add flags for unlink command
 	unlinkCmd.Flags().BoolP("force", "f", false, "Force unlink without confirmation")
 }

@@ -20,7 +20,7 @@ type Client struct {
 }
 
 // NewClient creates a new PipeOps client
-func NewClient() *Client {
+func NewClient() ClientAPI {
 	cfg := config.DefaultConfig()
 	baseURL := config.GetAPIURL()
 
@@ -41,7 +41,7 @@ func NewClient() *Client {
 }
 
 // NewClientWithConfig creates a new PipeOps client with the provided configuration
-func NewClientWithConfig(cfg *config.Config) *Client {
+func NewClientWithConfig(cfg *config.Config) ClientAPI {
 	baseURL := cfg.OAuth.BaseURL
 	if baseURL == "" {
 		baseURL = config.GetAPIURL()
@@ -268,7 +268,7 @@ func (c *Client) GetLogs(req *models.LogsRequest) (*models.LogsResponse, error) 
 	}
 
 	ctx := context.Background()
-	
+
 	// Build SDK request options
 	opts := &sdk.LogsOptions{
 		Limit: req.Limit,
@@ -303,7 +303,7 @@ func (c *Client) StreamLogs(req *models.LogsRequest, callback func(*models.Strea
 	}
 
 	ctx := context.Background()
-	
+
 	// Build SDK request options
 	opts := &sdk.LogsOptions{
 		Limit: req.Limit,

@@ -69,7 +69,7 @@ Examples:
 	Args: cobra.NoArgs,
 }
 
-func deployAddon(client *pipeops.Client, addonID, projectID string, envVars map[string]string, opts utils.OutputOptions) {
+func deployAddon(client pipeops.ClientAPI, addonID, projectID string, envVars map[string]string, opts utils.OutputOptions) {
 	// Get project ID if not provided
 	if projectID == "" {
 		projectContext, err := utils.LoadProjectContext()

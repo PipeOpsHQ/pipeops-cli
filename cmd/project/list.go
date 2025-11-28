@@ -28,7 +28,7 @@ Examples:
 		}
 
 		// Create client with the loaded configuration
-		client := pipeops.NewClientWithConfig(cfg)
+		client := pipeops.NewClientWithConfigFunc(cfg)
 
 		// Check if user is authenticated
 		if !utils.RequireAuth(client, opts) {

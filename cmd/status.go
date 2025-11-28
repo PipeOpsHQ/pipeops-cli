@@ -61,7 +61,7 @@ Examples:
 	Args: cobra.MaximumNArgs(1),
 }
 
-func showAddonStatus(client *pipeops.Client, addonID string, opts utils.OutputOptions) {
+func showAddonStatus(client pipeops.ClientAPI, addonID string, opts utils.OutputOptions) {
 	utils.PrintInfo(fmt.Sprintf("Getting addon '%s' information...", addonID), opts)
 
 	addon, err := client.GetAddon(addonID)
@@ -138,7 +138,7 @@ func showAddonStatus(client *pipeops.Client, addonID string, opts utils.OutputOp
 	}
 }
 
-func showProjectStatus(client *pipeops.Client, args []string, opts utils.OutputOptions) {
+func showProjectStatus(client pipeops.ClientAPI, args []string, opts utils.OutputOptions) {
 	// Get project ID
 	var projectID string
 	var isLinkedProject bool
@@ -181,10 +181,10 @@ func showProjectStatus(client *pipeops.Client, args []string, opts utils.OutputO
 
 	if opts.Format == utils.OutputFormatJSON {
 		statusData := map[string]interface{}{
-			"project":          project,
-			"services":         services,
+			"project":           project,
+			"services":          services,
 			"addon_deployments": addonDeployments,
-			"is_linked":        isLinkedProject,
+			"is_linked":         isLinkedProject,
 		}
 		utils.PrintJSON(statusData)
 	} else {
@@ -201,12 +201,12 @@ func showProjectStatus(client *pipeops.Client, args []string, opts utils.OutputO
 		fmt.Printf("├─ ID: %s\n", project.ID)
 		fmt.Printf("├─ Name: %s\n", project.Name)
 		fmt.Printf("├─ Status: %s %s\n", getStatusIcon(project.Status), project.Status)
-		
+
 		// Add description if available
 		if project.Description != "" {
 			fmt.Printf("├─ Description: %s\n", utils.TruncateString(project.Description, 60))
 		}
-		
+
 		fmt.Printf("├─ Created: %s\n", utils.FormatDate(project.CreatedAt))
 		fmt.Printf("└─ Last Updated: %s\n", utils.FormatDate(project.UpdatedAt))
 
@@ -214,7 +214,7 @@ func showProjectStatus(client *pipeops.Client, args []string, opts utils.OutputO
 		healthyServices := 0
 		unhealthyServices := 0
 		unknownServices := 0
-		
+
 		for _, service := range services.Services {
 			switch strings.ToLower(service.Health) {
 			case "healthy":
@@ -225,7 +225,7 @@ func showProjectStatus(client *pipeops.Client, args []string, opts utils.OutputO
 				unknownServices++
 			}
 		}
-		
+
 		if len(services.Services) > 0 {
 			fmt.Printf("\n🏥 HEALTH STATUS\n")
 			fmt.Printf("├─ Total Services: %d\n", len(services.Services))
@@ -248,17 +248,17 @@ func showProjectStatus(client *pipeops.Client, args []string, opts utils.OutputO
 				if i == len(services.Services)-1 {
 					symbol = "└─"
 				}
-				
+
 				// Enhanced service display
 				healthIcon := getHealthIcon(service.Health)
 				fmt.Printf("%s %s %s\n", symbol, healthIcon, service.Name)
-				
+
 				// Add sub-details for each service
 				subSymbol := "│  "
 				if i == len(services.Services)-1 {
 					subSymbol = "   "
 				}
-				
+
 				fmt.Printf("%s ├─ Status: %s\n", subSymbol, service.Health)
 				if service.Type != "" {
 					fmt.Printf("%s ├─ Type: %s\n", subSymbol, service.Type)
@@ -282,16 +282,16 @@ func showProjectStatus(client *pipeops.Client, args []string, opts utils.OutputO
 				if i == len(addonDeployments)-1 {
 					symbol = "└─"
 				}
-				
+
 				statusIcon := utils.GetStatusIcon(addon.Status)
 				fmt.Printf("%s %s %s\n", symbol, statusIcon, addon.Name)
-				
+
 				// Add sub-details for each addon
 				subSymbol := "│  "
 				if i == len(addonDeployments)-1 {
 					subSymbol = "   "
 				}
-				
+
 				fmt.Printf("%s ├─ ID: %s\n", subSymbol, addon.ID)
 				fmt.Printf("%s ├─ Status: %s\n", subSymbol, addon.Status)
 				if addon.URL != "" {
@@ -309,7 +309,7 @@ func showProjectStatus(client *pipeops.Client, args []string, opts utils.OutputO
 		// Show helpful tips based on project state
 		if !opts.Quiet {
 			fmt.Printf("\n💡 ACTIONS\n")
-			
+
 			// Context-aware actions
 			if isLinkedProject {
 				fmt.Printf("├─ Deploy changes: pipeops deploy\n")
@@ -320,19 +320,19 @@ func showProjectStatus(client *pipeops.Client, args []string, opts utils.OutputO
 				fmt.Printf("├─ View logs: pipeops logs --project %s\n", projectID)
 				fmt.Printf("├─ Deploy: pipeops deploy --project %s\n", projectID)
 			}
-			
+
 			// Common actions
 			if len(addonDeployments) == 0 {
 				fmt.Printf("├─ Add addon: pipeops deploy --addon <addon-id> --project %s\n", projectID)
 			} else {
 				fmt.Printf("├─ Manage addons: pipeops list --deployments --project %s\n", projectID)
 			}
-			
+
 			if len(services.Services) > 0 {
 				fmt.Printf("├─ Connect to service: pipeops connect --project %s\n", projectID)
 				fmt.Printf("├─ Execute command: pipeops exec --project %s\n", projectID)
 			}
-			
+
 			fmt.Printf("└─ Open dashboard: https://app.pipeops.io/projects/%s\n", projectID)
 		}
 	}
@@ -342,7 +342,7 @@ func showProjectStatus(client *pipeops.Client, args []string, opts utils.OutputO
 func getProjectAge(createdAt time.Time) string {
 	duration := time.Since(createdAt)
 	days := int(duration.Hours() / 24)
-	
+
 	if days == 0 {
 		hours := int(duration.Hours())
 		if hours == 0 {
@@ -353,29 +353,29 @@ func getProjectAge(createdAt time.Time) string {
 		}
 		return fmt.Sprintf("%d hours", hours)
 	}
-	
+
 	if days == 1 {
 		return "1 day"
 	}
-	
+
 	if days < 30 {
 		return fmt.Sprintf("%d days", days)
 	}
-	
+
 	months := days / 30
 	if months == 1 {
 		return "1 month"
 	}
-	
+
 	if months < 12 {
 		return fmt.Sprintf("%d months", months)
 	}
-	
+
 	years := months / 12
 	if years == 1 {
 		return "1 year"
 	}
-	
+
 	return fmt.Sprintf("%d years", years)
 }
 

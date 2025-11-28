@@ -9,50 +9,50 @@ import (
 
 func TestShouldSkipUpdateCheck(t *testing.T) {
 	tests := []struct {
-		name        string
-		cmdName     string
-		envVars     map[string]string
-		jsonFlag    bool
-		want        bool
+		name     string
+		cmdName  string
+		envVars  map[string]string
+		jsonFlag bool
+		want     bool
 	}{
 		{
-			name:     "skip for update command",
-			cmdName:  "update",
-			want:     true,
+			name:    "skip for update command",
+			cmdName: "update",
+			want:    true,
 		},
 		{
-			name:     "skip for version command",
-			cmdName:  "version",
-			want:     true,
+			name:    "skip for version command",
+			cmdName: "version",
+			want:    true,
 		},
 		{
-			name:     "skip for help command",
-			cmdName:  "help",
-			want:     true,
+			name:    "skip for help command",
+			cmdName: "help",
+			want:    true,
 		},
 		{
-			name:     "skip in CI environment",
-			cmdName:  "project",
-			envVars:  map[string]string{"CI": "true"},
-			want:     true,
+			name:    "skip in CI environment",
+			cmdName: "project",
+			envVars: map[string]string{"CI": "true"},
+			want:    true,
 		},
 		{
-			name:     "skip in GitHub Actions",
-			cmdName:  "project",
-			envVars:  map[string]string{"GITHUB_ACTIONS": "true"},
-			want:     true,
+			name:    "skip in GitHub Actions",
+			cmdName: "project",
+			envVars: map[string]string{"GITHUB_ACTIONS": "true"},
+			want:    true,
 		},
 		{
-			name:     "skip when explicitly disabled",
-			cmdName:  "project",
-			envVars:  map[string]string{"PIPEOPS_SKIP_UPDATE_CHECK": "true"},
-			want:     true,
+			name:    "skip when explicitly disabled",
+			cmdName: "project",
+			envVars: map[string]string{"PIPEOPS_SKIP_UPDATE_CHECK": "true"},
+			want:    true,
 		},
 
 		{
-			name:     "don't skip for normal command",
-			cmdName:  "project",
-			want:     false,
+			name:    "don't skip for normal command",
+			cmdName: "project",
+			want:    false,
 		},
 	}
 
@@ -97,7 +97,7 @@ func TestVersionInfo(t *testing.T) {
 func TestRootCommandFlags(t *testing.T) {
 	// Check that persistent flags are registered
 	flags := []string{"json", "verbose", "quiet", "config"}
-	
+
 	for _, flagName := range flags {
 		flag := rootCmd.PersistentFlags().Lookup(flagName)
 		if flag == nil {
@@ -109,7 +109,7 @@ func TestRootCommandFlags(t *testing.T) {
 func TestConfigFunctions(t *testing.T) {
 	// Test that GetConfig and SaveConfig return errors properly
 	// Note: These tests require a valid config file setup
-	
+
 	// Create temporary directory
 	tempDir := t.TempDir()
 	os.Setenv("HOME", tempDir)

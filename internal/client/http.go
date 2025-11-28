@@ -10,10 +10,10 @@ import (
 
 // HTTPClient wraps http.Client with additional features
 type HTTPClient struct {
-	client      *http.Client
-	maxRetries  int
-	retryDelay  time.Duration
-	timeout     time.Duration
+	client     *http.Client
+	maxRetries int
+	retryDelay time.Duration
+	timeout    time.Duration
 }
 
 // NewHTTPClient creates a new HTTP client with sensible defaults
@@ -103,11 +103,11 @@ func (c *HTTPClient) DoWithContext(ctx context.Context, req *http.Request) (*htt
 func shouldRetry(statusCode int) bool {
 	// Retry on server errors and specific client errors
 	switch statusCode {
-	case http.StatusTooManyRequests,      // 429
-		http.StatusInternalServerError,   // 500
-		http.StatusBadGateway,            // 502
-		http.StatusServiceUnavailable,    // 503
-		http.StatusGatewayTimeout:        // 504
+	case http.StatusTooManyRequests, // 429
+		http.StatusInternalServerError, // 500
+		http.StatusBadGateway,          // 502
+		http.StatusServiceUnavailable,  // 503
+		http.StatusGatewayTimeout:      // 504
 		return true
 	}
 	return false
