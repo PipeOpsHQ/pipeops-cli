@@ -13,8 +13,8 @@ import (
 
 var logsCmd = &cobra.Command{
 	Use:   "logs [project-id]",
-	Short: "📋 View project logs",
-	Long: `📋 View and stream logs from your project services.
+	Short: "View project logs",
+	Long: `View and stream logs from your project services.
 
 This command allows you to view historical logs and stream real-time logs from your deployed services.
 

@@ -13,8 +13,8 @@ import (
 
 var statusCmd = &cobra.Command{
 	Use:   "status [project-id]",
-	Short: "📊 Show project or addon status",
-	Long: `📊 Show the status of a project or addon.
+	Short: "Show project or addon status",
+	Long: `Show the status of a project or addon.
 
 View detailed information about your project's health, deployments, and services.
 Can also show information about specific addons.
@@ -74,9 +74,9 @@ func showAddonStatus(client pipeops.ClientAPI, addonID string, opts utils.Output
 		utils.PrintJSON(addon)
 	} else {
 		// Display addon information
-		utils.PrintInfo(fmt.Sprintf("📦 Addon: %s", addon.Name), opts)
+		utils.PrintInfo(fmt.Sprintf("Addon: %s", addon.Name), opts)
 
-		fmt.Printf("\n📊 ADDON DETAILS\n")
+		fmt.Printf("\nADDON DETAILS\n")
 		fmt.Printf("├─ ID: %s\n", addon.ID)
 		fmt.Printf("├─ Name: %s\n", addon.Name)
 		fmt.Printf("├─ Category: %s\n", addon.Category)
@@ -85,12 +85,12 @@ func showAddonStatus(client pipeops.ClientAPI, addonID string, opts utils.Output
 		fmt.Printf("└─ Image: %s\n", addon.Image)
 
 		if addon.Description != "" {
-			fmt.Printf("\n📝 DESCRIPTION\n")
+			fmt.Printf("\nDESCRIPTION\n")
 			fmt.Printf("%s\n", addon.Description)
 		}
 
 		if len(addon.Tags) > 0 {
-			fmt.Printf("\n🏷️  TAGS\n")
+			fmt.Printf("\nTAGS\n")
 			for i, tag := range addon.Tags {
 				if i == len(addon.Tags)-1 {
 					fmt.Printf("└─ %s\n", tag)
@@ -101,7 +101,7 @@ func showAddonStatus(client pipeops.ClientAPI, addonID string, opts utils.Output
 		}
 
 		if len(addon.Ports) > 0 {
-			fmt.Printf("\n🌐 PORTS\n")
+			fmt.Printf("\nPORTS\n")
 			for i, port := range addon.Ports {
 				if i == len(addon.Ports)-1 {
 					fmt.Printf("└─ %d\n", port)
@@ -112,7 +112,7 @@ func showAddonStatus(client pipeops.ClientAPI, addonID string, opts utils.Output
 		}
 
 		if len(addon.EnvVars) > 0 {
-			fmt.Printf("\n🔧 ENVIRONMENT VARIABLES\n")
+			fmt.Printf("\nENVIRONMENT VARIABLES\n")
 			i := 0
 			for key, value := range addon.EnvVars {
 				if i == len(addon.EnvVars)-1 {
@@ -124,13 +124,13 @@ func showAddonStatus(client pipeops.ClientAPI, addonID string, opts utils.Output
 			}
 		}
 
-		fmt.Printf("\n⏰ TIMESTAMPS\n")
+		fmt.Printf("\nTIMESTAMPS\n")
 		fmt.Printf("├─ Created: %s\n", utils.FormatDate(addon.CreatedAt))
 		fmt.Printf("└─ Updated: %s\n", utils.FormatDate(addon.UpdatedAt))
 
 		// Show helpful tips
 		if !opts.Quiet {
-			fmt.Printf("\n💡 NEXT STEPS\n")
+			fmt.Printf("\nNEXT STEPS\n")
 			fmt.Printf("├─ Deploy addon: pipeops deploy --addon %s --project <project-id>\n", addon.ID)
 			fmt.Printf("├─ List all addons: pipeops list --addons\n")
 			fmt.Printf("└─ View addon deployments: pipeops list --deployments --project <project-id>\n")
@@ -191,13 +191,13 @@ func showProjectStatus(client pipeops.ClientAPI, args []string, opts utils.Outpu
 		// Display enhanced project information
 		fmt.Printf("\n")
 		if isLinkedProject {
-			utils.PrintInfo(fmt.Sprintf("🔗 Linked Project: %s", project.Name), opts)
+			utils.PrintInfo(fmt.Sprintf("Linked Project: %s", project.Name), opts)
 		} else {
-			utils.PrintInfo(fmt.Sprintf("🚀 Project: %s", project.Name), opts)
+			utils.PrintInfo(fmt.Sprintf("Project: %s", project.Name), opts)
 		}
 
 		// Project Overview
-		fmt.Printf("\n📊 PROJECT OVERVIEW\n")
+		fmt.Printf("\nPROJECT OVERVIEW\n")
 		fmt.Printf("├─ ID: %s\n", project.ID)
 		fmt.Printf("├─ Name: %s\n", project.Name)
 		fmt.Printf("├─ Status: %s %s\n", getStatusIcon(project.Status), project.Status)
@@ -227,22 +227,22 @@ func showProjectStatus(client pipeops.ClientAPI, args []string, opts utils.Outpu
 		}
 
 		if len(services.Services) > 0 {
-			fmt.Printf("\n🏥 HEALTH STATUS\n")
+			fmt.Printf("\nHEALTH STATUS\n")
 			fmt.Printf("├─ Total Services: %d\n", len(services.Services))
 			if healthyServices > 0 {
-				fmt.Printf("├─ 🟢 Healthy: %d\n", healthyServices)
+				fmt.Printf("├─ Healthy: %d\n", healthyServices)
 			}
 			if unhealthyServices > 0 {
-				fmt.Printf("├─ 🔴 Unhealthy: %d\n", unhealthyServices)
+				fmt.Printf("├─ Unhealthy: %d\n", unhealthyServices)
 			}
 			if unknownServices > 0 {
-				fmt.Printf("└─ 🟡 Unknown: %d\n", unknownServices)
+				fmt.Printf("└─ Unknown: %d\n", unknownServices)
 			}
 		}
 
 		// Show services with more details
 		if len(services.Services) > 0 {
-			fmt.Printf("\n🔧 SERVICES (%d)\n", len(services.Services))
+			fmt.Printf("\nSERVICES (%d)\n", len(services.Services))
 			for i, service := range services.Services {
 				symbol := "├─"
 				if i == len(services.Services)-1 {
@@ -276,7 +276,7 @@ func showProjectStatus(client pipeops.ClientAPI, args []string, opts utils.Outpu
 
 		// Show addon deployments
 		if len(addonDeployments) > 0 {
-			fmt.Printf("\n📦 ADDON DEPLOYMENTS (%d)\n", len(addonDeployments))
+			fmt.Printf("\nADDON DEPLOYMENTS (%d)\n", len(addonDeployments))
 			for i, addon := range addonDeployments {
 				symbol := "├─"
 				if i == len(addonDeployments)-1 {
@@ -302,13 +302,13 @@ func showProjectStatus(client pipeops.ClientAPI, args []string, opts utils.Outpu
 		}
 
 		// Recent Activity
-		fmt.Printf("\n📅 RECENT ACTIVITY\n")
+		fmt.Printf("\nRECENT ACTIVITY\n")
 		fmt.Printf("├─ Last deployment: %s\n", utils.FormatDate(project.UpdatedAt))
 		fmt.Printf("└─ Project age: %s\n", getProjectAge(project.CreatedAt))
 
 		// Show helpful tips based on project state
 		if !opts.Quiet {
-			fmt.Printf("\n💡 ACTIONS\n")
+			fmt.Printf("\nACTIONS\n")
 
 			// Context-aware actions
 			if isLinkedProject {
@@ -383,15 +383,15 @@ func getProjectAge(createdAt time.Time) string {
 func getStatusIcon(status string) string {
 	switch strings.ToLower(status) {
 	case "active", "running", "healthy":
-		return "🟢 "
+		return "[OK]"
 	case "deploying", "building", "starting":
-		return "🟡 "
+		return "[PENDING]"
 	case "stopped", "inactive":
-		return "⚪ "
+		return "[STOPPED]"
 	case "error", "failed", "crashed":
-		return "🔴 "
+		return "[ERROR]"
 	default:
-		return "⚫ "
+		return "[UNKNOWN]"
 	}
 }
 
@@ -399,13 +399,13 @@ func getStatusIcon(status string) string {
 func getHealthIcon(health string) string {
 	switch strings.ToLower(health) {
 	case "healthy":
-		return "🟢"
+		return "[OK]"
 	case "unhealthy":
-		return "🔴"
+		return "[ERROR]"
 	case "unknown":
-		return "🟡"
+		return "[WARN]"
 	default:
-		return "⚫"
+		return "[UNKNOWN]"
 	}
 }
 

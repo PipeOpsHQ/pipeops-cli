@@ -7,10 +7,10 @@ import (
 
 var agentCmd = &cobra.Command{
 	Use:   "agent",
-	Short: "⚙️ Manage agent-related commands and tasks",
-	Long: `⚙️ The "agent" command provides subcommands to manage various aspects
+	Short: "Manage agent-related commands and tasks",
+	Long: `The "agent" command provides subcommands to manage various aspects
 of the PipeOps agent. These include setup, configuration, and interactions 
-with supported environments like EKS, GKE, AKS, DKS, and K3s. 🌐
+with supported environments like EKS, GKE, AKS, DKS, and K3s.
 
 Examples:
   - Install the PipeOps agent:

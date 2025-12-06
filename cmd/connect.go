@@ -12,8 +12,8 @@ import (
 
 var connectCmd = &cobra.Command{
 	Use:   "connect [service-name]",
-	Short: "🔗 Connect to a service",
-	Long: `🔗 Connect to a service in your project.
+	Short: "Connect to a service",
+	Long: `Connect to a service in your project.
 
 This command helps you connect to various services like databases, caches, and other infrastructure components.
 

@@ -13,8 +13,8 @@ import (
 // pipelineCmd represents the pipeline command
 var pipelineCmd = &cobra.Command{
 	Use:   "pipeline",
-	Short: "🚀 Deploy current directory to PipeOps",
-	Long: `🚀 Deploy the current directory to PipeOps using the linked project.
+	Short: "Deploy current directory to PipeOps",
+	Long: `Deploy the current directory to PipeOps using the linked project.
 
 This command automatically detects your project type and deploys it to PipeOps.
 Make sure you have linked a project first using 'pipeops link'.
@@ -86,7 +86,7 @@ Examples:
 			utils.PrintJSON(project)
 		} else {
 			utils.PrintSuccess("Deployment initiated successfully!", opts)
-			fmt.Printf("\n📋 DEPLOYMENT DETAILS\n")
+			fmt.Printf("\nDEPLOYMENT DETAILS\n")
 			fmt.Printf("├─ Project: %s (%s)\n", context.ProjectName, context.ProjectID)
 			fmt.Printf("├─ Source: %s\n", source)
 			fmt.Printf("├─ Deployment: %s\n", project.Name)
@@ -94,7 +94,7 @@ Examples:
 
 			// Show helpful tips
 			if !opts.Quiet {
-				fmt.Printf("\n💡 NEXT STEPS\n")
+				fmt.Printf("\nNEXT STEPS\n")
 				fmt.Printf("├─ View logs: pipeops logs\n")
 				fmt.Printf("├─ Check status: pipeops status\n")
 				fmt.Printf("└─ Open shell: pipeops shell\n")
@@ -119,37 +119,37 @@ func (p *deployModel) RegisterPipelineSubcommands() {
 	// Add subcommands related to pipelines
 	pipelineCmd.AddCommand(&cobra.Command{
 		Use:   "list",
-		Short: "📜 List all pipelines",
-		Long: `📜 The "list" subcommand displays all the deployment pipelines in your project.
+		Short: "List all pipelines",
+		Long: `The "list" subcommand displays all the deployment pipelines in your project.
 
 Example:
   pipeops deploy pipeline list`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("Listing all pipelines... 🚀")
+			fmt.Println("Listing all pipelines...")
 		},
 	})
 
 	pipelineCmd.AddCommand(&cobra.Command{
 		Use:   "create",
-		Short: "✨ Create a new deployment pipeline",
-		Long: `✨ The "create" subcommand creates a new deployment pipeline in PipeOps.
+		Short: "Create a new deployment pipeline",
+		Long: `The "create" subcommand creates a new deployment pipeline in PipeOps.
 
 Example:
   pipeops deploy pipeline create --name my-pipeline`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("Creating a new pipeline... 🚧")
+			fmt.Println("Creating a new pipeline...")
 		},
 	})
 
 	pipelineCmd.AddCommand(&cobra.Command{
 		Use:   "delete",
-		Short: "🗑️ Delete a deployment pipeline",
-		Long: `🗑️ The "delete" subcommand deletes an existing deployment pipeline in PipeOps.
+		Short: "Delete a deployment pipeline",
+		Long: `The "delete" subcommand deletes an existing deployment pipeline in PipeOps.
 
 Example:
   pipeops deploy pipeline delete --id pipeline-id`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("Deleting a pipeline... 🗑️")
+			fmt.Println("Deleting a pipeline...")
 		},
 	})
 }

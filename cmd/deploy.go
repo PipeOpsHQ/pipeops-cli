@@ -12,8 +12,8 @@ import (
 // deployCmd represents the deploy command
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
-	Short: "🚀 Deploy addons to projects",
-	Long: `🚀 Deploy addons to projects.
+	Short: "Deploy addons to projects",
+	Long: `Deploy addons to projects.
 
 Project code deployment is temporarily disabled. You can deploy addons to existing projects.
 
@@ -58,8 +58,8 @@ Examples:
 					"message": "Project deployment is temporarily disabled",
 				})
 			} else {
-				utils.PrintWarning("🚧 Project deployment is temporarily disabled", opts)
-				fmt.Printf("\n💡 ALTERNATIVES\n")
+				utils.PrintWarning("Project deployment is temporarily disabled", opts)
+				fmt.Printf("\nALTERNATIVES\n")
 				fmt.Printf("├─ Deploy addons: pipeops deploy --addon <addon-id> --project <project-id>\n")
 				fmt.Printf("├─ List addons: pipeops list --addons\n")
 				fmt.Printf("└─ Use PipeOps web console for project deployment\n")
@@ -119,7 +119,7 @@ func deployAddon(client pipeops.ClientAPI, addonID, projectID string, envVars ma
 
 		// Show helpful tips
 		if !opts.Quiet {
-			fmt.Printf("\n💡 NEXT STEPS\n")
+			fmt.Printf("\nNEXT STEPS\n")
 			fmt.Printf("├─ Check status: pipeops status --project %s\n", projectID)
 			fmt.Printf("├─ View logs: pipeops logs --project %s\n", projectID)
 			fmt.Printf("└─ List deployments: pipeops list --deployments --project %s\n", projectID)

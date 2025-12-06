@@ -14,8 +14,8 @@ var terminalManager = terminal.NewManager()
 
 var execCmd = &cobra.Command{
 	Use:   "exec",
-	Short: "💻 Execute commands in deployed containers",
-	Long: `💻 The exec command allows you to execute commands in your deployed containers.
+	Short: "Execute commands in deployed containers",
+	Long: `The exec command allows you to execute commands in your deployed containers.
 This is useful for debugging, running maintenance tasks, or exploring your application environment.
 
 Examples:
@@ -35,8 +35,8 @@ Examples:
 
 var execRunCmd = &cobra.Command{
 	Use:   "run [project-id] <container-name> -- <command>",
-	Short: "🚀 Execute a command in a container",
-	Long: `🚀 Execute a command in a container within your project.
+	Short: "Execute a command in a container",
+	Long: `Execute a command in a container within your project.
 
 This command allows you to run arbitrary commands inside containers, useful for debugging, maintenance, or data operations.
 
@@ -150,8 +150,8 @@ Examples:
 
 var shellCmd = &cobra.Command{
 	Use:   "shell [project-id] <container-name>",
-	Short: "🐚 Start an interactive shell in a container",
-	Long: `🐚 Start an interactive shell session in a container within your project.
+	Short: "Start an interactive shell in a container",
+	Long: `Start an interactive shell session in a container within your project.
 
 This provides direct shell access to containers for debugging, maintenance, or interactive operations.
 
@@ -241,8 +241,8 @@ Examples:
 
 var execContainersCmd = &cobra.Command{
 	Use:   "containers [project-id]",
-	Short: "📦 List containers available for exec",
-	Long: `📦 List all containers available for exec access in a specific project.
+	Short: "List containers available for exec",
+	Long: `List all containers available for exec access in a specific project.
 
 This command shows all containers you can execute commands in or start shells within.
 

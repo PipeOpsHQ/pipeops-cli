@@ -14,8 +14,8 @@ import (
 // updateCmd represents the update command
 var updateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "🔄 Check for and install CLI updates",
-	Long: `🔄 Check for and install CLI updates.
+	Short: "Check for and install CLI updates",
+	Long: `Check for and install CLI updates.
 
 The update command allows you to:
 - Check for newer versions of PipeOps CLI
@@ -107,7 +107,7 @@ func runUpdateCheck(cmd *cobra.Command, args []string, allowInstall bool) {
 	}
 
 	// Display update information in human-readable format
-	fmt.Printf("\n🚀 A new version of PipeOps CLI is available!\n")
+	fmt.Printf("\nA new version of PipeOps CLI is available!\n")
 	fmt.Printf("   Current version: %s\n", currentVersion)
 	fmt.Printf("   Latest version:  %s\n", release.TagName)
 	fmt.Printf("   Release date:    %s\n", release.PublishedAt.Format("January 2, 2006"))
@@ -118,7 +118,7 @@ func runUpdateCheck(cmd *cobra.Command, args []string, allowInstall bool) {
 
 	// Show release notes if available
 	if release.Body != "" {
-		fmt.Printf("\n📋 Release Notes:\n")
+		fmt.Printf("\nRelease Notes:\n")
 
 		// Format release notes nicely
 		lines := strings.Split(release.Body, "\n")
@@ -129,12 +129,12 @@ func runUpdateCheck(cmd *cobra.Command, args []string, allowInstall bool) {
 		}
 	}
 
-	fmt.Printf("\n🌐 View full release: https://github.com/%s/releases/tag/%s\n",
+	fmt.Printf("\nView full release: https://github.com/%s/releases/tag/%s\n",
 		updater.GetGitHubRepo(), release.TagName)
 
 	// If not allowing installation, just show the information
 	if !allowInstall {
-		fmt.Printf("\n💡 To install the update, run: pipeops update\n")
+		fmt.Printf("\nTo install the update, run: pipeops update\n")
 		return
 	}
 
@@ -142,14 +142,14 @@ func runUpdateCheck(cmd *cobra.Command, args []string, allowInstall bool) {
 	skipPrompt, _ := cmd.Flags().GetBool("yes")
 	if !skipPrompt {
 		fmt.Printf("\n")
-		if !utils.ConfirmAction("🔄 Would you like to update now?") {
-			fmt.Println("✅ Update cancelled. You can update later by running 'pipeops update'")
+		if !utils.ConfirmAction("Would you like to update now?") {
+			fmt.Println("Update cancelled. You can update later by running 'pipeops update'")
 			return
 		}
 	}
 
 	// Perform the update
-	fmt.Printf("\n🔄 Starting update process...\n")
+	fmt.Printf("\nStarting update process...\n")
 	if err := updateService.UpdateCLI(ctx, release, opts); err != nil {
 		utils.HandleError(err, "Failed to update CLI", opts)
 		return

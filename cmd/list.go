@@ -12,8 +12,8 @@ import (
 // listCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "📜 List projects or addons",
-	Long: `📜 List all projects or addons in your PipeOps account.
+	Short: "List projects or addons",
+	Long: `List all projects or addons in your PipeOps account.
 
 Examples:
   - List all projects:
@@ -136,7 +136,7 @@ Examples:
 
 				// Show helpful tips
 				if !opts.Quiet {
-					fmt.Printf("\n💡 TIPS\n")
+					fmt.Printf("\nTIPS\n")
 					fmt.Printf("├─ Deploy addon: pipeops deploy --addon <addon-id> --project <project-id>\n")
 					fmt.Printf("├─ View deployments: pipeops list --deployments --project <project-id>\n")
 					fmt.Printf("└─ Get addon info: pipeops status --addon <addon-id>\n")

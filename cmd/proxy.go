@@ -15,8 +15,8 @@ var proxyManager = proxy.NewManager()
 
 var proxyCmd = &cobra.Command{
 	Use:   "proxy",
-	Short: "🌐 Manage local proxy connections to deployed services",
-	Long: `🌐 The proxy command allows you to create local port forwards to your deployed
+	Short: "Manage local proxy connections to deployed services",
+	Long: `The proxy command allows you to create local port forwards to your deployed
 services, making them accessible on your local machine. This is useful for debugging,
 development, and accessing services that aren't publicly exposed.
 
@@ -43,8 +43,8 @@ Examples:
 
 var proxyStartCmd = &cobra.Command{
 	Use:   "start <service-name>",
-	Short: "🔗 Start a proxy to a service",
-	Long: `🔗 Start a proxy to a service in your project.
+	Short: "Start a proxy to a service",
+	Long: `Start a proxy to a service in your project.
 
 This command creates a local proxy connection to a service, allowing you to access it as if it were running locally.
 
@@ -136,8 +136,8 @@ Examples:
 
 var proxyListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "📋 List active proxy connections",
-	Long: `📋 List all currently active proxy connections, showing their status,
+	Short: "List active proxy connections",
+	Long: `List all currently active proxy connections, showing their status,
 local and remote endpoints, and connection statistics.
 
 Examples:
@@ -190,8 +190,8 @@ Examples:
 
 var proxyStopCmd = &cobra.Command{
 	Use:   "stop <proxy-id>",
-	Short: "🛑 Stop a proxy connection",
-	Long: `🛑 Stop a specific proxy connection by its ID. You can get proxy IDs
+	Short: "Stop a proxy connection",
+	Long: `Stop a specific proxy connection by its ID. You can get proxy IDs
 using the 'pipeops proxy list' command.
 
 Examples:
@@ -231,8 +231,8 @@ Examples:
 
 var proxyStopAllCmd = &cobra.Command{
 	Use:   "stop-all",
-	Short: "🛑 Stop all proxy connections",
-	Long: `🛑 Stop all currently active proxy connections.
+	Short: "Stop all proxy connections",
+	Long: `Stop all currently active proxy connections.
 
 Examples:
   - Stop all proxies:
@@ -277,8 +277,8 @@ Examples:
 
 var proxyServicesCmd = &cobra.Command{
 	Use:   "services",
-	Short: "📋 List available services for proxying",
-	Long: `📋 List all services available for proxying in a specific project.
+	Short: "List available services for proxying",
+	Long: `List all services available for proxying in a specific project.
 
 This command shows all the services you can proxy to in your project.
 

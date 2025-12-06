@@ -13,23 +13,27 @@ import (
 
 var installCmd = &cobra.Command{
 	Use:   "install [pipeops-token]",
-	Short: "🚀 Install PipeOps agent and configure Kubernetes cluster",
-	Long: `🚀 The "install" command installs the PipeOps agent on your Kubernetes cluster for monitoring and management.
+	Short: "Install PipeOps agent and configure Kubernetes cluster",
+	Long: `The "install" command installs the PipeOps agent on your Kubernetes cluster for monitoring and management.
 
 This command supports:
-- Automatic PipeOps agent installation
-- Kubernetes cluster setup with PipeOps integration
-- Agent configuration and monitoring setup
-- Automatic cluster detection and registration
+	Automatic PipeOps agent installation
+	Kubernetes cluster setup with PipeOps integration
+	Agent configuration and monitoring setup
+	Automatic cluster detection and registration
+
 
 Examples:
   # Install with token as argument
+
   pipeops agent install your-pipeops-token-here
 
   # Install using environment variables
   export PIPEOPS_TOKEN="your-pipeops-token-here"
+
   export CLUSTER_NAME="my-cluster"
   pipeops agent install
+
 
   # Install on existing cluster
   pipeops agent install --existing-cluster --cluster-name="my-existing-cluster"
@@ -129,7 +133,7 @@ func getPipeOpsToken(cmd *cobra.Command, args []string) string {
 
 // installNewCluster installs a new Kubernetes cluster with PipeOps agent
 func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType string, enableMonitoring bool) {
-	log.Println("🚀 Starting PipeOps agent installation and cluster setup...")
+	log.Println("Starting PipeOps agent installation and cluster setup...")
 
 	// Validate token
 	if err := validateToken(token); err != nil {
@@ -147,8 +151,8 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 	// Install Kubernetes cluster with PipeOps agent integration
 	installCmd := "curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/scripts/install.sh | bash"
 
-	log.Printf("🔧 Installing cluster type: %s", clusterType)
-	log.Printf("📊 PipeOps monitoring: %s", map[bool]string{true: "enabled", false: "disabled"}[enableMonitoring])
+	log.Printf("Installing cluster type: %s", clusterType)
+	log.Printf("PipeOps monitoring: %s", map[bool]string{true: "enabled", false: "disabled"}[enableMonitoring])
 
 	// Execute the installer with environment variables
 	env := append(os.Environ(), envVars...)
@@ -158,16 +162,16 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 	}
 
 	// Setup PipeOps Kubernetes agent
-	log.Println("🔧 Setting up PipeOps Kubernetes agent...")
+	log.Println("Setting up PipeOps Kubernetes agent...")
 	if err := setupPipeOpsAgent(token, clusterName); err != nil {
-		log.Printf("⚠️ Warning: Failed to setup PipeOps agent: %v", err)
+		log.Printf("Warning: Failed to setup PipeOps agent: %v", err)
 	}
 
-	log.Println("✅ PipeOps agent and cluster setup completed successfully!")
-	log.Println("🔗 Your cluster is now connected to PipeOps")
+	log.Println("PipeOps agent and cluster setup completed successfully!")
+	log.Println("Your cluster is now connected to PipeOps")
 
 	// Show verification commands
-	log.Println("\n📋 Verification commands:")
+	log.Println("\nVerification commands:")
 	log.Println("  kubectl get pods -n pipeops-system")
 	log.Println("  pipeops server list")
 	if enableMonitoring {
@@ -177,7 +181,7 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 
 // installOnExistingCluster installs PipeOps agent on an existing Kubernetes cluster
 func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, enableMonitoring bool) {
-	log.Println("🚀 Installing PipeOps agent on existing cluster...")
+	log.Println("Installing PipeOps agent on existing cluster...")
 
 	// Validate token
 	if err := validateToken(token); err != nil {
@@ -185,24 +189,24 @@ func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, ena
 	}
 
 	// Setup PipeOps Kubernetes agent
-	log.Println("🔧 Setting up PipeOps Kubernetes agent...")
+	log.Println("Setting up PipeOps Kubernetes agent...")
 	if err := setupPipeOpsAgent(token, clusterName); err != nil {
 		log.Fatalf("❌ Error setting up PipeOps agent: %v", err)
 	}
 
 	// Enable monitoring if requested
 	if enableMonitoring {
-		log.Println("📊 Enabling PipeOps monitoring...")
+		log.Println("Enabling PipeOps monitoring...")
 		if err := setupMonitoring(token, clusterName); err != nil {
-			log.Printf("⚠️ Warning: Failed to setup monitoring: %v", err)
+			log.Printf("Warning: Failed to setup monitoring: %v", err)
 		}
 	}
 
-	log.Println("✅ PipeOps agent installed on existing cluster!")
-	log.Println("🔗 Your cluster is now connected to PipeOps")
+	log.Println("PipeOps agent installed on existing cluster!")
+	log.Println("Your cluster is now connected to PipeOps")
 
 	// Show verification commands
-	log.Println("\n📋 Verification commands:")
+	log.Println("\nVerification commands:")
 	log.Println("  kubectl get pods -n pipeops-system")
 	log.Println("  pipeops server list")
 	if enableMonitoring {
@@ -212,7 +216,7 @@ func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, ena
 
 // updateAgent updates PipeOps agent to the latest version
 func updateAgent(cmd *cobra.Command, token, clusterName string) {
-	log.Println("🔄 Updating PipeOps agent...")
+	log.Println("Updating PipeOps agent...")
 
 	// Validate token
 	if err := validateToken(token); err != nil {
@@ -229,12 +233,12 @@ func updateAgent(cmd *cobra.Command, token, clusterName string) {
 		log.Fatalf("❌ Error updating PipeOps agent: %v\nOutput: %s", err, output)
 	}
 
-	log.Println("✅ PipeOps agent updated successfully!")
+	log.Println("PipeOps agent updated successfully!")
 }
 
 // uninstallAgent removes PipeOps agent and related components
 func uninstallAgent(cmd *cobra.Command, token string) {
-	log.Println("🗑️ Uninstalling PipeOps agent...")
+	log.Println("Uninstalling PipeOps agent...")
 
 	// Validate token
 	if err := validateToken(token); err != nil {
@@ -242,15 +246,15 @@ func uninstallAgent(cmd *cobra.Command, token string) {
 	}
 
 	// Remove monitoring first
-	log.Println("📊 Removing PipeOps monitoring...")
+	log.Println("Removing PipeOps monitoring...")
 	if err := removeMonitoring(); err != nil {
-		log.Printf("⚠️ Warning: Failed to remove monitoring: %v", err)
+		log.Printf("Warning: Failed to remove monitoring: %v", err)
 	}
 
 	// Remove PipeOps agent
-	log.Println("🔧 Removing PipeOps agent...")
+	log.Println("Removing PipeOps agent...")
 	if err := removePipeOpsAgent(); err != nil {
-		log.Printf("⚠️ Warning: Failed to remove agent: %v", err)
+		log.Printf("Warning: Failed to remove agent: %v", err)
 	}
 
 	// Uninstall PipeOps agent
@@ -263,7 +267,7 @@ func uninstallAgent(cmd *cobra.Command, token string) {
 		log.Fatalf("❌ Error uninstalling PipeOps agent: %v\nOutput: %s", err, output)
 	}
 
-	log.Println("✅ PipeOps agent uninstalled successfully!")
+	log.Println("PipeOps agent uninstalled successfully!")
 }
 
 // Helper functions
@@ -286,7 +290,7 @@ func validateToken(token string) error {
 
 // setupPipeOpsAgent sets up the PipeOps agent on the cluster
 func setupPipeOpsAgent(token, clusterName string) error {
-	log.Printf("🔧 Installing PipeOps agent for cluster: %s", clusterName)
+	log.Printf("Installing PipeOps agent for cluster: %s", clusterName)
 
 	// Apply PipeOps agent manifests
 	setupCmd := fmt.Sprintf(`
@@ -300,13 +304,13 @@ kubectl apply -f https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/
 		return fmt.Errorf("failed to setup agent: %v\nOutput: %s", err, output)
 	}
 
-	log.Println("✅ PipeOps agent setup completed")
+	log.Println("PipeOps agent setup completed")
 	return nil
 }
 
 // setupMonitoring sets up monitoring components
 func setupMonitoring(token, clusterName string) error {
-	log.Printf("📊 Installing monitoring for cluster: %s", clusterName)
+	log.Printf("Installing monitoring for cluster: %s", clusterName)
 
 	// Apply monitoring manifests
 	monitoringCmd := fmt.Sprintf(`
@@ -320,7 +324,7 @@ kubectl apply -f https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/
 		return fmt.Errorf("failed to setup monitoring: %v\nOutput: %s", err, output)
 	}
 
-	log.Println("✅ Monitoring setup completed")
+	log.Println("Monitoring setup completed")
 	return nil
 }
 

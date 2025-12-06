@@ -52,9 +52,9 @@ Examples:
 			if opts.Format == utils.OutputFormatJSON {
 				utils.PrintJSON([]interface{}{})
 			} else {
-				fmt.Println("📋 No servers found yet")
+				fmt.Println("No servers found yet")
 				fmt.Println()
-				fmt.Println("🚀 Ready to create your first server?")
+				fmt.Println("Ready to create your first server?")
 				fmt.Println("   Visit: https://app.pipeops.io")
 				fmt.Println("   Or use: pipeops server create <server-name>")
 			}

@@ -36,13 +36,13 @@ Examples:
 			ctx := context.Background()
 
 			if _, err := userInfoService.GetUserInfo(ctx, oauthService.GetAccessToken()); err == nil {
-				fmt.Println("✅ You're already authenticated!")
-				fmt.Println("🚀 Ready to use PipeOps. Try: pipeops project list")
+				fmt.Println("You're already authenticated!")
+				fmt.Println("Ready to use PipeOps. Try: pipeops project list")
 				return
 			} else {
 				// Token is invalid on server, clear it and proceed with login
-				fmt.Println("⚠️  Your session has expired or been revoked")
-				fmt.Println("🔄 Starting fresh authentication...")
+				fmt.Println("Your session has expired or been revoked")
+				fmt.Println("Starting fresh authentication...")
 				cfg.ClearAuth()
 				config.Save(cfg)
 			}
@@ -53,9 +53,9 @@ Examples:
 		defer cancel()
 
 		if err := oauthService.Login(ctx); err != nil {
-			fmt.Printf("❌ Authentication failed: %v\n", err)
+			fmt.Printf("Authentication failed: %v\n", err)
 			fmt.Println()
-			fmt.Println("🔧 Troubleshooting tips:")
+			fmt.Println("Troubleshooting tips:")
 			fmt.Println("   • Check your internet connection")
 			fmt.Println("   • Make sure you complete the login in your browser")
 			fmt.Println("   • Try again: pipeops auth login")
@@ -64,14 +64,14 @@ Examples:
 
 		// Save updated configuration
 		if err := config.Save(cfg); err != nil {
-			fmt.Printf("⚠️  Failed to save credentials: %v\n", err)
+			fmt.Printf("Failed to save credentials: %v\n", err)
 			fmt.Println("   You may need to authenticate again next time")
 			return
 		}
 
 		// Show helpful next steps
 		fmt.Println()
-		fmt.Println("🎯 What's next? Try these commands:")
+		fmt.Println("What's next? Try these commands:")
 		fmt.Println("   pipeops project list     # See your projects")
 		fmt.Println("   pipeops auth me          # View your profile")
 		fmt.Println("   pipeops --help           # Explore all commands")

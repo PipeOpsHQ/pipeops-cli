@@ -14,8 +14,8 @@ import (
 // linkCmd represents the link command
 var linkCmd = &cobra.Command{
 	Use:   "link [project-id]",
-	Short: "🔗 Link current directory to a PipeOps project",
-	Long: `🔗 Link the current directory to a PipeOps project.
+	Short: "Link current directory to a PipeOps project",
+	Long: `Link the current directory to a PipeOps project.
 
 This command creates a local context file that associates your current directory
 with a specific PipeOps project, enabling project-aware commands like deploy, logs, and status.
@@ -75,7 +75,7 @@ Examples:
 			}
 
 			// Show projects and let user select
-			fmt.Printf("\n📋 Available Projects:\n")
+			fmt.Printf("\nAvailable Projects:\n")
 			for i, project := range projectsResp.Projects {
 				status := utils.GetStatusIcon(project.Status)
 				fmt.Printf("  %d. %s %s (%s)\n", i+1, status, project.Name, project.ID)
@@ -118,12 +118,12 @@ Examples:
 		utils.PrintSuccess(fmt.Sprintf("Successfully linked directory to project '%s' (%s)", selectedProject.Name, projectID), opts)
 
 		if !opts.Quiet {
-			fmt.Printf("\n📁 PROJECT CONTEXT\n")
+			fmt.Printf("\nPROJECT CONTEXT\n")
 			fmt.Printf("├─ Project: %s (%s)\n", selectedProject.Name, projectID)
 			fmt.Printf("├─ Directory: %s\n", currentDir)
 			fmt.Printf("└─ Context file: %s\n", filepath.Join(currentDir, ".pipeops", "project.json"))
 
-			fmt.Printf("\n💡 NEXT STEPS\n")
+			fmt.Printf("\nNEXT STEPS\n")
 			fmt.Printf("├─ Deploy: pipeops deploy\n")
 			fmt.Printf("├─ View logs: pipeops logs\n")
 			fmt.Printf("├─ Check status: pipeops status\n")
@@ -134,8 +134,8 @@ Examples:
 
 var unlinkCmd = &cobra.Command{
 	Use:   "unlink",
-	Short: "🔓 Unlink project from current directory",
-	Long: `🔓 Remove the project association from the current directory.
+	Short: "Unlink project from current directory",
+	Long: `Remove the project association from the current directory.
 
 This command removes both the new context format (.pipeops/project.json) and 
 the legacy format (.pipeops file) to ensure complete unlinking.
@@ -184,7 +184,7 @@ Examples:
 
 		// Show what will be unlinked
 		if hasContext && !opts.Quiet {
-			fmt.Printf("\n📋 CURRENT LINK\n")
+			fmt.Printf("\nCURRENT LINK\n")
 			fmt.Printf("├─ Project: %s (%s)\n", context.ProjectName, context.ProjectID)
 			fmt.Printf("├─ Directory: %s\n", context.Directory)
 			fmt.Printf("└─ Linked at: %s\n", utils.FormatDate(context.LinkedAt))
@@ -192,7 +192,7 @@ Examples:
 
 		// Confirm unlinking unless force flag is set
 		if !force && !opts.Quiet {
-			if !utils.ConfirmAction("\n⚠️  Are you sure you want to unlink this project?") {
+			if !utils.ConfirmAction("\nAre you sure you want to unlink this project?") {
 				utils.PrintInfo("Unlink cancelled", opts)
 				return
 			}

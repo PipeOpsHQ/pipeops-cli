@@ -50,9 +50,9 @@ Examples:
 			if opts.Format == utils.OutputFormatJSON {
 				utils.PrintJSON([]interface{}{})
 			} else {
-				fmt.Println("📋 No projects found yet")
+				fmt.Println("No projects found yet")
 				fmt.Println()
-				fmt.Println("🚀 Ready to create your first project?")
+				fmt.Println("Ready to create your first project?")
 				fmt.Println("   Visit: https://app.pipeops.io")
 				fmt.Println("   Or check our docs for CLI project creation")
 			}
@@ -83,14 +83,10 @@ Examples:
 			utils.PrintTable(headers, rows, opts)
 
 			// Encouraging summary with next steps
-			if len(projectsResp.Projects) == 1 {
-				fmt.Printf("\n🎉 Found 1 project\n")
-			} else {
-				fmt.Printf("\n🎉 Found %d projects\n", len(projectsResp.Projects))
-			}
+			fmt.Printf("\nFound %d project(s)\n", len(projectsResp.Projects))
 
 			fmt.Println()
-			fmt.Println("💡 Next steps:")
+			fmt.Println("Next steps:")
 			fmt.Println("   pipeops project deploy <project-id>  # Deploy a project")
 			fmt.Println("   pipeops project logs <project-id>    # View project logs")
 		}

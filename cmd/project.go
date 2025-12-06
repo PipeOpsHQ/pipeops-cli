@@ -7,10 +7,10 @@ import (
 
 var projectCmd = &cobra.Command{
 	Use:   "project",
-	Short: "📂 Manage project-related operations.",
-	Long: `📂 The project command provides a set of subcommands for managing 
+	Short: "Manage project-related operations.",
+	Long: `The project command provides a set of subcommands for managing 
 project-related operations on PipeOps. These include deploying, configuring, 
-and interacting with projects seamlessly. 🌟
+and interacting with projects seamlessly.
 
 Examples:
   - List all projects:

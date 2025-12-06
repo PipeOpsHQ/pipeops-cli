@@ -10,8 +10,8 @@ import (
 // createCmd represents the project create command
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "🚧 Create project (temporarily disabled)",
-	Long: `🚧 Project creation is temporarily disabled.
+	Short: "Create project (temporarily disabled)",
+	Long: `Project creation is temporarily disabled.
 
 This feature is under development and will be available in a future release.
 
@@ -28,8 +28,8 @@ Available alternatives:
 				"message": "Project creation is temporarily disabled",
 			})
 		} else {
-			utils.PrintWarning("🚧 Project creation is temporarily disabled", opts)
-			fmt.Printf("\n💡 ALTERNATIVES\n")
+			utils.PrintWarning("Project creation is temporarily disabled", opts)
+			fmt.Printf("\nALTERNATIVES\n")
 			fmt.Printf("├─ Use PipeOps web console to create projects\n")
 			fmt.Printf("├─ Link existing projects: pipeops link <project-id>\n")
 			fmt.Printf("├─ List projects: pipeops project list\n")

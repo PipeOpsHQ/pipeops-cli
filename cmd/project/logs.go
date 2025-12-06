@@ -128,7 +128,7 @@ Examples:
 
 		if follow {
 			// Stream logs in real-time
-			fmt.Printf("🔄 Streaming logs for project %s", projectID)
+			fmt.Printf("Streaming logs for project %s", projectID)
 			if addonID != "" {
 				fmt.Printf(" (addon: %s)", addonID)
 			}
@@ -162,7 +162,7 @@ Examples:
 			}
 		} else {
 			// Get logs once
-			fmt.Printf("🔍 Fetching logs for project %s", projectID)
+			fmt.Printf("Fetching logs for project %s", projectID)
 			if addonID != "" {
 				fmt.Printf(" (addon: %s)", addonID)
 			}
@@ -175,7 +175,7 @@ Examples:
 			}
 
 			if len(resp.Logs) == 0 {
-				fmt.Println("📭 No logs found for the specified criteria.")
+				fmt.Println("No logs found for the specified criteria.")
 				return
 			}
 

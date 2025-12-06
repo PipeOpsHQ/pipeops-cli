@@ -57,8 +57,8 @@ var Conf Config
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "pipeops",
-	Short:   "🚀 PipeOps CLI - Manage cloud-native development and deployment workflows",
-	Long:    `🚀 PipeOps CLI is a command-line interface for managing cloud-native development and deployment workflows. Securely authenticate, manage projects and servers, deploy CI/CD pipelines, and monitor infrastructure—all from your terminal.`,
+	Short:   "PipeOps CLI - Manage cloud-native development and deployment workflows",
+	Long:    `PipeOps CLI is a command-line interface for managing cloud-native development and deployment workflows. Securely authenticate, manage projects and servers, deploy CI/CD pipelines, and monitor infrastructure—all from your terminal.`,
 	Version: Version,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// Set global JSON output flag
@@ -84,7 +84,7 @@ var rootCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if cmd.Flag("version").Changed {
-			fmt.Println("🚀 PipeOps CLI Version:", Version)
+			fmt.Println("PipeOps CLI Version:", Version)
 			return
 		}
 
@@ -130,7 +130,7 @@ func checkForUpdatesBackground(ctx context.Context, cmd *cobra.Command) error {
 
 	// If update available, show notification
 	if hasUpdate {
-		fmt.Printf("\n💡 A new version of PipeOps CLI is available: %s (current: %s)\n", release.TagName, currentVersion)
+		fmt.Printf("\nA new version of PipeOps CLI is available: %s (current: %s)\n", release.TagName, currentVersion)
 		fmt.Printf("   Run 'pipeops update' to install the latest version\n")
 		fmt.Printf("   Run 'pipeops update check' to see what's new\n\n")
 	}

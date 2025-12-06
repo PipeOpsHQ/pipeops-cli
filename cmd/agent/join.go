@@ -11,8 +11,8 @@ import (
 
 var joinCmd = &cobra.Command{
 	Use:   "join <server-url> <token>",
-	Short: "🔗 Join worker node to existing PipeOps cluster",
-	Long: `🔗 The "join" command joins a worker node to an existing PipeOps-managed Kubernetes cluster.
+	Short: "Join worker node to existing PipeOps cluster",
+	Long: `The "join" command joins a worker node to an existing PipeOps-managed Kubernetes cluster.
 
 This command downloads and runs the join-worker.sh script to add the current machine
 as a worker node to an existing cluster.
@@ -30,8 +30,8 @@ Examples:
 		serverURL := getServerURL(cmd, args)
 		token := getJoinToken(cmd, args)
 
-		log.Println("🔗 Joining worker node to PipeOps cluster...")
-		log.Printf("📡 Server URL: %s", serverURL)
+		log.Println("Joining worker node to PipeOps cluster...")
+		log.Printf("Server URL: %s", serverURL)
 
 		// Set environment variables for the join script
 		envVars := []string{
@@ -48,11 +48,11 @@ Examples:
 			log.Fatalf("❌ Error joining worker node: %v\nOutput: %s", err, output)
 		}
 
-		log.Println("✅ Worker node joined successfully!")
-		log.Println("🔗 This node is now part of the PipeOps cluster")
+		log.Println("Worker node joined successfully!")
+		log.Println("This node is now part of the PipeOps cluster")
 
 		// Show verification commands
-		log.Println("\n📋 Verification commands:")
+		log.Println("\nVerification commands:")
 		log.Println("  kubectl get nodes")
 		log.Println("  kubectl get pods -n pipeops-system")
 	},
@@ -62,10 +62,10 @@ Examples:
 			serverURL := os.Getenv("K3S_URL")
 			token := os.Getenv("K3S_TOKEN")
 			if serverURL == "" || token == "" {
-				return fmt.Errorf("❌ server URL and token are required either as arguments or K3S_URL/K3S_TOKEN environment variables")
+				return fmt.Errorf("server URL and token are required either as arguments or K3S_URL/K3S_TOKEN environment variables")
 			}
 		} else if len(args) < 2 {
-			return fmt.Errorf("❌ server URL and token are required as arguments")
+			return fmt.Errorf("server URL and token are required as arguments")
 		}
 		return nil
 	},
