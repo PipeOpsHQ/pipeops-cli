@@ -93,13 +93,13 @@ Get started with PipeOps CLI in a few steps:
 
 | Platform | Architecture | Status |
 | -------- | ------------ | ------ |
-| Linux    | x86_64       | ✅     |
-| Linux    | ARM64        | ✅     |
-| Linux    | ARM          | ✅     |
-| macOS    | x86_64       | ✅     |
-| macOS    | ARM64        | ✅     |
-| Windows  | x86_64       | ✅     |
-| FreeBSD  | x86_64       | ✅     |
+| Linux    | x86_64       | Supported |
+| Linux    | ARM64        | Supported |
+| Linux    | ARM          | Supported |
+| macOS    | x86_64       | Supported |
+| macOS    | ARM64        | Supported |
+| Windows  | x86_64       | Supported |
+| FreeBSD  | x86_64       | Supported |
 
 ## Community & Support
 
@@ -115,4 +115,4 @@ This project is licensed under the [MIT License](reference/license.md).
 
 ---
 
-Made with ❤️ by the PipeOps team
+Made with love by the PipeOps team

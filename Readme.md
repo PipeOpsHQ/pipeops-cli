@@ -81,7 +81,7 @@ PipeOps CLI is a powerful, cross-platform command-line tool that streamlines clo
 
     go install github.com/PipeOpsHQ/pipeops-cli@latest
 
-📋 For more options and troubleshooting, see our [Installation Guide](docs/getting-started/installation.md)
+For more options and troubleshooting, see our [Installation Guide](docs/getting-started/installation.md)
 
 ---
 
@@ -250,13 +250,13 @@ Supported log levels: `debug`, `info`, `warn`, `error`
 
 | Platform | Architecture   | Status |
 | -------- | -------------- | ------ |
-| Linux    | x86_64         | ✅     |
-| Linux    | ARM64          | ✅     |
-| Linux    | ARM            | ✅     |
-| macOS    | x86_64 (Intel) | ✅     |
-| macOS    | ARM64 (M1/M2)  | ✅     |
-| Windows  | x86_64         | ✅     |
-| FreeBSD  | x86_64         | ✅     |
+| Linux    | x86_64         | Supported |
+| Linux    | ARM64          | Supported |
+| Linux    | ARM            | Supported |
+| macOS    | x86_64 (Intel) | Supported |
+| macOS    | ARM64 (M1/M2)  | Supported |
+| Windows  | x86_64         | Supported |
+| FreeBSD  | x86_64         | Supported |
 
 ---
 
@@ -330,4 +330,4 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 ---
 
-Made with ❤️ by the PipeOps team
+Made with love by the PipeOps team

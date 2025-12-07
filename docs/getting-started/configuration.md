@@ -2,7 +2,7 @@
 
 Learn how to configure PipeOps CLI for your specific needs and environment.
 
-## 📁 Configuration File
+## Configuration File
 
 PipeOps CLI stores configuration in `~/.pipeops.json` by default. You can specify a custom location using the `--config` flag or `PIPEOPS_CONFIG_PATH` environment variable.
 
@@ -24,7 +24,7 @@ PipeOps CLI stores configuration in `~/.pipeops.json` by default. You can specif
 }
 ```
 
-## 🌍 Environment Variables
+## Environment Variables
 
 Configure PipeOps CLI using environment variables:
 
@@ -66,7 +66,7 @@ export K3S_URL="https://192.168.1.100:6443"
 export K3S_TOKEN="your-k3s-token"
 ```
 
-## 🔧 Configuration Options
+## Configuration Options
 
 ### API Configuration
 
@@ -98,7 +98,7 @@ pipeops --config ~/.pipeops.json config set skip_update_check true
 pipeops --config ~/.pipeops.json config set update_check_interval "24h"
 ```
 
-## 🐳 Docker Configuration
+## Docker Configuration
 
 ### Environment Variables
 
@@ -127,7 +127,7 @@ services:
     command: ["project", "list"]
 ```
 
-## 🔒 Security Configuration
+## Security Configuration
 
 ### Token Management
 
@@ -152,7 +152,7 @@ export PIPEOPS_TLS_INSECURE_SKIP_VERIFY="true"
 export PIPEOPS_TLS_CA_CERT="/path/to/ca.crt"
 ```
 
-## 📊 Output Configuration
+## Output Configuration
 
 ### JSON Output
 
@@ -184,7 +184,7 @@ export PIPEOPS_OUTPUT_FORMAT="json"
 pipeops project list --format text
 ```
 
-## 🔄 Update and Maintenance Configuration
+## Update and Maintenance Configuration
 
 ### Update Settings
 
@@ -273,7 +273,7 @@ pipeops config export --file backup.json
 pipeops config import --file backup.json
 ```
 
-## 🌐 Proxy Configuration
+## Proxy Configuration
 
 ### HTTP Proxy
 
@@ -293,7 +293,7 @@ export HTTP_PROXY="http://user:pass@proxy.company.com:8080"
 export ALL_PROXY="socks5://proxy.company.com:1080"
 ```
 
-## 🏢 Enterprise Configuration
+## Enterprise Configuration
 
 ### Custom Endpoints
 
@@ -316,7 +316,7 @@ export PIPEOPS_TLS_CLIENT_CERT="/etc/ssl/certs/client.crt"
 export PIPEOPS_TLS_CLIENT_KEY="/etc/ssl/certs/client.key"
 ```
 
-## 🔍 Configuration Validation
+## Configuration Validation
 
 ### Validate Configuration
 
@@ -338,7 +338,7 @@ pipeops config test-connection
 pipeops auth status
 ```
 
-## 📝 Configuration Examples
+## Configuration Examples
 
 ### Development Environment
 
@@ -371,7 +371,7 @@ export PIPEOPS_OUTPUT_FORMAT="json"
 export PIPEOPS_SKIP_UPDATE_CHECK="true"
 ```
 
-## 🧹 Maintenance and Cleanup
+## Maintenance and Cleanup
 
 ### Regular Maintenance
 
@@ -434,7 +434,7 @@ pipeops config set max_connections 10
 pipeops config set connection_timeout "30s"
 ```
 
-## �️ Uninstall Configuration
+## � Uninstall Configuration
 
 ### Pre-uninstall Checklist
 
@@ -488,7 +488,7 @@ rm -rf ~/.local/share/pipeops/logs/
 pipeops config reset --keep-auth
 ```
 
-## �🐛 Troubleshooting Configuration
+## � Troubleshooting Configuration
 
 ### Common Issues
 
@@ -551,7 +551,7 @@ pipeops config set request_timeout "60s"
 pipeops config set retry_attempts 3
 ```
 
-## 📚 Related Documentation
+## Related Documentation
 
 - **[Installation](installation.md)** - Installation guide
 - **[Quick Start](quick-start.md)** - Getting started

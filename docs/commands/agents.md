@@ -2,11 +2,11 @@
 
 Comprehensive guide to PipeOps agent installation and management commands.
 
-## 🤖 Overview
+## Overview
 
 PipeOps agents enable you to manage Kubernetes clusters seamlessly. The agent commands provide functionality to install, configure, and manage PipeOps agents across different Kubernetes distributions.
 
-## 📋 Available Commands
+## Available Commands
 
 | Command | Description | Usage |
 |---------|-------------|-------|
@@ -14,7 +14,7 @@ PipeOps agents enable you to manage Kubernetes clusters seamlessly. The agent co
 | `join` | Join worker node to existing cluster | `pipeops agent join <server-url> <token>` |
 | `info` | Show cluster information and join commands | `pipeops agent info` |
 
-## 🚀 Installation
+## Installation
 
 ### Basic Installation
 
@@ -86,7 +86,7 @@ pipeops agent install --existing-cluster --cluster-name="my-existing-cluster"
 | `--update` | Update the agent to the latest version | `false` |
 | `--uninstall` | Uninstall the agent and monitoring stack | `false` |
 
-## 🔗 Joining Worker Nodes
+## Joining Worker Nodes
 
 ### Basic Join
 
@@ -110,7 +110,7 @@ export K3S_TOKEN="abc123def456"
 pipeops agent join
 ```
 
-## 📊 Cluster Information
+## Cluster Information
 
 ### View Cluster Info
 
@@ -127,7 +127,7 @@ This command displays:
 - Cluster status and configuration
 - Connection details
 
-## 🌍 Environment Variables
+## Environment Variables
 
 The agent commands support various environment variables:
 
@@ -140,7 +140,7 @@ The agent commands support various environment variables:
 | `K3S_TOKEN` | Token for joining | Yes (for join) |
 | `INSTALL_MONITORING` | Enable/disable monitoring | No |
 
-## 📝 Usage Examples
+## Usage Examples
 
 ### Complete Installation Workflow
 
@@ -189,7 +189,7 @@ pipeops agent install \
   --no-monitoring
 ```
 
-## 🔄 Update and Maintenance
+## Update and Maintenance
 
 ### Update Agent
 
@@ -209,7 +209,7 @@ Remove the agent and monitoring stack:
 pipeops agent install --uninstall
 ```
 
-## ✅ Verification
+## Verification
 
 After installation, verify the setup:
 
@@ -227,7 +227,7 @@ kubectl get nodes
 kubectl logs deployment/pipeops-agent -n pipeops-system
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -282,7 +282,7 @@ export PIPEOPS_LOG_LEVEL=debug
 pipeops agent install --verbose
 ```
 
-## 🔒 Security Considerations
+## Security Considerations
 
 ### Token Management
 
@@ -298,14 +298,14 @@ pipeops agent install --verbose
 - Consider VPN for remote access
 - Monitor network traffic
 
-## 📚 Related Documentation
+## Related Documentation
 
 - **[Installation Guide](../getting-started/installation.md)** - CLI installation
 - **[Quick Start](../getting-started/quick-start.md)** - Getting started
 - **[Troubleshooting](../advanced/troubleshooting.md)** - Common issues
 - **[Docker Usage](../advanced/docker.md)** - Container usage
 
-## 🆘 Support
+## Support
 
 If you encounter issues:
 

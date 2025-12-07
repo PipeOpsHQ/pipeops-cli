@@ -133,11 +133,11 @@ pipeops update history
 ```
 
 The self-update feature:
-- ✅ Automatically detects your platform
-- ✅ Downloads the correct binary
-- ✅ Preserves your configuration
-- ✅ Creates a backup of the current version
-- ✅ Verifies the update integrity
+-  Automatically detects your platform
+-  Downloads the correct binary
+-  Preserves your configuration
+-  Creates a backup of the current version
+-  Verifies the update integrity
 
 ### Package Manager Updates
 

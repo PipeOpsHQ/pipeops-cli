@@ -2,7 +2,7 @@
 
 Learn how to use PipeOps CLI in Docker containers for development, CI/CD, and production environments.
 
-## 🐳 Quick Start
+## Quick Start
 
 ### Basic Usage
 
@@ -25,7 +25,7 @@ docker run --rm -it \
   ghcr.io/pipeopshq/pipeops-cli:latest auth status
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -52,7 +52,7 @@ docker run --rm -it \
   ghcr.io/pipeopshq/pipeops-cli:latest project list
 ```
 
-## 📦 Docker Compose
+## Docker Compose
 
 ### Basic Setup
 
@@ -105,7 +105,7 @@ services:
     command: ["sh", "-c", "pipeops deploy create --name production --image my-app:$BUILD_NUMBER"]
 ```
 
-## 🚀 Use Cases
+## Use Cases
 
 ### Development
 
@@ -145,7 +145,7 @@ docker run --rm \
   sh -c "cd /scripts && ./deploy.sh"
 ```
 
-## 🔒 Security Considerations
+## Security Considerations
 
 ### Token Management
 
@@ -183,7 +183,7 @@ docker run --rm -it \
   ghcr.io/pipeopshq/pipeops-cli:latest project list
 ```
 
-## 🌐 Multi-Platform Support
+## Multi-Platform Support
 
 ### Platform-Specific Images
 
@@ -205,7 +205,7 @@ docker run --rm -it ghcr.io/pipeopshq/pipeops-cli:latest-windows-amd64 --help
 docker buildx build --platform linux/amd64,linux/arm64 -t pipeops-cli:latest .
 ```
 
-## 🔄 Updates and Maintenance
+## Updates and Maintenance
 
 ### Image Updates
 
@@ -228,7 +228,7 @@ docker run --rm -it ghcr.io/pipeopshq/pipeops-cli:1.0.0 --help
 docker run --rm -it ghcr.io/pipeopshq/pipeops-cli:v1.0.0 --help
 ```
 
-## 📊 Monitoring and Logging
+## Monitoring and Logging
 
 ### Log Collection
 
@@ -252,7 +252,7 @@ docker run --rm -it \
   ghcr.io/pipeopshq/pipeops-cli:latest
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -293,7 +293,7 @@ docker run --rm -it \
   ghcr.io/pipeopshq/pipeops-cli:latest auth status
 ```
 
-## 📚 Related Documentation
+## Related Documentation
 
 - **[Installation](../getting-started/installation.md)** - Installation guide
 - **[Configuration](../getting-started/configuration.md)** - Configuration options

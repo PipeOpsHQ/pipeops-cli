@@ -2,7 +2,7 @@
 
 We welcome contributions to PipeOps CLI! This guide will help you get started with contributing to the project.
 
-## 🤝 How to Contribute
+## How to Contribute
 
 ### 1. Fork and Clone
 
@@ -88,7 +88,7 @@ git push origin feature/your-feature-name
 - Fill out the pull request template
 - Submit the pull request
 
-## 📋 Development Guidelines
+## Development Guidelines
 
 ### Code Style
 
@@ -125,7 +125,7 @@ chore: maintenance tasks
 - Update command help text
 - Follow the existing documentation style
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 pipeops-cli/
@@ -147,7 +147,7 @@ pipeops-cli/
 └── .github/            # GitHub workflows
 ```
 
-## 🔧 Available Make Targets
+## Available Make Targets
 
 ```bash
 make build          # Build the binary
@@ -162,7 +162,7 @@ make docs-build     # Build documentation
 make docs-serve     # Serve documentation locally
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Running Tests
 
@@ -216,7 +216,7 @@ func TestInstallCommand(t *testing.T) {
 }
 ```
 
-## 📝 Documentation
+## Documentation
 
 ### Writing Documentation
 
@@ -242,7 +242,7 @@ make docs-build
 make docs-serve
 ```
 
-## 🐛 Bug Reports
+## Bug Reports
 
 When reporting bugs, please include:
 
@@ -253,7 +253,7 @@ When reporting bugs, please include:
 - Environment details (OS, Go version, etc.)
 - Relevant logs or error messages
 
-## 💡 Feature Requests
+## Feature Requests
 
 When requesting features, please include:
 
@@ -262,7 +262,7 @@ When requesting features, please include:
 - Proposed implementation (if you have ideas)
 - Any alternatives considered
 
-## 🔒 Security Issues
+## Security Issues
 
 For security issues, please:
 
@@ -271,7 +271,7 @@ For security issues, please:
 - Include detailed information about the vulnerability
 - Allow time for the team to respond
 
-## 📞 Getting Help
+## Getting Help
 
 If you need help contributing:
 
@@ -280,7 +280,7 @@ If you need help contributing:
 - Email us at [support@pipeops.io](mailto:support@pipeops.io)
 - Open a discussion on GitHub
 
-## 🎉 Recognition
+## Recognition
 
 Contributors will be:
 
@@ -289,10 +289,10 @@ Contributors will be:
 - Invited to the contributors' Discord channel
 - Given recognition in project documentation
 
-## 📄 License
+## License
 
 By contributing to PipeOps CLI, you agree that your contributions will be licensed under the [MIT License](LICENSE).
 
 ---
 
-Thank you for contributing to PipeOps CLI! 🚀
+Thank you for contributing to PipeOps CLI! 

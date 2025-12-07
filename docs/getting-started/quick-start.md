@@ -25,18 +25,18 @@ pipeops --help
 You should see output similar to:
 
 ```
-🚀 PipeOps CLI Version: 1.0.0
+ PipeOps CLI Version: 1.0.0
 
 Usage:
   pipeops [command]
 
 Available Commands:
-  agent       ⚙️ Manage agent-related commands and tasks
-  auth        🔐 Authentication and user management
-  deploy      🚀 Deploy applications and pipelines
-  project     📦 Project management
-  server      🖥️ Server management
-  k3s         ☸️ K3s cluster management
+  agent        Manage agent-related commands and tasks
+  auth         Authentication and user management
+  deploy       Deploy applications and pipelines
+  project      Project management
+  server       Server management
+  k3s          K3s cluster management
   help        Help about any command
 ```
 
@@ -127,7 +127,7 @@ pipeops project logs my-first-project
 pipeops status
 ```
 
-## 🎯 Common Workflows
+## Common Workflows
 
 ### Daily Operations
 
@@ -246,7 +246,7 @@ pipeops --version
 PipeOps CLI will notify you when updates are available:
 
 ```
-🔔 A new version of PipeOps CLI is available!
+ A new version of PipeOps CLI is available!
    Current: v1.0.0
    Latest:  v1.1.0
    
@@ -339,10 +339,10 @@ For detailed uninstall instructions, see the [Installation Guide](installation.m
 
 You've successfully set up PipeOps CLI and completed your first operations. You're now ready to:
 
-- ✅ Manage projects and deployments
-- ✅ Monitor your infrastructure
-- ✅ Set up automated workflows
-- ✅ Scale your applications
-- ✅ Keep your CLI updated and maintained
+-  Manage projects and deployments
+-  Monitor your infrastructure
+-  Set up automated workflows
+-  Scale your applications
+-  Keep your CLI updated and maintained
 
-Happy deploying! 🚀
+Happy deploying! 

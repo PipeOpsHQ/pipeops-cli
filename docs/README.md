@@ -2,7 +2,7 @@
 
 This directory contains the complete documentation for PipeOps CLI, built with MkDocs and Material for MkDocs.
 
-## 📁 Structure
+## Structure
 
 ```
 docs/
@@ -32,7 +32,7 @@ docs/
     └── license.md             # License
 ```
 
-## 🚀 Building Documentation
+## Building Documentation
 
 ### Prerequisites
 
@@ -67,7 +67,7 @@ mkdocs build
 mkdocs serve
 ```
 
-## 📝 Writing Documentation
+## Writing Documentation
 
 ### Markdown Guidelines
 
@@ -84,7 +84,7 @@ mkdocs serve
 pipeops auth login
 
 # Show expected output
-✅ Successfully authenticated as user@example.com
+ Successfully authenticated as user@example.com
 ```
 
 ### Admonitions
@@ -106,7 +106,7 @@ Use admonitions for important information:
 - Use absolute links for external resources
 - Include descriptive link text
 
-## 🔧 Configuration
+## Configuration
 
 The documentation is configured in `mkdocs.yml`:
 
@@ -114,7 +114,7 @@ The documentation is configured in `mkdocs.yml`:
 - **Plugins**: Search, Git revision dates, Minification
 - **Extensions**: Various Markdown extensions for enhanced features
 
-## 🌐 Deployment
+## Deployment
 
 ### GitHub Pages
 
@@ -130,15 +130,15 @@ mkdocs build
 mkdocs gh-deploy
 ```
 
-## 📊 Analytics
+## Analytics
 
 The documentation includes Google Analytics integration. Update the `G-XXXXXXXXXX` placeholder in `mkdocs.yml` with your Google Analytics ID.
 
-## 🔍 Search
+## Search
 
 The documentation includes a built-in search feature powered by MkDocs Material's search plugin.
 
-## 🎨 Customization
+## Customization
 
 ### Theme Customization
 
@@ -164,7 +164,7 @@ theme:
 
 Navigation is configured in the `nav` section of `mkdocs.yml`.
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -199,13 +199,13 @@ pip3 install linkchecker
 linkchecker http://127.0.0.1:8000
 ```
 
-## 📚 Resources
+## Resources
 
 - [MkDocs Documentation](https://www.mkdocs.org/)
 - [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/)
 - [MkDocs Plugins](https://github.com/mkdocs/mkdocs/wiki/MkDocs-Plugins)
 
-## 🤝 Contributing
+## Contributing
 
 When contributing to the documentation:
 
@@ -215,6 +215,6 @@ When contributing to the documentation:
 4. Update the navigation if adding new pages
 5. Submit a pull request
 
-## 📄 License
+## License
 
 The documentation is licensed under the same license as the main project (MIT License).
