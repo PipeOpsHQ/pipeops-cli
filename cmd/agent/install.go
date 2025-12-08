@@ -146,7 +146,7 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 	}
 
 	// Install Kubernetes cluster with PipeOps agent integration
-	installCmd := "curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/scripts/install.sh | bash"
+	installCmd := "curl -fsSL https://get.pipeops.dev/k8-install.sh | bash"
 
 	log.Printf("Installing cluster type: %s", clusterType)
 	log.Printf("PipeOps monitoring: %s", map[bool]string{true: "enabled", false: "disabled"}[enableMonitoring])
@@ -186,7 +186,7 @@ func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, ena
 	}
 
 	// The agent install script handles everything, including existing clusters
-	installCmd := "curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/scripts/install.sh | bash"
+	installCmd := "curl -fsSL https://get.pipeops.dev/k8-install.sh | bash"
 	
 	// Set environment variables
 	envVars := []string{
@@ -223,7 +223,7 @@ func updateAgent(cmd *cobra.Command, token, clusterName string) {
 	}
 
 	// Update PipeOps agent
-	updateCmd := "curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/scripts/update.sh | bash"
+	updateCmd := "curl -fsSL https://get.pipeops.dev/k8-install.sh | bash"
 	envVars := []string{fmt.Sprintf("PIPEOPS_TOKEN=%s", token)}
 	env := append(os.Environ(), envVars...)
 
@@ -257,7 +257,7 @@ func uninstallAgent(cmd *cobra.Command, token string) {
 	}
 
 	// Uninstall PipeOps agent
-	uninstallCmd := "curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/scripts/uninstall.sh | bash"
+	uninstallCmd := "curl -fsSL https://get.pipeops.dev/k8-uninstall.sh | bash"
 	envVars := []string{fmt.Sprintf("PIPEOPS_TOKEN=%s", token)}
 	env := append(os.Environ(), envVars...)
 
@@ -295,7 +295,7 @@ func setupPipeOpsAgent(token, clusterName string) error {
 	setupCmd := fmt.Sprintf(`
 kubectl create namespace pipeops-system --dry-run=client -o yaml | kubectl apply -f -
 kubectl create secret generic pipeops-token -n pipeops-system --from-literal=token=%s --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -f https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/manifests/agent.yaml
+kubectl apply -f https://get.pipeops.dev/k8-agent.yaml
 `, token)
 
 	output, err := utils.RunCommand("sh", "-c", setupCmd)
@@ -315,7 +315,7 @@ func setupMonitoring(token, clusterName string) error {
 	monitoringCmd := fmt.Sprintf(`
 kubectl create namespace pipeops-monitoring --dry-run=client -o yaml | kubectl apply -f -
 kubectl create secret generic pipeops-token -n pipeops-monitoring --from-literal=token=%s --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -f https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/manifests/monitoring.yaml
+kubectl apply -f https://get.pipeops.dev/k8-agent.yaml
 `, token)
 
 	output, err := utils.RunCommand("sh", "-c", monitoringCmd)
@@ -330,7 +330,7 @@ kubectl apply -f https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/
 // removePipeOpsAgent removes the PipeOps agent
 func removePipeOpsAgent() error {
 	removeCmd := `
-kubectl delete -f https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/manifests/agent.yaml --ignore-not-found=true
+kubectl delete -f https://get.pipeops.dev/k8-agent.yaml --ignore-not-found=true
 kubectl delete secret pipeops-token -n pipeops-system --ignore-not-found=true
 kubectl delete namespace pipeops-system --ignore-not-found=true
 `
@@ -346,7 +346,7 @@ kubectl delete namespace pipeops-system --ignore-not-found=true
 // removeMonitoring removes monitoring components
 func removeMonitoring() error {
 	removeCmd := `
-kubectl delete -f https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/manifests/monitoring.yaml --ignore-not-found=true
+kubectl delete -f https://get.pipeops.dev/k8-agent.yaml --ignore-not-found=true
 kubectl delete secret pipeops-token -n pipeops-monitoring --ignore-not-found=true
 kubectl delete namespace pipeops-monitoring --ignore-not-found=true
 `
