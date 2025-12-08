@@ -62,8 +62,10 @@ Examples:
 			selectedProject = project
 		} else {
 			// Interactive project selection
-			utils.PrintInfo("Fetching your projects...", opts)
+			spinner := utils.StartSpinner("Fetching your projects...", opts)
 			projectsResp, err := client.GetProjects()
+			utils.StopSpinner(spinner)
+
 			if err != nil {
 				utils.HandleError(err, "Error fetching projects", opts)
 				return
@@ -74,23 +76,21 @@ Examples:
 				return
 			}
 
-			// Show projects and let user select
-			fmt.Printf("\nAvailable Projects:\n")
-			for i, project := range projectsResp.Projects {
+			// Prepare options for selection
+			var options []string
+			for _, project := range projectsResp.Projects {
 				status := utils.GetStatusIcon(project.Status)
-				fmt.Printf("  %d. %s %s (%s)\n", i+1, status, project.Name, project.ID)
+				options = append(options, fmt.Sprintf("%s %s (%s)", status, project.Name, project.ID))
 			}
 
 			// Get user selection
-			var selection int
-			fmt.Printf("\nSelect a project (1-%d): ", len(projectsResp.Projects))
-			_, err = fmt.Scanf("%d", &selection)
-			if err != nil || selection < 1 || selection > len(projectsResp.Projects) {
-				utils.HandleError(fmt.Errorf("invalid selection"), "Invalid project selection", opts)
+			idx, _, err := utils.SelectOption("Select a project", options)
+			if err != nil {
+				utils.HandleError(err, "Selection cancelled", opts)
 				return
 			}
 
-			selectedProject = &projectsResp.Projects[selection-1]
+			selectedProject = &projectsResp.Projects[idx]
 			projectID = selectedProject.ID
 		}
 

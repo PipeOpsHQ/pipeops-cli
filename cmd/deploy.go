@@ -81,9 +81,10 @@ func deployAddon(client pipeops.ClientAPI, addonID, projectID string, envVars ma
 	}
 
 	// Get addon information
-	utils.PrintInfo(fmt.Sprintf("Getting addon '%s' information...", addonID), opts)
-
+	spinner := utils.StartSpinner(fmt.Sprintf("Getting addon '%s' information...", addonID), opts)
 	addon, err := client.GetAddon(addonID)
+	utils.StopSpinner(spinner)
+
 	if err != nil {
 		utils.HandleError(err, "Error fetching addon information", opts)
 		return
@@ -98,9 +99,10 @@ func deployAddon(client pipeops.ClientAPI, addonID, projectID string, envVars ma
 	}
 
 	// Deploy addon
-	utils.PrintInfo(fmt.Sprintf("Deploying addon '%s' to project '%s'...", addon.Name, projectID), opts)
-
+	spinner = utils.StartSpinner(fmt.Sprintf("Deploying addon '%s' to project '%s'...", addon.Name, projectID), opts)
 	deployResp, err := client.DeployAddon(req)
+	utils.StopSpinner(spinner)
+
 	if err != nil {
 		utils.HandleError(err, "Error deploying addon", opts)
 		return

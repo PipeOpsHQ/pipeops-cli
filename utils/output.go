@@ -7,6 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/briandowns/spinner"
+	"github.com/fatih/color"
+	"github.com/manifoldco/promptui"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
@@ -43,7 +47,7 @@ func GetOutputOptions(cmd *cobra.Command) OutputOptions {
 	}
 }
 
-// PrintSuccess prints a success message with emoji
+// PrintSuccess prints a success message with emoji and color
 func PrintSuccess(message string, opts OutputOptions) {
 	if opts.Quiet {
 		return
@@ -51,10 +55,11 @@ func PrintSuccess(message string, opts OutputOptions) {
 	if opts.Format == OutputFormatJSON {
 		return // JSON output doesn't include success messages
 	}
-	fmt.Printf("✅ %s\n", message)
+	green := color.New(color.FgGreen, color.Bold).SprintFunc()
+	fmt.Printf("%s %s\n", green("✅"), green(message))
 }
 
-// PrintError prints an error message with emoji
+// PrintError prints an error message with emoji and color
 func PrintError(message string, opts OutputOptions) {
 	if opts.Format == OutputFormatJSON {
 		errorObj := map[string]interface{}{
@@ -64,11 +69,12 @@ func PrintError(message string, opts OutputOptions) {
 		jsonBytes, _ := json.MarshalIndent(errorObj, "", "  ")
 		fmt.Println(string(jsonBytes))
 	} else {
-		fmt.Printf("❌ %s\n", message)
+		red := color.New(color.FgRed, color.Bold).SprintFunc()
+		fmt.Printf("%s %s\n", red("❌"), red(message))
 	}
 }
 
-// PrintInfo prints an info message with emoji
+// PrintInfo prints an info message with emoji and color
 func PrintInfo(message string, opts OutputOptions) {
 	if opts.Quiet {
 		return
@@ -76,10 +82,11 @@ func PrintInfo(message string, opts OutputOptions) {
 	if opts.Format == OutputFormatJSON {
 		return // JSON output doesn't include info messages
 	}
-	fmt.Printf("🔍 %s\n", message)
+	cyan := color.New(color.FgCyan).SprintFunc()
+	fmt.Printf("%s %s\n", cyan("🔍"), cyan(message))
 }
 
-// PrintWarning prints a warning message with emoji
+// PrintWarning prints a warning message with emoji and color
 func PrintWarning(message string, opts OutputOptions) {
 	if opts.Quiet {
 		return
@@ -87,7 +94,8 @@ func PrintWarning(message string, opts OutputOptions) {
 	if opts.Format == OutputFormatJSON {
 		return // JSON output doesn't include warning messages
 	}
-	fmt.Printf("⚠️  %s\n", message)
+	yellow := color.New(color.FgYellow).SprintFunc()
+	fmt.Printf("%s %s\n", yellow("⚠️ "), yellow(message))
 }
 
 // PrintJSON prints data as JSON
@@ -100,7 +108,7 @@ func PrintJSON(data interface{}) error {
 	return nil
 }
 
-// PrintTable prints data in a table format
+// PrintTable prints data in a table format using tablewriter
 func PrintTable(headers []string, rows [][]string, opts OutputOptions) {
 	if opts.Format == OutputFormatJSON {
 		// Convert table to JSON format
@@ -118,45 +126,29 @@ func PrintTable(headers []string, rows [][]string, opts OutputOptions) {
 		return
 	}
 
-	// Calculate column widths
-	widths := make([]int, len(headers))
-	for i, header := range headers {
-		widths[i] = len(header)
-	}
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(headers)
+	table.SetAutoWrapText(false)
+	table.SetAutoFormatHeaders(true)
+	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetCenterSeparator("")
+	table.SetColumnSeparator("")
+	table.SetRowSeparator("")
+	table.SetHeaderLine(false)
+	table.SetBorder(false)
+	table.SetTablePadding("\t") // pad with tabs
+	table.SetNoWhiteSpace(true)
 
-	for _, row := range rows {
-		for i, cell := range row {
-			if i < len(widths) && len(cell) > widths[i] {
-				widths[i] = len(cell)
-			}
-		}
+	// Add colors to header
+	headerColors := make([]tablewriter.Colors, len(headers))
+	for i := range headerColors {
+		headerColors[i] = tablewriter.Colors{tablewriter.Bold, tablewriter.FgCyanColor}
 	}
+	table.SetHeaderColor(headerColors...)
 
-	// Print header
-	printRow(headers, widths)
-
-	// Print separator
-	var separators []string
-	for _, width := range widths {
-		separators = append(separators, strings.Repeat("-", width))
-	}
-	printRow(separators, widths)
-
-	// Print rows
-	for _, row := range rows {
-		printRow(row, widths)
-	}
-}
-
-// printRow prints a single row with proper spacing
-func printRow(row []string, widths []int) {
-	var parts []string
-	for i, cell := range row {
-		if i < len(widths) {
-			parts = append(parts, fmt.Sprintf("%-*s", widths[i], cell))
-		}
-	}
-	fmt.Println(strings.Join(parts, " | "))
+	table.AppendBulk(rows)
+	table.Render()
 }
 
 // PrintProjectContextWithOptions prints project context information with output options
@@ -165,14 +157,16 @@ func PrintProjectContextWithOptions(projectID string, opts OutputOptions) {
 		return
 	}
 
+	bold := color.New(color.Bold).SprintFunc()
+
 	if IsLinkedProject() {
 		if linkedID, err := GetLinkedProject(); err == nil && linkedID == projectID {
-			fmt.Printf("📂 Using linked project: %s\n", projectID)
+			fmt.Printf("📂 Using linked project: %s\n", bold(projectID))
 		} else {
-			fmt.Printf("🎯 Using project: %s (overriding linked project)\n", projectID)
+			fmt.Printf("🎯 Using project: %s (overriding linked project)\n", bold(projectID))
 		}
 	} else {
-		fmt.Printf("🎯 Using project: %s\n", projectID)
+		fmt.Printf("🎯 Using project: %s\n", bold(projectID))
 	}
 }
 
@@ -273,31 +267,47 @@ func HandleError(err error, message string, opts OutputOptions) {
 	}
 }
 
-// PromptUser prompts user for input with a message
+// PromptUser prompts user for input with a message using promptui
 func PromptUser(message string) (string, error) {
-	fmt.Print(message)
-	var input string
-	_, err := fmt.Scanln(&input)
-	return input, err
+	// Clean the message (remove : or space at end)
+	message = strings.TrimSuffix(strings.TrimSpace(message), ":")
+	
+	prompt := promptui.Prompt{
+		Label: message,
+	}
+	return prompt.Run()
 }
 
-// PromptUserWithDefault prompts user for input with a default value
+// PromptUserWithDefault prompts user for input with a default value using promptui
 func PromptUserWithDefault(message, defaultValue string) string {
-	fmt.Printf("%s [%s]: ", message, defaultValue)
-	var input string
-	fmt.Scanln(&input)
-	if input == "" {
+	// Clean the message
+	message = strings.TrimSuffix(strings.TrimSpace(message), ":")
+
+	prompt := promptui.Prompt{
+		Label:     message,
+		Default:   defaultValue,
+		AllowEdit: true,
+	}
+
+	result, err := prompt.Run()
+	if err != nil {
 		return defaultValue
 	}
-	return input
+	return result
 }
 
-// ConfirmAction asks user for confirmation
+// ConfirmAction asks user for confirmation using promptui
 func ConfirmAction(message string) bool {
-	fmt.Printf("%s (y/N): ", message)
-	var input string
-	fmt.Scanln(&input)
-	return strings.ToLower(input) == "y" || strings.ToLower(input) == "yes"
+	// Clean the message
+	message = strings.TrimSuffix(strings.TrimSpace(message), "?")
+
+	prompt := promptui.Prompt{
+		Label:     message,
+		IsConfirm: true,
+	}
+
+	_, err := prompt.Run()
+	return err == nil
 }
 
 // WithJSONOutput wraps a function to support JSON output
@@ -313,4 +323,38 @@ func WithJSONOutput(fn func() (interface{}, error), opts OutputOptions) error {
 	}
 
 	return nil
+}
+
+// SelectOption prompts user to select from a list of options
+func SelectOption(label string, options []string) (int, string, error) {
+	prompt := promptui.Select{
+		Label: label,
+		Items: options,
+		Size:  10,
+	}
+
+	return prompt.Run()
+}
+
+// StartSpinner starts a new spinner with the given message
+func StartSpinner(message string, opts OutputOptions) interface{} {
+	if opts.Format == OutputFormatJSON || opts.Quiet {
+		return nil
+	}
+	
+	s := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
+	s.Suffix = fmt.Sprintf(" %s", message)
+	s.Color("cyan")
+	s.Start()
+	return s
+}
+
+// StopSpinner stops the spinner if it exists
+func StopSpinner(s interface{}) {
+	if s == nil {
+		return
+	}
+	if spin, ok := s.(*spinner.Spinner); ok {
+		spin.Stop()
+	}
 }

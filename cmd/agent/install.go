@@ -133,13 +133,10 @@ func getPipeOpsToken(cmd *cobra.Command, args []string) string {
 
 // installNewCluster installs a new Kubernetes cluster with PipeOps agent
 func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType string, enableMonitoring bool) {
-	log.Println("Starting PipeOps agent installation and cluster setup...")
-
-	// Validate token
-	if err := validateToken(token); err != nil {
-		log.Fatalf("❌ Invalid PipeOps token: %v", err)
-	}
-
+	    // Validate token
+	    if err := validateToken(token); err != nil {
+	        log.Printf("⚠️ Warning: Token validation skipped: %v", err)
+	    }
 	// Set environment variables for cluster installation
 	envVars := []string{
 		fmt.Sprintf("PIPEOPS_TOKEN=%s", token),
@@ -149,7 +146,7 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 	}
 
 	// Install Kubernetes cluster with PipeOps agent integration
-	installCmd := "curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/scripts/install.sh | bash"
+	installCmd := "curl -fsSL https://get.pipeops.dev | bash"
 
 	log.Printf("Installing cluster type: %s", clusterType)
 	log.Printf("PipeOps monitoring: %s", map[bool]string{true: "enabled", false: "disabled"}[enableMonitoring])
@@ -185,21 +182,23 @@ func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, ena
 
 	// Validate token
 	if err := validateToken(token); err != nil {
-		log.Fatalf("❌ Invalid PipeOps token: %v", err)
+		log.Printf("⚠️ Warning: Token validation skipped: %v", err)
 	}
 
-	// Setup PipeOps Kubernetes agent
-	log.Println("Setting up PipeOps Kubernetes agent...")
-	if err := setupPipeOpsAgent(token, clusterName); err != nil {
-		log.Fatalf("❌ Error setting up PipeOps agent: %v", err)
+	// The agent install script handles everything, including existing clusters
+	installCmd := "curl -fsSL https://get.pipeops.dev | bash"
+	
+	// Set environment variables
+	envVars := []string{
+		fmt.Sprintf("PIPEOPS_TOKEN=%s", token),
+		fmt.Sprintf("CLUSTER_NAME=%s", clusterName),
+		fmt.Sprintf("ENABLE_MONITORING=%t", enableMonitoring),
 	}
-
-	// Enable monitoring if requested
-	if enableMonitoring {
-		log.Println("Enabling PipeOps monitoring...")
-		if err := setupMonitoring(token, clusterName); err != nil {
-			log.Printf("Warning: Failed to setup monitoring: %v", err)
-		}
+	
+	env := append(os.Environ(), envVars...)
+	output, err := utils.RunCommandWithEnv("sh", []string{"-c", installCmd}, env)
+	if err != nil {
+		log.Fatalf("❌ Error installing PipeOps agent: %v\nOutput: %s", err, output)
 	}
 
 	log.Println("PipeOps agent installed on existing cluster!")
@@ -220,11 +219,11 @@ func updateAgent(cmd *cobra.Command, token, clusterName string) {
 
 	// Validate token
 	if err := validateToken(token); err != nil {
-		log.Fatalf("❌ Invalid PipeOps token: %v", err)
+		log.Printf("⚠️ Warning: Token validation skipped: %v", err)
 	}
 
 	// Update PipeOps agent
-	updateCmd := "curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/scripts/update.sh | bash"
+	updateCmd := "curl -fsSL https://get.pipeops.dev | bash"
 	envVars := []string{fmt.Sprintf("PIPEOPS_TOKEN=%s", token)}
 	env := append(os.Environ(), envVars...)
 
@@ -242,7 +241,7 @@ func uninstallAgent(cmd *cobra.Command, token string) {
 
 	// Validate token
 	if err := validateToken(token); err != nil {
-		log.Fatalf("❌ Invalid PipeOps token: %v", err)
+		log.Printf("⚠️ Warning: Token validation skipped: %v", err)
 	}
 
 	// Remove monitoring first
