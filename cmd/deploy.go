@@ -58,11 +58,11 @@ Examples:
 					"message": "Project deployment is temporarily disabled",
 				})
 			} else {
-				utils.PrintWarning("Project deployment is temporarily disabled", opts)
-				fmt.Printf("\nALTERNATIVES\n")
-				fmt.Printf("├─ Deploy addons: pipeops deploy --addon <addon-id> --project <project-id>\n")
-				fmt.Printf("├─ List addons: pipeops list --addons\n")
-				fmt.Printf("└─ Use PipeOps web console for project deployment\n")
+				utils.PrintWarning("Project deployment is temporarily disabled. You can still deploy addons to existing projects.", opts)
+				utils.PrintInfo("\nALTERNATIVES:", opts)
+				utils.PrintInfo("  - Deploy addons: `pipeops deploy --addon <addon-id> --project <project-id>`", opts)
+				utils.PrintInfo("  - List addons: `pipeops list --addons`", opts)
+				utils.PrintInfo("  - Use PipeOps web console for project deployment: https://app.pipeops.io", opts)
 			}
 		}
 	},

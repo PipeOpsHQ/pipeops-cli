@@ -1,8 +1,6 @@
 package project
 
 import (
-	"fmt"
-
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
@@ -28,12 +26,12 @@ Available alternatives:
 				"message": "Project creation is temporarily disabled",
 			})
 		} else {
-			utils.PrintWarning("Project creation is temporarily disabled", opts)
-			fmt.Printf("\nALTERNATIVES\n")
-			fmt.Printf("├─ Use PipeOps web console to create projects\n")
-			fmt.Printf("├─ Link existing projects: pipeops link <project-id>\n")
-			fmt.Printf("├─ List projects: pipeops project list\n")
-			fmt.Printf("└─ Deploy addons: pipeops deploy --addon <addon-id>\n")
+			utils.PrintWarning("Project creation is temporarily disabled. This feature is under development and will be available in a future release.", opts)
+			utils.PrintInfo("\nAvailable alternatives:", opts)
+			utils.PrintInfo("  - Use the PipeOps web console to create projects: https://app.pipeops.io", opts)
+			utils.PrintInfo("  - Link existing projects: `pipeops link <project-id>`", opts)
+			utils.PrintInfo("  - List existing projects: `pipeops project list`", opts)
+			utils.PrintInfo("  - Deploy addons: `pipeops deploy --addon <addon-id>`", opts)
 		}
 	},
 	Args: cobra.NoArgs,

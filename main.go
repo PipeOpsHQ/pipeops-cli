@@ -21,8 +21,19 @@ THE SOFTWARE.
 */
 package main
 
-import "github.com/PipeOpsHQ/pipeops-cli/cmd"
+import (
+	"fmt"
+	"os"
+
+	"github.com/PipeOpsHQ/pipeops-cli/cmd"
+	"github.com/fatih/color"
+)
 
 func main() {
-	cmd.Execute()
+	// Execute the root command and handle errors
+	if err := cmd.Execute(); err != nil {
+		red := color.New(color.FgRed, color.Bold).SprintFunc()
+		fmt.Fprintf(os.Stderr, "\n%s %s\n", red("ERROR:"), err.Error())
+		os.Exit(1)
+	}
 }

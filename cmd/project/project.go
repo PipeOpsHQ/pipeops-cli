@@ -16,4 +16,7 @@ func (p *projectModel) Register() {
 	p.listProjects()
 	p.createProject() // Re-enabled to show disabled message
 	p.logs()
+	p.rootCmd.AddCommand(GetUpdateCmd())
+	p.rootCmd.AddCommand(GetDeleteCmd())
+	p.rootCmd.AddCommand(GetDeployCmd())
 }

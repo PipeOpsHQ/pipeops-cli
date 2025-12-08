@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/updater"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -56,10 +57,12 @@ var Conf Config
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:     "pipeops",
-	Short:   "PipeOps CLI - Manage cloud-native development and deployment workflows",
+	Use:   "pipeops",
+	Short: "PipeOps CLI - Manage cloud-native development and deployment workflows",
 	Long:    `PipeOps CLI is a command-line interface for managing cloud-native development and deployment workflows. Securely authenticate, manage projects and servers, deploy CI/CD pipelines, and monitor infrastructure—all from your terminal.`,
 	Version: Version,
+	SilenceErrors: true, // We handle errors in main.go
+	SilenceUsage:  true, // Don't show usage on error
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// Set global JSON output flag
 		jsonOutput, _ := cmd.Flags().GetBool("json")
@@ -236,11 +239,8 @@ func updateLastCheckTime() error {
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
-	}
+func Execute() error {
+	return rootCmd.Execute()
 }
 
 func init() {
@@ -257,6 +257,53 @@ func init() {
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.Flags().BoolP("version", "v", false, "Prints out the current version")
+
+	// Custom Help Template
+	bold := color.New(color.Bold).SprintFunc()
+	cyan := color.New(color.FgCyan).SprintFunc()
+	green := color.New(color.FgGreen).SprintFunc()
+	yellow := color.New(color.FgYellow).SprintFunc()
+
+	rootCmd.SetHelpTemplate(fmt.Sprintf(`%s
+  {{.Long}}
+
+%s
+  {{.UseLine}}
+
+%s
+{{if .HasAvailableSubCommands}}{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}  %s {{.Short}}
+{{end}}{{end}}{{end}}
+%s
+{{if .HasAvailableFlags}}{{ .LocalFlags.FlagUsages | trimTrailingWhitespaces }}{{end}}
+
+%s
+  %s
+
+`,
+		bold("PipeOps CLI"),
+		bold("USAGE"),
+		bold("AVAILABLE COMMANDS"),
+		green("{{rpad .Name .NamePadding }}"),
+		bold("FLAGS"),
+		bold("LEARN MORE"),
+		cyan("Use 'pipeops [command] --help' for more information about a command."),
+	))
+
+	// Custom Usage Template
+	rootCmd.SetUsageTemplate(fmt.Sprintf(`%s
+  {{.UseLine}}
+
+%s
+{{if .HasAvailableSubCommands}}{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}  %s {{.Short}}
+{{end}}{{end}}{{end}}
+%s
+{{if .HasAvailableFlags}}{{ .LocalFlags.FlagUsages | trimTrailingWhitespaces }}{{end}}
+`,
+		bold("USAGE"),
+		bold("AVAILABLE COMMANDS"),
+		yellow("{{rpad .Name .NamePadding }}"),
+		bold("FLAGS"),
+	))
 }
 
 // initConfig reads in config file and ENV variables if set.

@@ -118,10 +118,15 @@ Examples:
 		utils.PrintSuccess(fmt.Sprintf("Successfully linked directory to project '%s' (%s)", selectedProject.Name, projectID), opts)
 
 		if !opts.Quiet {
-			fmt.Printf("\nPROJECT CONTEXT\n")
-			fmt.Printf("├─ Project: %s (%s)\n", selectedProject.Name, projectID)
-			fmt.Printf("├─ Directory: %s\n", currentDir)
-			fmt.Printf("└─ Context file: %s\n", filepath.Join(currentDir, ".pipeops", "project.json"))
+			fmt.Println()
+			headers := []string{"CONTEXT", "VALUE"}
+			rows := [][]string{
+				{"Project Name", selectedProject.Name},
+				{"Project ID", projectID},
+				{"Directory", currentDir},
+				{"Context File", filepath.Join(currentDir, ".pipeops", "project.json")},
+			}
+			utils.PrintTable(headers, rows, opts)
 
 			fmt.Printf("\nNEXT STEPS\n")
 			fmt.Printf("├─ Deploy: pipeops deploy\n")

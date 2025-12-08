@@ -1,11 +1,7 @@
 package agent
 
 import (
-	"fmt"
-	"log"
-	"strconv"
-
-	"github.com/PipeOpsHQ/pipeops-cli/internal/tailscale"
+	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -46,43 +42,9 @@ Examples:
   # Enable Funnel for specific port
   pipeops agent funnel enable 8080`,
 	Run: func(cmd *cobra.Command, args []string) {
-		port := 80 // Default port
-		if len(args) > 0 {
-			if p, err := strconv.Atoi(args[0]); err == nil && p > 0 && p <= 65535 {
-				port = p
-			}
-		}
-
-		tsClient := tailscale.NewClient()
-
-		// Check if Tailscale is installed
-		if !tsClient.IsInstalled() {
-			log.Fatal("❌ Tailscale is not installed. Please run 'pipeops agent install' first.")
-		}
-
-		// Check if Tailscale is connected
-		connected, err := tsClient.IsConnected()
-		if err != nil {
-			log.Fatalf("❌ Error checking Tailscale connection: %v", err)
-		}
-		if !connected {
-			log.Fatal("❌ Tailscale is not connected. Please run 'pipeops agent install' first.")
-		}
-
-		// Enable Funnel
-		log.Printf("Enabling Tailscale Funnel for port %d...", port)
-		if err := tsClient.EnableFunnel(port); err != nil {
-			log.Fatalf("❌ Error enabling Funnel: %v", err)
-		}
-
-		log.Println("Tailscale Funnel enabled successfully!")
-
-		// Get and display the Funnel URL
-		if url, err := tsClient.GetFunnelURL(); err == nil {
-			log.Printf("Your service is now accessible at: %s", url)
-		} else {
-			log.Println("Run 'pipeops agent funnel url' to get your Funnel URL")
-		}
+		opts := utils.GetOutputOptions(cmd)
+		utils.PrintWarning("The 'agent funnel enable' command is coming soon! Please check our documentation for updates.", opts)
+		return
 	},
 }
 
@@ -93,21 +55,9 @@ var funnelDisableCmd = &cobra.Command{
 
 This will remove public access to your services while keeping Tailscale VPN functionality intact.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		tsClient := tailscale.NewClient()
-
-		// Check if Tailscale is installed
-		if !tsClient.IsInstalled() {
-			log.Fatal("❌ Tailscale is not installed.")
-		}
-
-		// Disable Funnel
-		log.Println("Disabling Tailscale Funnel...")
-		if err := tsClient.DisableFunnel(); err != nil {
-			log.Fatalf("❌ Error disabling Funnel: %v", err)
-		}
-
-		log.Println("Tailscale Funnel disabled successfully!")
-		log.Println("Your services are no longer accessible from the public internet")
+		opts := utils.GetOutputOptions(cmd)
+		utils.PrintWarning("The 'agent funnel disable' command is coming soon! Please check our documentation for updates.", opts)
+		return
 	},
 }
 
@@ -121,23 +71,9 @@ This command shows:
 - Active services and ports
 - Connection information`,
 	Run: func(cmd *cobra.Command, args []string) {
-		tsClient := tailscale.NewClient()
-
-		// Check if Tailscale is installed
-		if !tsClient.IsInstalled() {
-			log.Fatal("❌ Tailscale is not installed.")
-		}
-
-		// Get Funnel status
-		log.Println("Checking Tailscale Funnel status...")
-		status, err := tsClient.GetFunnelStatus()
-		if err != nil {
-			log.Fatalf("❌ Error getting Funnel status: %v", err)
-		}
-
-		fmt.Println("Tailscale Funnel Status:")
-		fmt.Println("========================")
-		fmt.Println(status)
+		opts := utils.GetOutputOptions(cmd)
+		utils.PrintWarning("The 'agent funnel status' command is coming soon! Please check our documentation for updates.", opts)
+		return
 	},
 }
 
@@ -148,21 +84,9 @@ var funnelUrlCmd = &cobra.Command{
 
 This command displays the public internet URL where your service is accessible.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		tsClient := tailscale.NewClient()
-
-		// Check if Tailscale is installed
-		if !tsClient.IsInstalled() {
-			log.Fatal("❌ Tailscale is not installed.")
-		}
-
-		// Get Funnel URL
-		log.Println("Getting Tailscale Funnel URL...")
-		url, err := tsClient.GetFunnelURL()
-		if err != nil {
-			log.Fatalf("❌ Error getting Funnel URL: %v", err)
-		}
-
-		fmt.Printf("Your service is accessible at: %s\n", url)
+		opts := utils.GetOutputOptions(cmd)
+		utils.PrintWarning("The 'agent funnel url' command is coming soon! Please check our documentation for updates.", opts)
+		return
 	},
 }
 

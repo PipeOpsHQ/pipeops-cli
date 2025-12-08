@@ -36,6 +36,9 @@ func init() {
 
 // registerServerSubcommands initializes and registers subcommands for the server command
 func registerServerSubcommands() {
-	// Add server list command
+	// Add server commands
 	serverCmd.AddCommand(server.GetListCmd())
+	serverCmd.AddCommand(server.GetCreateCmd())
+	serverCmd.AddCommand(server.GetUpdateCmd())
+	serverCmd.AddCommand(server.GetDeleteCmd())
 }

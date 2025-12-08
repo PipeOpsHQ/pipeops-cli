@@ -13,8 +13,18 @@ var versionCmd = &cobra.Command{
 	Long: `The version command shows the current version of the PipeOps CLI.
 This can be useful for debugging or verifying that you're using the expected version.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Always show the build version as the primary source of truth
+		// ASCII Art Logo
+		logo := `
+ ____  _             ___
+|  _ \(_)_ __   ___ / _ \ _ __  ___
+| |_) | | '_ \ / _ \ | | | '_ \/ __|
+|  __/| | |_) |  __/ |_| | |_) \__ \
+|_|   |_| .__/ \___|\___/| .__/|___/
+        |_|              |_|
+`
+		fmt.Println(logo)
 		fmt.Printf("PipeOps CLI Version: %s\n", Version)
+		fmt.Printf("Documentation:       https://docs.pipeops.io\n")
 	},
 }
 
