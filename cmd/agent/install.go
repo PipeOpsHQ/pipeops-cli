@@ -146,7 +146,7 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 	}
 
 	// Install Kubernetes cluster with PipeOps agent integration
-	installCmd := "curl -fsSL https://get.pipeops.dev | bash"
+	installCmd := "curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/scripts/install.sh | bash"
 
 	log.Printf("Installing cluster type: %s", clusterType)
 	log.Printf("PipeOps monitoring: %s", map[bool]string{true: "enabled", false: "disabled"}[enableMonitoring])
@@ -186,7 +186,7 @@ func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, ena
 	}
 
 	// The agent install script handles everything, including existing clusters
-	installCmd := "curl -fsSL https://get.pipeops.dev | bash"
+	installCmd := "curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/scripts/install.sh | bash"
 	
 	// Set environment variables
 	envVars := []string{
@@ -223,7 +223,7 @@ func updateAgent(cmd *cobra.Command, token, clusterName string) {
 	}
 
 	// Update PipeOps agent
-	updateCmd := "curl -fsSL https://get.pipeops.dev | bash"
+	updateCmd := "curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-agent/main/scripts/update.sh | bash"
 	envVars := []string{fmt.Sprintf("PIPEOPS_TOKEN=%s", token)}
 	env := append(os.Environ(), envVars...)
 
