@@ -104,7 +104,7 @@ Examples:
 				return nil
 			}
 
-			return fmt.Errorf("❌ PipeOps authentication is required. Use 'pipeops auth login' or provide PIPEOPS_TOKEN environment variable")
+			return fmt.Errorf("❌ PipeOps token is required. Provide token as argument: 'pipeops agent install <token>' or set PIPEOPS_TOKEN environment variable")
 		}
 		return nil
 	},
