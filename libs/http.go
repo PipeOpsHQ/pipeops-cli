@@ -208,9 +208,14 @@ func (v *HttpClient) VerifyToken(token string, operatorID string) (*models.PipeO
 		return nil, ErrVerificationFailed
 	}
 
+	body := resp.Body()
+	if len(body) == 0 {
+		return nil, fmt.Errorf("empty response body from server (status: %d)", resp.StatusCode())
+	}
+
 	var respData *models.PipeOpsTokenVerificationResponse
-	if err := json.Unmarshal(resp.Body(), &respData); err != nil {
-		return nil, err
+	if err := json.Unmarshal(body, &respData); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
 	if !respData.Valid {
