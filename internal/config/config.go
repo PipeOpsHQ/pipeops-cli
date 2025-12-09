@@ -16,9 +16,10 @@ const (
 // Build-time configuration variables (set during compilation)
 var (
 	// These can be set during build using -ldflags
-	DefaultClientID = "pipeops_default_client" // Can be overridden at build time
-	DefaultAPIURL   = "https://api.pipeops.sh" // Can be overridden at build time
-	DefaultScopes   = "user:read,project:read" // Can be overridden at build time
+	DefaultClientID     = "pipeops_default_client"     // Can be overridden at build time
+	DefaultAPIURL       = "https://api.pipeops.sh"     // Can be overridden at build time
+	DefaultDashboardURL = "https://staging.pipeops.sh" // Can be overridden at build time
+	DefaultScopes       = "user:read,project:read"     // Can be overridden at build time
 )
 
 // Config represents the CLI configuration
@@ -32,6 +33,7 @@ type OAuthConfig struct {
 	ClientID     string    `json:"client_id"`
 	ClientSecret string    `json:"client_secret"` // Not used with PKCE, kept for compatibility
 	BaseURL      string    `json:"base_url"`
+	DashboardURL string    `json:"dashboard_url"`
 	AccessToken  string    `json:"access_token,omitempty"`
 	RefreshToken string    `json:"refresh_token,omitempty"`
 	ExpiresAt    time.Time `json:"expires_at,omitempty"`
@@ -61,6 +63,14 @@ func GetAPIURL() string {
 	return DefaultAPIURL
 }
 
+// GetDashboardURL returns the Dashboard URL from environment or build-time default
+func GetDashboardURL() string {
+	if dashboardURL := os.Getenv("PIPEOPS_DASHBOARD_URL"); dashboardURL != "" {
+		return dashboardURL
+	}
+	return DefaultDashboardURL
+}
+
 // GetDefaultScopes returns the default scopes
 func GetDefaultScopes() []string {
 	if scopes := os.Getenv("PIPEOPS_SCOPES"); scopes != "" {
@@ -73,9 +83,10 @@ func GetDefaultScopes() []string {
 func DefaultConfig() *Config {
 	return &Config{
 		OAuth: &OAuthConfig{
-			ClientID: GetClientID(),
-			BaseURL:  GetAPIURL(),
-			Scopes:   GetDefaultScopes(),
+			ClientID:     GetClientID(),
+			BaseURL:      GetAPIURL(),
+			DashboardURL: GetDashboardURL(),
+			Scopes:       GetDefaultScopes(),
 		},
 		Settings: &Settings{
 			OutputFormat: "table",
@@ -118,6 +129,11 @@ func Load() (*Config, error) {
 	if apiURL := os.Getenv("PIPEOPS_API_URL"); apiURL != "" {
 		cfg.OAuth.BaseURL = apiURL
 	}
+
+	if dashboardURL := os.Getenv("PIPEOPS_DASHBOARD_URL"); dashboardURL != "" {
+		cfg.OAuth.BaseURL = dashboardURL
+	}
+
 	if clientID := os.Getenv("PIPEOPS_CLIENT_ID"); clientID != "" {
 		cfg.OAuth.ClientID = clientID
 	}
