@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/libs"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
@@ -100,10 +99,10 @@ Examples:
 			}
 
 			// Check if user is authenticated via OAuth
-			cfg, err := config.Load()
-			if err == nil && cfg.IsAuthenticated() {
-				return nil
-			}
+			// cfg, err := config.Load()
+			// if err == nil && cfg.IsAuthenticated() {
+			// 	return nil
+			// }
 
 			return fmt.Errorf("❌ PipeOps token is required. Provide token as argument: 'pipeops agent install <token>' or set PIPEOPS_TOKEN environment variable")
 		}
@@ -124,10 +123,10 @@ func getPipeOpsToken(cmd *cobra.Command, args []string) string {
 	}
 
 	// Check OAuth config
-	cfg, err := config.Load()
-	if err == nil && cfg.IsAuthenticated() {
-		return strings.TrimSpace(cfg.OAuth.AccessToken)
-	}
+	// cfg, err := config.Load()
+	// if err == nil && cfg.IsAuthenticated() {
+	// 	return strings.TrimSpace(cfg.OAuth.AccessToken)
+	// }
 
 	return ""
 }

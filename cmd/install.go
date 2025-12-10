@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -31,10 +30,10 @@ var installCmd = &cobra.Command{
 			}
 
 			// Check if user is authenticated via OAuth
-			cfg, err := config.Load()
-			if err == nil && cfg.IsAuthenticated() {
-				return nil
-			}
+			// cfg, err := config.Load()
+			// if err == nil && cfg.IsAuthenticated() {
+			// 	return nil
+			// }
 
 			return fmt.Errorf("❌ PipeOps token is required. Provide token as argument: 'pipeops install <token>' or set PIPEOPS_TOKEN environment variable")
 		}
