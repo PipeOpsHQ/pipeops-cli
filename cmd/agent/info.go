@@ -26,7 +26,7 @@ This command is useful for:
 
 		output, err := utils.RunCommand("sh", "-c", infoCmd)
 		if err != nil {
-			log.Fatalf("❌ Error retrieving cluster information: %v\nOutput: %s", err, output)
+			log.Fatalf("❌ Error retrieving cluster information")
 		}
 
 		log.Println("✅ Cluster information retrieved successfully!")

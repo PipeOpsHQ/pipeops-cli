@@ -43,9 +43,9 @@ Examples:
 		joinCmd := "curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-k8-agent/main/scripts/join-worker.sh | bash"
 
 		env := append(os.Environ(), envVars...)
-		output, err := utils.RunCommandWithEnv("sh", []string{"-c", joinCmd}, env)
+		_, err := utils.RunCommandWithEnv("sh", []string{"-c", joinCmd}, env)
 		if err != nil {
-			log.Fatalf("❌ Error joining worker node: %v\nOutput: %s", err, output)
+			log.Fatalf("❌ Error joining worker node")
 		}
 
 		log.Println("Worker node joined successfully!")

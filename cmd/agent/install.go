@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/libs"
@@ -114,18 +115,18 @@ Examples:
 func getPipeOpsToken(cmd *cobra.Command, args []string) string {
 	// Check arguments first
 	if len(args) > 0 {
-		return args[0]
+		return strings.TrimSpace(args[0])
 	}
 
 	// Check environment variable
 	if token := os.Getenv("PIPEOPS_TOKEN"); token != "" {
-		return token
+		return strings.TrimSpace(token)
 	}
 
 	// Check OAuth config
 	cfg, err := config.Load()
 	if err == nil && cfg.IsAuthenticated() {
-		return cfg.OAuth.AccessToken
+		return strings.TrimSpace(cfg.OAuth.AccessToken)
 	}
 
 	return ""
@@ -157,9 +158,9 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 
 	// Execute the installer with environment variables
 	env := append(os.Environ(), envVars...)
-	output, err := utils.RunCommandWithEnv("sh", []string{"-c", installCmd}, env)
+	_, err := utils.RunCommandWithEnv("sh", []string{"-c", installCmd}, env)
 	if err != nil {
-		log.Fatalf("❌ Error installing cluster with PipeOps agent: %v\nOutput: %s", err, output)
+		log.Fatalf("❌ Error installing cluster with PipeOps agent")
 	}
 
 	// Setup PipeOps Kubernetes agent
@@ -204,9 +205,9 @@ func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, ena
 	}
 	
 	env := append(os.Environ(), envVars...)
-	output, err := utils.RunCommandWithEnv("sh", []string{"-c", installCmd}, env)
+	_, err := utils.RunCommandWithEnv("sh", []string{"-c", installCmd}, env)
 	if err != nil {
-		log.Fatalf("❌ Error installing PipeOps agent: %v\nOutput: %s", err, output)
+		log.Fatalf("❌ Error installing PipeOps agent")
 	}
 
 	log.Println("PipeOps agent installed on existing cluster!")
@@ -235,9 +236,9 @@ func updateAgent(cmd *cobra.Command, token, clusterName string) {
 	envVars := []string{fmt.Sprintf("PIPEOPS_TOKEN=%s", token)}
 	env := append(os.Environ(), envVars...)
 
-	output, err := utils.RunCommandWithEnv("sh", []string{"-c", updateCmd}, env)
+	_, err := utils.RunCommandWithEnv("sh", []string{"-c", updateCmd}, env)
 	if err != nil {
-		log.Fatalf("❌ Error updating PipeOps agent: %v\nOutput: %s", err, output)
+		log.Fatalf("❌ Error updating PipeOps agent")
 	}
 
 	log.Println("PipeOps agent updated successfully!")
@@ -269,9 +270,9 @@ func uninstallAgent(cmd *cobra.Command, token string) {
 	envVars := []string{fmt.Sprintf("PIPEOPS_TOKEN=%s", token)}
 	env := append(os.Environ(), envVars...)
 
-	output, err := utils.RunCommandWithEnv("sh", []string{"-c", uninstallCmd}, env)
+	_, err := utils.RunCommandWithEnv("sh", []string{"-c", uninstallCmd}, env)
 	if err != nil {
-		log.Fatalf("❌ Error uninstalling PipeOps agent: %v\nOutput: %s", err, output)
+		log.Fatalf("❌ Error uninstalling PipeOps agent")
 	}
 
 	log.Println("PipeOps agent uninstalled successfully!")
@@ -306,9 +307,9 @@ kubectl create secret generic pipeops-token -n pipeops-system --from-literal=tok
 kubectl apply -f https://get.pipeops.dev/k8-agent.yaml
 `, token)
 
-	output, err := utils.RunCommand("sh", "-c", setupCmd)
+	_, err := utils.RunCommand("sh", "-c", setupCmd)
 	if err != nil {
-		return fmt.Errorf("failed to setup agent: %v\nOutput: %s", err, output)
+		return fmt.Errorf("failed to setup agent")
 	}
 
 	log.Println("PipeOps agent setup completed")
@@ -326,9 +327,9 @@ kubectl create secret generic pipeops-token -n pipeops-monitoring --from-literal
 kubectl apply -f https://get.pipeops.dev/k8-agent.yaml
 `, token)
 
-	output, err := utils.RunCommand("sh", "-c", monitoringCmd)
+	_, err := utils.RunCommand("sh", "-c", monitoringCmd)
 	if err != nil {
-		return fmt.Errorf("failed to setup monitoring: %v\nOutput: %s", err, output)
+		return fmt.Errorf("failed to setup monitoring")
 	}
 
 	log.Println("Monitoring setup completed")
@@ -343,9 +344,9 @@ kubectl delete secret pipeops-token -n pipeops-system --ignore-not-found=true
 kubectl delete namespace pipeops-system --ignore-not-found=true
 `
 
-	output, err := utils.RunCommand("sh", "-c", removeCmd)
+	_, err := utils.RunCommand("sh", "-c", removeCmd)
 	if err != nil {
-		return fmt.Errorf("failed to remove agent: %v\nOutput: %s", err, output)
+		return fmt.Errorf("failed to remove agent")
 	}
 
 	return nil
@@ -359,9 +360,9 @@ kubectl delete secret pipeops-token -n pipeops-monitoring --ignore-not-found=tru
 kubectl delete namespace pipeops-monitoring --ignore-not-found=true
 `
 
-	output, err := utils.RunCommand("sh", "-c", removeCmd)
+	_, err := utils.RunCommand("sh", "-c", removeCmd)
 	if err != nil {
-		return fmt.Errorf("failed to remove monitoring: %v\nOutput: %s", err, output)
+		return fmt.Errorf("failed to remove monitoring")
 	}
 
 	return nil
