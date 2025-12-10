@@ -133,6 +133,10 @@ func getPipeOpsToken(cmd *cobra.Command, args []string) string {
 
 // installNewCluster installs a new Kubernetes cluster with PipeOps agent
 func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType string, enableMonitoring bool) {
+	if token == "" {
+		log.Fatalf("❌ Error: PipeOps token is required. Please provide it as an argument or set PIPEOPS_TOKEN environment variable.")
+	}
+
 	// Validate token
 	if err := validateToken(token); err != nil {
 		log.Printf("⚠️ Warning: Token validation skipped: %v", err)
@@ -179,6 +183,10 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 // installOnExistingCluster installs PipeOps agent on an existing Kubernetes cluster
 func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, enableMonitoring bool) {
 	log.Println("Installing PipeOps agent on existing cluster...")
+
+	if token == "" {
+		log.Fatalf("❌ Error: PipeOps token is required. Please provide it as an argument or set PIPEOPS_TOKEN environment variable.")
+	}
 
 	// Validate token
 	if err := validateToken(token); err != nil {

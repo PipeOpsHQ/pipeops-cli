@@ -1,6 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -12,11 +16,29 @@ var installCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// Find the agent install command
 		targetCmd, _, _ := rootCmd.Find([]string{"agent", "install"})
-		
+
 		if targetCmd != nil && targetCmd.Run != nil {
 			// Run the agent install command using OUR command (which has the flags set)
 			targetCmd.Run(cmd, args)
 		}
+	},
+	Args: func(cmd *cobra.Command, args []string) error {
+		// PipeOps token can be provided as argument, environment variable, or from config
+		if len(args) == 0 {
+			// Check environment variable
+			if token := os.Getenv("PIPEOPS_TOKEN"); token != "" {
+				return nil
+			}
+
+			// Check if user is authenticated via OAuth
+			cfg, err := config.Load()
+			if err == nil && cfg.IsAuthenticated() {
+				return nil
+			}
+
+			return fmt.Errorf("❌ PipeOps token is required. Provide token as argument: 'pipeops install <token>' or set PIPEOPS_TOKEN environment variable")
+		}
+		return nil
 	},
 }
 
