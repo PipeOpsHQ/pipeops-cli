@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/url"
 	"os"
@@ -68,6 +69,34 @@ func RunCommandWithEnv(name string, args []string, env []string) (string, error)
 		}
 		return outStr, err
 	}
+	return outStr, nil
+}
+
+// RunCommandWithEnvStreaming runs a command with custom environment variables
+// while streaming stdout/stderr directly to the console.
+// It still captures output for returning errors to callers.
+func RunCommandWithEnvStreaming(name string, args []string, env []string) (string, error) {
+	cmd := exec.Command(name, args...)
+	cmd.Env = env
+	cmd.Stdin = os.Stdin
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = io.MultiWriter(os.Stdout, &stdout)
+	cmd.Stderr = io.MultiWriter(os.Stderr, &stderr)
+
+	log.Printf("Running command: %s %s", name, strings.Join(args, " "))
+	err := cmd.Run()
+
+	outStr := strings.TrimSpace(stdout.String())
+	errStr := strings.TrimSpace(stderr.String())
+
+	if err != nil {
+		if errStr != "" {
+			return outStr, errors.New(errStr)
+		}
+		return outStr, err
+	}
+
 	return outStr, nil
 }
 
