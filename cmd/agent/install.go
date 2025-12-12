@@ -157,12 +157,6 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 		log.Fatalf("❌ Error installing cluster with PipeOps agent")
 	}
 
-	// Setup PipeOps Kubernetes agent
-	log.Println("Setting up PipeOps Kubernetes agent...")
-	if err := setupPipeOpsAgent(token, clusterName); err != nil {
-		log.Printf("Warning: Failed to setup PipeOps agent: %v", err)
-	}
-
 	log.Println("PipeOps agent and cluster setup completed successfully!")
 	log.Println("Your cluster is now connected to PipeOps")
 
