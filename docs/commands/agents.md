@@ -30,6 +30,11 @@ export CLUSTER_NAME="my-cluster"
 pipeops agent install
 ```
 
+### Windows Notes
+
+- The bootstrap installer (`pipeops agent install` without `--existing-cluster`) runs a Bash script. On Windows, run it from WSL2 or Git Bash.
+- If you already have a Kubernetes cluster and `kubectl` is configured, use `pipeops agent install --existing-cluster --cluster-name="my-cluster"`.
+
 ### Installation Options
 
 #### Cluster Type Selection

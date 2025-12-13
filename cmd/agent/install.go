@@ -58,7 +58,7 @@ Examples:
 			clusterType = os.Getenv("CLUSTER_TYPE")
 		}
 		if clusterType == "" {
-			clusterType = "k3s" // Default to k3s
+			clusterType = "auto" // Let installer pick the best option
 		}
 
 		// Check if installing on existing cluster
@@ -141,7 +141,7 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 		fmt.Sprintf("PIPEOPS_TOKEN=%s", token),
 		fmt.Sprintf("CLUSTER_NAME=%s", clusterName),
 		fmt.Sprintf("CLUSTER_TYPE=%s", clusterType),
-		fmt.Sprintf("ENABLE_MONITORING=%t", enableMonitoring),
+		fmt.Sprintf("INSTALL_MONITORING=%t", enableMonitoring),
 	}
 
 	// Install Kubernetes cluster with PipeOps agent integration
@@ -151,10 +151,9 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 	log.Printf("PipeOps monitoring: %s", map[bool]string{true: "enabled", false: "disabled"}[enableMonitoring])
 
 	// Execute the installer with environment variables
-	env := append(os.Environ(), envVars...)
-	_, err := utils.RunCommandWithEnvStreaming("sh", []string{"-c", installCmd}, env)
+	_, err := utils.RunShellCommandWithEnvStreaming(installCmd, envVars)
 	if err != nil {
-		log.Fatalf("❌ Error installing cluster with PipeOps agent")
+		log.Fatalf("❌ Error installing cluster with PipeOps agent: %v", err)
 	}
 
 	log.Println("PipeOps agent and cluster setup completed successfully!")
@@ -179,18 +178,17 @@ func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, ena
 
 	// The agent install script handles everything, including existing clusters
 	installCmd := "curl -fsSL https://get.pipeops.dev/k8-install.sh | bash"
-	
+
 	// Set environment variables
 	envVars := []string{
 		fmt.Sprintf("PIPEOPS_TOKEN=%s", token),
 		fmt.Sprintf("CLUSTER_NAME=%s", clusterName),
-		fmt.Sprintf("ENABLE_MONITORING=%t", enableMonitoring),
+		fmt.Sprintf("INSTALL_MONITORING=%t", enableMonitoring),
 	}
-		
-	env := append(os.Environ(), envVars...)
-	_, err := utils.RunCommandWithEnvStreaming("sh", []string{"-c", installCmd}, env)
+
+	_, err := utils.RunShellCommandWithEnvStreaming(installCmd, envVars)
 	if err != nil {
-		log.Fatalf("❌ Error installing PipeOps agent")
+		log.Fatalf("❌ Error installing PipeOps agent: %v", err)
 	}
 
 	log.Println("PipeOps agent installed on existing cluster!")
@@ -212,11 +210,10 @@ func updateAgent(cmd *cobra.Command, token, clusterName string) {
 	// Update PipeOps agent
 	updateCmd := "curl -fsSL https://get.pipeops.dev/k8-install.sh | bash"
 	envVars := []string{fmt.Sprintf("PIPEOPS_TOKEN=%s", token)}
-	env := append(os.Environ(), envVars...)
 
-	_, err := utils.RunCommandWithEnvStreaming("sh", []string{"-c", updateCmd}, env)
+	_, err := utils.RunShellCommandWithEnvStreaming(updateCmd, envVars)
 	if err != nil {
-		log.Fatalf("❌ Error updating PipeOps agent")
+		log.Fatalf("❌ Error updating PipeOps agent: %v", err)
 	}
 
 	log.Println("PipeOps agent updated successfully!")
@@ -241,11 +238,10 @@ func uninstallAgent(cmd *cobra.Command, token string) {
 	// Uninstall PipeOps agent
 	uninstallCmd := "curl -fsSL https://get.pipeops.dev/k8-uninstall.sh | bash"
 	envVars := []string{fmt.Sprintf("PIPEOPS_TOKEN=%s", token)}
-	env := append(os.Environ(), envVars...)
 
-	_, err := utils.RunCommandWithEnvStreaming("sh", []string{"-c", uninstallCmd}, env)
+	_, err := utils.RunShellCommandWithEnvStreaming(uninstallCmd, envVars)
 	if err != nil {
-		log.Fatalf("❌ Error uninstalling PipeOps agent")
+		log.Fatalf("❌ Error uninstalling PipeOps agent: %v", err)
 	}
 
 	log.Println("PipeOps agent uninstalled successfully!")
@@ -293,15 +289,14 @@ kubectl apply -f https://get.pipeops.dev/k8-agent.yaml
 
 // removePipeOpsAgent removes the PipeOps agent
 func removePipeOpsAgent() error {
-	removeCmd := `
-kubectl delete -f https://get.pipeops.dev/k8-agent.yaml --ignore-not-found=true
-kubectl delete secret pipeops-token -n pipeops-system --ignore-not-found=true
-kubectl delete namespace pipeops-system --ignore-not-found=true
-`
-
-	_, err := utils.RunCommand("sh", "-c", removeCmd)
-	if err != nil {
-		return fmt.Errorf("failed to remove agent")
+	if _, err := utils.RunCommand("kubectl", "delete", "-f", "https://get.pipeops.dev/k8-agent.yaml", "--ignore-not-found=true"); err != nil {
+		return fmt.Errorf("failed to remove agent: %w", err)
+	}
+	if _, err := utils.RunCommand("kubectl", "delete", "secret", "pipeops-token", "-n", "pipeops-system", "--ignore-not-found=true"); err != nil {
+		return fmt.Errorf("failed to remove agent: %w", err)
+	}
+	if _, err := utils.RunCommand("kubectl", "delete", "namespace", "pipeops-system", "--ignore-not-found=true"); err != nil {
+		return fmt.Errorf("failed to remove agent: %w", err)
 	}
 
 	return nil
@@ -309,15 +304,14 @@ kubectl delete namespace pipeops-system --ignore-not-found=true
 
 // removeMonitoring removes monitoring components
 func removeMonitoring() error {
-	removeCmd := `
-kubectl delete -f https://get.pipeops.dev/k8-agent.yaml --ignore-not-found=true
-kubectl delete secret pipeops-token -n pipeops-monitoring --ignore-not-found=true
-kubectl delete namespace pipeops-monitoring --ignore-not-found=true
-`
-
-	_, err := utils.RunCommand("sh", "-c", removeCmd)
-	if err != nil {
-		return fmt.Errorf("failed to remove monitoring")
+	if _, err := utils.RunCommand("kubectl", "delete", "-f", "https://get.pipeops.dev/k8-agent.yaml", "--ignore-not-found=true"); err != nil {
+		return fmt.Errorf("failed to remove monitoring: %w", err)
+	}
+	if _, err := utils.RunCommand("kubectl", "delete", "secret", "pipeops-token", "-n", "pipeops-monitoring", "--ignore-not-found=true"); err != nil {
+		return fmt.Errorf("failed to remove monitoring: %w", err)
+	}
+	if _, err := utils.RunCommand("kubectl", "delete", "namespace", "pipeops-monitoring", "--ignore-not-found=true"); err != nil {
+		return fmt.Errorf("failed to remove monitoring: %w", err)
 	}
 
 	return nil
@@ -326,7 +320,7 @@ kubectl delete namespace pipeops-monitoring --ignore-not-found=true
 func (a *agentModel) install() {
 	// Add flags to the install command
 	installCmd.Flags().String("cluster-name", "", "Name for the cluster (default: pipeops-cluster)")
-	installCmd.Flags().String("cluster-type", "", "Kubernetes distribution (k3s|minikube|k3d|kind) (default: k3s)")
+	installCmd.Flags().String("cluster-type", "", "Kubernetes distribution (k3s|minikube|k3d|kind|auto) (default: auto)")
 	installCmd.Flags().Bool("existing-cluster", false, "Install PipeOps agent on existing Kubernetes cluster")
 	installCmd.Flags().Bool("no-monitoring", false, "Skip monitoring setup (agent only)")
 	installCmd.Flags().Bool("update", false, "Update PipeOps agent to the latest version")

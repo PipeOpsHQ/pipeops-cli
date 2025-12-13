@@ -24,9 +24,9 @@ This command is useful for:
 		// Run the cluster-info command from the installer
 		infoCmd := "curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-k8-agent/main/scripts/install.sh | bash -s -- cluster-info"
 
-		output, err := utils.RunCommand("sh", "-c", infoCmd)
+		output, err := utils.RunShellCommandWithEnv(infoCmd, nil)
 		if err != nil {
-			log.Fatalf("❌ Error retrieving cluster information")
+			log.Fatalf("❌ Error retrieving cluster information: %v", err)
 		}
 
 		log.Println("✅ Cluster information retrieved successfully!")
