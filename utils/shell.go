@@ -23,7 +23,9 @@ func RunShellCommandWithEnvStreaming(command string, extraEnv []string) (string,
 	env := append(os.Environ(), extraEnv...)
 
 	if runtime.GOOS == "windows" {
-		if bashPath, err := exec.LookPath("bash"); err == nil {
+		// Skip system32\bash.exe (WSL shim) as it requires a working WSL distro.
+		// Prefer Git Bash or MSYS bash/sh which are standalone.
+		if bashPath, err := exec.LookPath("bash"); err == nil && !isWSLBashShim(bashPath) {
 			return RunCommandWithEnvStreaming(bashPath, []string{"-lc", command}, env)
 		}
 		if shPath, err := exec.LookPath("sh"); err == nil {
@@ -55,7 +57,9 @@ func RunShellCommandWithEnv(command string, extraEnv []string) (string, error) {
 	env := append(os.Environ(), extraEnv...)
 
 	if runtime.GOOS == "windows" {
-		if bashPath, err := exec.LookPath("bash"); err == nil {
+		// Skip system32\bash.exe (WSL shim) as it requires a working WSL distro.
+		// Prefer Git Bash or MSYS bash/sh which are standalone.
+		if bashPath, err := exec.LookPath("bash"); err == nil && !isWSLBashShim(bashPath) {
 			return RunCommandWithEnv(bashPath, []string{"-lc", command}, env)
 		}
 		if shPath, err := exec.LookPath("sh"); err == nil {
@@ -141,4 +145,12 @@ func mergeWSLENV(existing string, keys []string) string {
 	}
 
 	return strings.Join(entries, ":")
+}
+
+// isWSLBashShim returns true if the given path points to the Windows
+// system32\bash.exe shim. This shim requires a working WSL distro with
+// /bin/bash, so we skip it to prefer Git Bash or MSYS.
+func isWSLBashShim(path string) bool {
+	lower := strings.ToLower(path)
+	return strings.Contains(lower, "system32") && strings.HasSuffix(lower, "bash.exe")
 }
