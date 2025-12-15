@@ -17,4 +17,5 @@ func (a *agentModel) Register() {
 	a.join()
 	a.info()
 	a.funnel()
+	a.uninstall()
 }

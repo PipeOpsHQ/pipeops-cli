@@ -70,14 +70,6 @@ Examples:
 		// Check if this is an update operation
 		update, _ := cmd.Flags().GetBool("update")
 
-		// Check if this is an uninstall operation
-		uninstall, _ := cmd.Flags().GetBool("uninstall")
-
-		if uninstall {
-			uninstallAgent(cmd, token)
-			return
-		}
-
 		if update {
 			updateAgent(cmd, token, clusterName)
 			return
@@ -219,103 +211,9 @@ func updateAgent(cmd *cobra.Command, token, clusterName string) {
 	log.Println("PipeOps agent updated successfully!")
 }
 
-// uninstallAgent removes PipeOps agent and related components
-func uninstallAgent(cmd *cobra.Command, token string) {
-	log.Println("Uninstalling PipeOps agent...")
 
-	// Remove monitoring first
-	log.Println("Removing PipeOps monitoring...")
-	if err := removeMonitoring(); err != nil {
-		log.Printf("Warning: Failed to remove monitoring: %v", err)
-	}
 
-	// Remove PipeOps agent
-	log.Println("Removing PipeOps agent...")
-	if err := removePipeOpsAgent(); err != nil {
-		log.Printf("Warning: Failed to remove agent: %v", err)
-	}
 
-	// Uninstall PipeOps agent
-	uninstallCmd := "curl -fsSL https://get.pipeops.dev/k8-uninstall.sh | bash"
-	envVars := []string{fmt.Sprintf("PIPEOPS_TOKEN=%s", token)}
-
-	_, err := utils.RunShellCommandWithEnvStreaming(uninstallCmd, envVars)
-	if err != nil {
-		log.Fatalf("❌ Error uninstalling PipeOps agent: %v", err)
-	}
-
-	log.Println("PipeOps agent uninstalled successfully!")
-}
-
-// setupPipeOpsAgent sets up the PipeOps agent on the cluster
-func setupPipeOpsAgent(token, clusterName string) error {
-	log.Printf("Installing PipeOps agent for cluster: %s", clusterName)
-
-	// Apply PipeOps agent manifests
-	setupCmd := fmt.Sprintf(`
-kubectl create namespace pipeops-system --dry-run=client -o yaml | kubectl apply -f -
-kubectl create secret generic pipeops-token -n pipeops-system --from-literal=token=%s --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -f https://get.pipeops.dev/k8-agent.yaml
-`, token)
-
-	_, err := utils.RunCommand("sh", "-c", setupCmd)
-	if err != nil {
-		return fmt.Errorf("failed to setup agent")
-	}
-
-	log.Println("PipeOps agent setup completed")
-	return nil
-}
-
-// setupMonitoring sets up monitoring components
-func setupMonitoring(token, clusterName string) error {
-	log.Printf("Installing monitoring for cluster: %s", clusterName)
-
-	// Apply monitoring manifests
-	monitoringCmd := fmt.Sprintf(`
-kubectl create namespace pipeops-monitoring --dry-run=client -o yaml | kubectl apply -f -
-kubectl create secret generic pipeops-token -n pipeops-monitoring --from-literal=token=%s --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -f https://get.pipeops.dev/k8-agent.yaml
-`, token)
-
-	_, err := utils.RunCommand("sh", "-c", monitoringCmd)
-	if err != nil {
-		return fmt.Errorf("failed to setup monitoring")
-	}
-
-	log.Println("Monitoring setup completed")
-	return nil
-}
-
-// removePipeOpsAgent removes the PipeOps agent
-func removePipeOpsAgent() error {
-	if _, err := utils.RunCommand("kubectl", "delete", "-f", "https://get.pipeops.dev/k8-agent.yaml", "--ignore-not-found=true"); err != nil {
-		return fmt.Errorf("failed to remove agent: %w", err)
-	}
-	if _, err := utils.RunCommand("kubectl", "delete", "secret", "pipeops-token", "-n", "pipeops-system", "--ignore-not-found=true"); err != nil {
-		return fmt.Errorf("failed to remove agent: %w", err)
-	}
-	if _, err := utils.RunCommand("kubectl", "delete", "namespace", "pipeops-system", "--ignore-not-found=true"); err != nil {
-		return fmt.Errorf("failed to remove agent: %w", err)
-	}
-
-	return nil
-}
-
-// removeMonitoring removes monitoring components
-func removeMonitoring() error {
-	if _, err := utils.RunCommand("kubectl", "delete", "-f", "https://get.pipeops.dev/k8-agent.yaml", "--ignore-not-found=true"); err != nil {
-		return fmt.Errorf("failed to remove monitoring: %w", err)
-	}
-	if _, err := utils.RunCommand("kubectl", "delete", "secret", "pipeops-token", "-n", "pipeops-monitoring", "--ignore-not-found=true"); err != nil {
-		return fmt.Errorf("failed to remove monitoring: %w", err)
-	}
-	if _, err := utils.RunCommand("kubectl", "delete", "namespace", "pipeops-monitoring", "--ignore-not-found=true"); err != nil {
-		return fmt.Errorf("failed to remove monitoring: %w", err)
-	}
-
-	return nil
-}
 
 func (a *agentModel) install() {
 	// Add flags to the install command
@@ -324,7 +222,5 @@ func (a *agentModel) install() {
 	installCmd.Flags().Bool("existing-cluster", false, "Install PipeOps agent on existing Kubernetes cluster")
 	installCmd.Flags().Bool("no-monitoring", false, "Skip monitoring setup (agent only)")
 	installCmd.Flags().Bool("update", false, "Update PipeOps agent to the latest version")
-	installCmd.Flags().Bool("uninstall", false, "Uninstall PipeOps agent and related components")
-
 	a.rootCmd.AddCommand(installCmd)
 }
