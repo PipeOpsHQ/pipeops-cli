@@ -50,7 +50,7 @@ Examples:
 
 var funnelDisableCmd = &cobra.Command{
 	Use:   "disable",
-	Short: "🚫 Disable Tailscale Funnel",
+	Short: "Disable Tailscale Funnel",
 	Long: `Disable Tailscale Funnel to stop public internet access.
 
 This will remove public access to your services while keeping Tailscale VPN functionality intact.`,

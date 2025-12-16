@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -151,6 +152,18 @@ func mergeWSLENV(existing string, keys []string) string {
 // system32\bash.exe shim. This shim requires a working WSL distro with
 // /bin/bash, so we skip it to prefer Git Bash or MSYS.
 func isWSLBashShim(path string) bool {
-	lower := strings.ToLower(path)
-	return strings.Contains(lower, "system32") && strings.HasSuffix(lower, "bash.exe")
+	lower := strings.ToLower(filepath.Clean(path))
+	// Check for standard shim location
+	if strings.Contains(lower, "system32") && strings.HasSuffix(lower, "bash.exe") {
+		return true
+	}
+	// Also check for SysNative if 32-bit process on 64-bit OS
+	if strings.Contains(lower, "sysnative") && strings.HasSuffix(lower, "bash.exe") {
+		return true
+	}
+	// Check for Windows directory prefix if implicit path
+	if strings.HasSuffix(lower, "\\windows\\bash.exe") {
+		return true
+	}
+	return false
 }

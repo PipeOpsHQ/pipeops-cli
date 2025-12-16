@@ -44,7 +44,7 @@ Examples:
 
 		_, err := utils.RunShellCommandWithEnvStreaming(joinCmd, envVars)
 		if err != nil {
-			log.Fatalf("❌ Error joining worker node: %v", err)
+			log.Fatalf("Error joining worker node: %v", err)
 		}
 
 		log.Println("Worker node joined successfully!")

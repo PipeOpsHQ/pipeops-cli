@@ -95,7 +95,7 @@ Examples:
 			// 	return nil
 			// }
 
-			return fmt.Errorf("❌ PipeOps token is required. Provide token as argument: 'pipeops agent install <token>' or set PIPEOPS_TOKEN environment variable")
+			return fmt.Errorf("Error: PipeOps token is required. Provide token as argument: 'pipeops agent install <token>' or set PIPEOPS_TOKEN environment variable")
 		}
 		return nil
 	},
@@ -125,7 +125,7 @@ func getPipeOpsToken(cmd *cobra.Command, args []string) string {
 // installNewCluster installs a new Kubernetes cluster with PipeOps agent
 func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType string, enableMonitoring bool) {
 	if token == "" {
-		log.Fatalf("❌ Error: PipeOps token is required. Please provide it as an argument or set PIPEOPS_TOKEN environment variable.")
+		log.Fatalf("Error: PipeOps token is required. Please provide it as an argument or set PIPEOPS_TOKEN environment variable.")
 	}
 
 	// Set environment variables for cluster installation
@@ -145,7 +145,7 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 	// Execute the installer with environment variables
 	_, err := utils.RunShellCommandWithEnvStreaming(installCmd, envVars)
 	if err != nil {
-		log.Fatalf("❌ Error installing cluster with PipeOps agent: %v", err)
+		log.Fatalf("Error installing cluster with PipeOps agent: %v", err)
 	}
 
 	log.Println("PipeOps agent and cluster setup completed successfully!")
@@ -165,7 +165,7 @@ func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, ena
 	log.Println("Installing PipeOps agent on existing cluster...")
 
 	if token == "" {
-		log.Fatalf("❌ Error: PipeOps token is required. Please provide it as an argument or set PIPEOPS_TOKEN environment variable.")
+		log.Fatalf("Error: PipeOps token is required. Please provide it as an argument or set PIPEOPS_TOKEN environment variable.")
 	}
 
 	// The agent install script handles everything, including existing clusters
@@ -180,7 +180,7 @@ func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, ena
 
 	_, err := utils.RunShellCommandWithEnvStreaming(installCmd, envVars)
 	if err != nil {
-		log.Fatalf("❌ Error installing PipeOps agent: %v", err)
+		log.Fatalf("Error installing PipeOps agent: %v", err)
 	}
 
 	log.Println("PipeOps agent installed on existing cluster!")
@@ -205,7 +205,7 @@ func updateAgent(cmd *cobra.Command, token, clusterName string) {
 
 	_, err := utils.RunShellCommandWithEnvStreaming(updateCmd, envVars)
 	if err != nil {
-		log.Fatalf("❌ Error updating PipeOps agent: %v", err)
+		log.Fatalf("Error updating PipeOps agent: %v", err)
 	}
 
 	log.Println("PipeOps agent updated successfully!")
