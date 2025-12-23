@@ -40,6 +40,7 @@ Examples:
   # Install without monitoring (basic setup only)
   pipeops agent install --no-monitoring`,
 	Run: func(cmd *cobra.Command, args []string) {
+		log.Println("[DEBUG] Starting install command execution")
 		// Get PipeOps token from args, environment, or config
 		token := getPipeOpsToken(cmd, args)
 
@@ -71,13 +72,16 @@ Examples:
 		update, _ := cmd.Flags().GetBool("update")
 
 		if update {
+			log.Println("[DEBUG] Running update agent")
 			updateAgent(cmd, token, clusterName)
 			return
 		}
 
 		if existingCluster {
+			log.Println("[DEBUG] Running install on existing cluster")
 			installOnExistingCluster(cmd, token, clusterName, !noMonitoring)
 		} else {
+			log.Println("[DEBUG] Running install on new cluster")
 			installNewCluster(cmd, token, clusterName, clusterType, !noMonitoring)
 		}
 	},
@@ -143,6 +147,7 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 	log.Printf("PipeOps monitoring: %s", map[bool]string{true: "enabled", false: "disabled"}[enableMonitoring])
 
 	// Execute the installer with environment variables
+	log.Println("[DEBUG] Executing installer script")
 	_, err := utils.RunShellCommandWithEnvStreaming(installCmd, envVars)
 	if err != nil {
 		log.Fatalf("Error installing cluster with PipeOps agent: %v", err)
@@ -178,6 +183,7 @@ func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, ena
 		fmt.Sprintf("INSTALL_MONITORING=%t", enableMonitoring),
 	}
 
+	log.Println("[DEBUG] Executing installer script")
 	_, err := utils.RunShellCommandWithEnvStreaming(installCmd, envVars)
 	if err != nil {
 		log.Fatalf("Error installing PipeOps agent: %v", err)
