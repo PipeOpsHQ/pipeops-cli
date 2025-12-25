@@ -36,3 +36,4 @@ temp/
 # Claude Code guidance file
 CLAUDE.md
 .gocache/*
+pipeops
