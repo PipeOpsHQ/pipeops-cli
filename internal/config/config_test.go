@@ -32,6 +32,16 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestGetClientID(t *testing.T) {
+	// Save original env var
+	origEnv := os.Getenv("PIPEOPS_CLIENT_ID")
+	defer func() {
+		if origEnv != "" {
+			os.Setenv("PIPEOPS_CLIENT_ID", origEnv)
+		} else {
+			os.Unsetenv("PIPEOPS_CLIENT_ID")
+		}
+	}()
+
 	tests := []struct {
 		name     string
 		envValue string
@@ -67,6 +77,16 @@ func TestGetClientID(t *testing.T) {
 }
 
 func TestGetAPIURL(t *testing.T) {
+	// Save original env var
+	origEnv := os.Getenv("PIPEOPS_API_URL")
+	defer func() {
+		if origEnv != "" {
+			os.Setenv("PIPEOPS_API_URL", origEnv)
+		} else {
+			os.Unsetenv("PIPEOPS_API_URL")
+		}
+	}()
+
 	tests := []struct {
 		name     string
 		envValue string

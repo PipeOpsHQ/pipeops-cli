@@ -8,6 +8,35 @@ import (
 )
 
 func TestShouldSkipUpdateCheck(t *testing.T) {
+	// Save original environment variables
+	origCI := os.Getenv("CI")
+	origGithubActions := os.Getenv("GITHUB_ACTIONS")
+	origSkip := os.Getenv("PIPEOPS_SKIP_UPDATE_CHECK")
+
+	// Restore them after test
+	defer func() {
+		if origCI != "" {
+			os.Setenv("CI", origCI)
+		} else {
+			os.Unsetenv("CI")
+		}
+		if origGithubActions != "" {
+			os.Setenv("GITHUB_ACTIONS", origGithubActions)
+		} else {
+			os.Unsetenv("GITHUB_ACTIONS")
+		}
+		if origSkip != "" {
+			os.Setenv("PIPEOPS_SKIP_UPDATE_CHECK", origSkip)
+		} else {
+			os.Unsetenv("PIPEOPS_SKIP_UPDATE_CHECK")
+		}
+	}()
+
+	// Clear environment variables for test isolation
+	os.Unsetenv("CI")
+	os.Unsetenv("GITHUB_ACTIONS")
+	os.Unsetenv("PIPEOPS_SKIP_UPDATE_CHECK")
+
 	tests := []struct {
 		name     string
 		cmdName  string
