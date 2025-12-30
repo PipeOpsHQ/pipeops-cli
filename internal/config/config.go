@@ -17,7 +17,7 @@ const (
 var (
 	// These can be set during build using -ldflags
 	DefaultClientID     = "pipeops_default_client"     // Can be overridden at build time
-	DefaultAPIURL       = "https://api.pipeops.sh"     // Can be overridden at build time
+	DefaultAPIURL       = "https://api.pipeops.io"     // Can be overridden at build time
 	DefaultDashboardURL = "https://staging.pipeops.sh" // Can be overridden at build time
 	DefaultScopes       = "user:read,project:read"     // Can be overridden at build time
 )
