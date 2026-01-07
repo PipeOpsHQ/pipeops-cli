@@ -105,7 +105,13 @@ func (s *UpdateService) fetchLatestRelease(ctx context.Context) (*Release, error
 	req.Header.Set("User-Agent", "PipeOps-CLI-Updater")
 
 	// Add authentication if GitHub token is provided
-	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+	// Check PIPEOPS_GITHUB_TOKEN first, then GITHUB_TOKEN
+	token := os.Getenv("PIPEOPS_GITHUB_TOKEN")
+	if token == "" {
+		token = os.Getenv("GITHUB_TOKEN")
+	}
+
+	if token != "" {
 		req.Header.Set("Authorization", "token "+token)
 	}
 
@@ -116,6 +122,10 @@ func (s *UpdateService) fetchLatestRelease(ctx context.Context) (*Release, error
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		// Check for rate limit
+		if resp.StatusCode == http.StatusForbidden && resp.Header.Get("X-RateLimit-Remaining") == "0" {
+			return nil, fmt.Errorf("GitHub API rate limit exceeded. Please set PIPEOPS_GITHUB_TOKEN or GITHUB_TOKEN environment variable to increase limits")
+		}
 		return nil, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
 	}
 
