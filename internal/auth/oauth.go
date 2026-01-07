@@ -59,7 +59,7 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 	redirectURI := fmt.Sprintf("http://localhost:%d/callback", port)
 
 	// Build authorization URL with PKCE
-	authURL := fmt.Sprintf("%s/auth/signin?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=%s&code_challenge=%s&code_challenge_method=%s",
+	authURL := fmt.Sprintf("%s/auth/signin?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=%s&code_challenge=%s&code_challenge_method=%s&oauth=true",
 		s.config.OAuth.DashboardURL,
 		s.config.OAuth.ClientID,
 		url.QueryEscape(redirectURI),

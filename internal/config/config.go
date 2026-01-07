@@ -19,7 +19,7 @@ var (
 	DefaultClientID     = "pipeops_public_client"      // Can be overridden at build time
 	DefaultAPIURL       = "https://api.pipeops.io"     // Can be overridden at build time
 	DefaultDashboardURL = "https://console.pipeops.io" // Can be overridden at build time
-	DefaultScopes       = "user:read,project:read"     // Can be overridden at build time
+	DefaultScopes       = "openid profile email"       // Can be overridden at build time
 )
 
 // Config represents the CLI configuration
@@ -73,10 +73,16 @@ func GetDashboardURL() string {
 
 // GetDefaultScopes returns the default scopes
 func GetDefaultScopes() []string {
-	if scopes := os.Getenv("PIPEOPS_SCOPES"); scopes != "" {
-		return []string{scopes}
+	scopesStr := DefaultScopes
+	if envScopes := os.Getenv("PIPEOPS_SCOPES"); envScopes != "" {
+		scopesStr = envScopes
 	}
-	return []string{"user:read", "project:read"}
+	
+	// Support both space and comma separated scopes
+	if strings.Contains(scopesStr, ",") {
+		return strings.Split(scopesStr, ",")
+	}
+	return strings.Split(scopesStr, " ")
 }
 
 // DefaultConfig returns a new config with default values
