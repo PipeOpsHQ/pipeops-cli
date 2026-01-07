@@ -16,9 +16,9 @@ const (
 // Build-time configuration variables (set during compilation)
 var (
 	// These can be set during build using -ldflags
-	DefaultClientID     = "pipeops_default_client"     // Can be overridden at build time
+	DefaultClientID     = "pipeops_public_client"      // Can be overridden at build time
 	DefaultAPIURL       = "https://api.pipeops.io"     // Can be overridden at build time
-	DefaultDashboardURL = "https://staging.pipeops.sh" // Can be overridden at build time
+	DefaultDashboardURL = "https://console.pipeops.io" // Can be overridden at build time
 	DefaultScopes       = "user:read,project:read"     // Can be overridden at build time
 )
 
@@ -131,7 +131,7 @@ func Load() (*Config, error) {
 	}
 
 	if dashboardURL := os.Getenv("PIPEOPS_DASHBOARD_URL"); dashboardURL != "" {
-		cfg.OAuth.BaseURL = dashboardURL
+		cfg.OAuth.DashboardURL = dashboardURL
 	}
 
 	if clientID := os.Getenv("PIPEOPS_CLIENT_ID"); clientID != "" {

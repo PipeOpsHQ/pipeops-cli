@@ -60,7 +60,7 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 
 	// Build authorization URL with PKCE
 	authURL := fmt.Sprintf("%s/auth/signin?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=%s&code_challenge=%s&code_challenge_method=%s",
-		s.config.OAuth.BaseURL,
+		s.config.OAuth.DashboardURL,
 		s.config.OAuth.ClientID,
 		url.QueryEscape(redirectURI),
 		url.QueryEscape(strings.Join(s.config.OAuth.Scopes, " ")),
