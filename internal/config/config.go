@@ -25,8 +25,21 @@ var (
 
 // Config represents the CLI configuration
 type Config struct {
-	OAuth    *OAuthConfig `json:"oauth,omitempty"`
-	Settings *Settings    `json:"settings,omitempty"`
+	OAuth    *OAuthConfig    `json:"oauth,omitempty"`
+	Settings *Settings       `json:"settings,omitempty"`
+	Updates  *UpdateSettings `json:"updates,omitempty"`
+	Version  *VersionInfo    `json:"version,omitempty"`
+}
+
+// UpdateSettings holds update check related information
+type UpdateSettings struct {
+	LastUpdateCheck time.Time `json:"last_update_check"`
+	SkipUpdateCheck bool      `json:"skip_update_check"`
+}
+
+// VersionInfo holds version information
+type VersionInfo struct {
+	Version string `json:"version"`
 }
 
 // OAuthConfig holds OAuth-related configuration

@@ -28,6 +28,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/internal/updater"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -39,21 +40,7 @@ var cfgFile string
 // Version is set at build time
 var Version = "dev"
 
-type Config struct {
-	Version VersionInfo
-	Updates UpdateSettings
-}
-
-type VersionInfo struct {
-	Version string
-}
-
-type UpdateSettings struct {
-	LastUpdateCheck time.Time `json:"last_update_check"`
-	SkipUpdateCheck bool      `json:"skip_update_check"`
-}
-
-var Conf Config
+var Conf config.Config
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -169,10 +156,14 @@ func shouldSkipUpdateCheck(cmd *cobra.Command) bool {
 // shouldCheckForUpdates determines if it's time to check for updates
 func shouldCheckForUpdates() bool {
 	// Try to load existing config
-	config := loadConfigSafely()
+	cfg := loadConfigSafely()
+
+	if cfg.Updates == nil {
+		return true
+	}
 
 	// Check if enough time has passed since last check
-	if time.Since(config.Updates.LastUpdateCheck) < 24*time.Hour {
+	if time.Since(cfg.Updates.LastUpdateCheck) < 24*time.Hour {
 		return false
 	}
 
@@ -180,21 +171,21 @@ func shouldCheckForUpdates() bool {
 }
 
 // loadConfigSafely loads config without exiting on errors
-func loadConfigSafely() Config {
-	var config Config
+func loadConfigSafely() config.Config {
+	var cfg config.Config
 
 	home, err := os.UserHomeDir()
 	if err != nil {
 		if os.Getenv("PIPEOPS_DEBUG") == "true" {
 			fmt.Fprintf(os.Stderr, "Warning: failed to get home directory: %v\n", err)
 		}
-		return config
+		return cfg
 	}
 
 	filename := fmt.Sprintf("%s/.pipeops.json", home)
 
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		return config
+		return cfg
 	}
 
 	dataBytes, err := os.ReadFile(filename)
@@ -202,21 +193,24 @@ func loadConfigSafely() Config {
 		if os.Getenv("PIPEOPS_DEBUG") == "true" {
 			fmt.Fprintf(os.Stderr, "Warning: failed to read config: %v\n", err)
 		}
-		return config
+		return cfg
 	}
 
-	if err := json.Unmarshal(dataBytes, &config); err != nil {
+	if err := json.Unmarshal(dataBytes, &cfg); err != nil {
 		if os.Getenv("PIPEOPS_DEBUG") == "true" {
 			fmt.Fprintf(os.Stderr, "Warning: failed to parse config: %v\n", err)
 		}
 	}
-	return config
+	return cfg
 }
 
 // updateLastCheckTime updates the last update check time
 func updateLastCheckTime() error {
-	config := loadConfigSafely()
-	config.Updates.LastUpdateCheck = time.Now()
+	cfg := loadConfigSafely()
+	if cfg.Updates == nil {
+		cfg.Updates = &config.UpdateSettings{}
+	}
+	cfg.Updates.LastUpdateCheck = time.Now()
 
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -225,7 +219,7 @@ func updateLastCheckTime() error {
 
 	filename := fmt.Sprintf("%s/.pipeops.json", home)
 
-	dataBytes, err := json.Marshal(config)
+	dataBytes, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
@@ -330,28 +324,28 @@ func initConfig() {
 	}
 }
 
-func GetConfig() (Config, error) {
+func GetConfig() (config.Config, error) {
 	var filename string
 
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return Config{}, fmt.Errorf("failed to get user home directory: %w", err)
+		return config.Config{}, fmt.Errorf("failed to get user home directory: %w", err)
 	}
 
 	filename = fmt.Sprintf("%s/%s", home, ".pipeops.json")
 
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		return Config{}, fmt.Errorf("config file does not exist: %s", filename)
+		return config.Config{}, fmt.Errorf("config file does not exist: %s", filename)
 	}
 
 	dataBytes, err := os.ReadFile(filename)
 	if err != nil {
-		return Config{}, fmt.Errorf("failed to read config file: %w", err)
+		return config.Config{}, fmt.Errorf("failed to read config file: %w", err)
 	}
 
 	err = json.Unmarshal(dataBytes, &Conf)
 	if err != nil {
-		return Config{}, fmt.Errorf("failed to parse config file: %w", err)
+		return config.Config{}, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
 	return Conf, nil
@@ -367,9 +361,12 @@ func SaveConfig() error {
 
 	filename = fmt.Sprintf("%s/%s", home, ".pipeops.json")
 
+	if Conf.Version == nil {
+		Conf.Version = &config.VersionInfo{}
+	}
 	Conf.Version.Version = Version
 
-	dataBytes, err := json.Marshal(Conf)
+	dataBytes, err := json.MarshalIndent(Conf, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}

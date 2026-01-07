@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -151,8 +152,8 @@ func TestConfigFunctions(t *testing.T) {
 	}
 
 	// Test SaveConfig
-	Conf = Config{
-		Version: VersionInfo{Version: "test"},
+	Conf = config.Config{
+		Version: &config.VersionInfo{Version: "test"},
 	}
 	err = SaveConfig()
 	if err != nil {
