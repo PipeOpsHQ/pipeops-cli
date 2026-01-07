@@ -159,32 +159,25 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PipeOps Authentication - Error</title>
+    <title>PipeOps - Authentication Failed</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .container { max-width: 600px; margin: 0 auto; text-align: center; }
-        .error-box { background: rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 20px; backdrop-filter: blur(10px); }
-        .error-icon { font-size: 80px; margin-bottom: 20px; }
-        .error-title { font-size: 32px; margin-bottom: 20px; font-weight: 600; }
-        .error-message { font-size: 18px; margin-bottom: 30px; opacity: 0.9; }
-        .close-btn { background: rgba(255, 255, 255, 0.2); color: white; border: none; padding: 15px 30px; border-radius: 25px; font-size: 16px; cursor: pointer; transition: all 0.3s ease; }
-        .close-btn:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
+        :root { --bg: #0F172A; --card: #1E293B; --text: #F8FAFC; --subtext: #94A3B8; --error: #EF4444; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .card { background: var(--card); padding: 2.5rem; border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); width: 90%; max-width: 400px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .icon { width: 64px; height: 64px; background: rgba(239,68,68,0.1); color: var(--error); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 1.5rem; }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 600; }
+        p { color: var(--subtext); line-height: 1.5; margin-bottom: 2rem; }
+        .btn { display: block; width: 100%; padding: 0.75rem; background: transparent; border: 1px solid #334155; color: var(--text); border-radius: 0.5rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 1rem; }
+        .btn:hover { background: rgba(255,255,255,0.05); border-color: #475569; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="error-box">
-            <div class="error-icon">❌</div>
-            <div class="error-title">Authentication Failed</div>
-            <div class="error-message">` + errDesc + `</div>
-            <button class="close-btn" onclick="window.close()">Close Window</button>
-        </div>
+    <div class="card">
+        <div class="icon">✕</div>
+        <h1>Authentication Failed</h1>
+        <p>` + errDesc + `</p>
+        <button class="btn" onclick="window.close()">Close Window</button>
     </div>
-    <script>
-        setTimeout(() => {
-            window.close();
-        }, 5000);
-    </script>
 </body>
 </html>`
 			w.Write([]byte(errorPage))
@@ -200,32 +193,25 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PipeOps Authentication - Security Error</title>
+    <title>PipeOps - Security Check Failed</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .container { max-width: 600px; margin: 0 auto; text-align: center; }
-        .error-box { background: rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 20px; backdrop-filter: blur(10px); }
-        .error-icon { font-size: 80px; margin-bottom: 20px; }
-        .error-title { font-size: 32px; margin-bottom: 20px; font-weight: 600; }
-        .error-message { font-size: 18px; margin-bottom: 30px; opacity: 0.9; }
-        .close-btn { background: rgba(255, 255, 255, 0.2); color: white; border: none; padding: 15px 30px; border-radius: 25px; font-size: 16px; cursor: pointer; transition: all 0.3s ease; }
-        .close-btn:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
+        :root { --bg: #0F172A; --card: #1E293B; --text: #F8FAFC; --subtext: #94A3B8; --warning: #F59E0B; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .card { background: var(--card); padding: 2.5rem; border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); width: 90%; max-width: 400px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .icon { width: 64px; height: 64px; background: rgba(245,158,11,0.1); color: var(--warning); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 1.5rem; }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 600; }
+        p { color: var(--subtext); line-height: 1.5; margin-bottom: 2rem; }
+        .btn { display: block; width: 100%; padding: 0.75rem; background: transparent; border: 1px solid #334155; color: var(--text); border-radius: 0.5rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 1rem; }
+        .btn:hover { background: rgba(255,255,255,0.05); border-color: #475569; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="error-box">
-            <div class="error-icon">🛡️</div>
-            <div class="error-title">Security Error</div>
-            <div class="error-message">Invalid security state. Please try authenticating again.</div>
-            <button class="close-btn" onclick="window.close()">Close Window</button>
-        </div>
+    <div class="card">
+        <div class="icon">🛡️</div>
+        <h1>Security Check Failed</h1>
+        <p>Invalid security state parameter. Please try authenticating again.</p>
+        <button class="btn" onclick="window.close()">Close Window</button>
     </div>
-    <script>
-        setTimeout(() => {
-            window.close();
-        }, 5000);
-    </script>
 </body>
 </html>`
 			w.Write([]byte(statePage))
@@ -241,32 +227,25 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PipeOps Authentication - No Code</title>
+    <title>PipeOps - Authorization Failed</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .container { max-width: 600px; margin: 0 auto; text-align: center; }
-        .error-box { background: rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 20px; backdrop-filter: blur(10px); }
-        .error-icon { font-size: 80px; margin-bottom: 20px; }
-        .error-title { font-size: 32px; margin-bottom: 20px; font-weight: 600; }
-        .error-message { font-size: 18px; margin-bottom: 30px; opacity: 0.9; }
-        .close-btn { background: rgba(255, 255, 255, 0.2); color: white; border: none; padding: 15px 30px; border-radius: 25px; font-size: 16px; cursor: pointer; transition: all 0.3s ease; }
-        .close-btn:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
+        :root { --bg: #0F172A; --card: #1E293B; --text: #F8FAFC; --subtext: #94A3B8; --warning: #F59E0B; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .card { background: var(--card); padding: 2.5rem; border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); width: 90%; max-width: 400px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .icon { width: 64px; height: 64px; background: rgba(245,158,11,0.1); color: var(--warning); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 1.5rem; }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 600; }
+        p { color: var(--subtext); line-height: 1.5; margin-bottom: 2rem; }
+        .btn { display: block; width: 100%; padding: 0.75rem; background: transparent; border: 1px solid #334155; color: var(--text); border-radius: 0.5rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 1rem; }
+        .btn:hover { background: rgba(255,255,255,0.05); border-color: #475569; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="error-box">
-            <div class="error-icon">🔍</div>
-            <div class="error-title">No Authorization Code</div>
-            <div class="error-message">The authorization code was not received. Please try again.</div>
-            <button class="close-btn" onclick="window.close()">Close Window</button>
-        </div>
+    <div class="card">
+        <div class="icon">🔍</div>
+        <h1>Authorization Failed</h1>
+        <p>The authorization code was not received. Please try authenticating again.</p>
+        <button class="btn" onclick="window.close()">Close Window</button>
     </div>
-    <script>
-        setTimeout(() => {
-            window.close();
-        }, 5000);
-    </script>
 </body>
 </html>`
 			w.Write([]byte(noCodePage))
@@ -280,34 +259,26 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PipeOps Authentication - Success</title>
+    <title>PipeOps - Authenticated</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 40px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; }
-        .container { max-width: 600px; margin: 0 auto; text-align: center; }
-        .success-box { background: rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 20px; backdrop-filter: blur(10px); animation: slideIn 0.5s ease-out; }
-        .success-icon { font-size: 80px; margin-bottom: 20px; animation: bounce 1s ease-in-out; }
-        .success-title { font-size: 32px; margin-bottom: 20px; font-weight: 600; }
-        .success-message { font-size: 18px; margin-bottom: 30px; opacity: 0.9; }
-        .close-btn { background: rgba(255, 255, 255, 0.2); color: white; border: none; padding: 15px 30px; border-radius: 25px; font-size: 16px; cursor: pointer; transition: all 0.3s ease; }
-        .close-btn:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
-        @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        @keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-20px); } 60% { transform: translateY(-10px); } }
+        :root { --bg: #0F172A; --card: #1E293B; --text: #F8FAFC; --subtext: #94A3B8; --accent: #6366F1; --success: #10B981; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .card { background: var(--card); padding: 2.5rem; border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); width: 90%; max-width: 400px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .icon { width: 64px; height: 64px; background: rgba(16,185,129,0.1); color: var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 1.5rem; }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 600; }
+        p { color: var(--subtext); line-height: 1.5; margin-bottom: 2rem; }
+        .btn { display: block; width: 100%; padding: 0.75rem; background: var(--accent); color: white; border: none; border-radius: 0.5rem; font-weight: 500; cursor: pointer; transition: opacity 0.2s; font-size: 1rem; }
+        .btn:hover { opacity: 0.9; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="success-box">
-            <div class="success-icon">🎉</div>
-            <div class="success-title">Authentication Successful!</div>
-            <div class="success-message">You're now authenticated with PipeOps CLI. You can close this window and return to your terminal.</div>
-            <button class="close-btn" onclick="window.close()">Close Window</button>
-        </div>
+    <div class="card">
+        <div class="icon">✓</div>
+        <h1>Authenticated</h1>
+        <p>You have successfully signed in to PipeOps CLI. You can now close this window and return to your terminal.</p>
+        <button class="btn" onclick="window.close()">Close Window</button>
     </div>
-    <script>
-        setTimeout(() => {
-            window.close();
-        }, 5000);
-    </script>
+    <script>setTimeout(() => window.close(), 3000);</script>
 </body>
 </html>`
 		w.Write([]byte(successPage))
