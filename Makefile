@@ -82,7 +82,7 @@ run: build
 .PHONY: test
 test:
 	@echo "$(BLUE)Running tests...$(RESET)"
-	$(GO) test -v ./...
+	$(GO) test $(GOFLAGS) -v ./...
 	@echo "$(GREEN)✓ Tests passed$(RESET)"
 
 # Run tests with coverage
@@ -90,7 +90,7 @@ test:
 test-coverage:
 	@echo "$(BLUE)Running tests with coverage...$(RESET)"
 	@mkdir -p $(BUILD_DIR)
-	$(GO) test -v -coverprofile=$(BUILD_DIR)/coverage.out ./...
+	$(GO) test $(GOFLAGS) -v -coverprofile=$(BUILD_DIR)/coverage.out ./...
 	$(GO) tool cover -html=$(BUILD_DIR)/coverage.out -o $(BUILD_DIR)/coverage.html
 	@echo "$(GREEN)✓ Coverage report generated: $(BUILD_DIR)/coverage.html$(RESET)"
 
@@ -98,7 +98,7 @@ test-coverage:
 .PHONY: bench
 bench:
 	@echo "$(BLUE)Running benchmarks...$(RESET)"
-	$(GO) test -bench=. ./...
+	$(GO) test $(GOFLAGS) -bench=. ./...
 
 # Run linter
 .PHONY: lint

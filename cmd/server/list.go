@@ -27,6 +27,11 @@ Examples:
 			return
 		}
 
+		// Allow overriding the cluster UUID per invocation.
+		if clusterUUID, _ := cmd.Flags().GetString("cluster"); clusterUUID != "" {
+			cfg.Settings.DefaultClusterUUID = clusterUUID
+		}
+
 		// Create client with the loaded configuration
 		client := pipeops.NewClientWithConfig(cfg)
 
@@ -106,7 +111,7 @@ Examples:
 }
 
 func init() {
-	// This will be called by the parent server command
+	listCmd.Flags().String("cluster", "", "Cluster UUID to scope server listing (or set PIPEOPS_CLUSTER_UUID)")
 }
 
 // GetListCmd returns the list command for registration

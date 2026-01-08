@@ -57,6 +57,9 @@ type OAuthConfig struct {
 // Settings holds general CLI settings
 type Settings struct {
 	DefaultRegion string `json:"default_region,omitempty"`
+	// DefaultClusterUUID is used by APIs that are scoped to a specific cluster.
+	// It can be overridden per-invocation with the PIPEOPS_CLUSTER_UUID env var.
+	DefaultClusterUUID string `json:"default_cluster_uuid,omitempty"`
 	OutputFormat  string `json:"output_format,omitempty"`
 	Debug         bool   `json:"debug,omitempty"`
 }
@@ -109,6 +112,7 @@ func DefaultConfig() *Config {
 			Scopes:       GetDefaultScopes(),
 		},
 		Settings: &Settings{
+			DefaultClusterUUID: strings.TrimSpace(os.Getenv("PIPEOPS_CLUSTER_UUID")),
 			OutputFormat: "table",
 			Debug:        false,
 		},

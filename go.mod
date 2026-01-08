@@ -3,7 +3,7 @@ module github.com/PipeOpsHQ/pipeops-cli
 go 1.24.0
 
 require (
-	github.com/PipeOpsHQ/pipeops-go-sdk v0.2.6
+	github.com/PipeOpsHQ/pipeops-go-sdk v0.2.19
 	github.com/briandowns/spinner v1.23.2
 	github.com/fatih/color v1.18.0
 	github.com/go-resty/resty/v2 v2.16.2
@@ -20,7 +20,7 @@ require (
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
@@ -107,6 +109,17 @@ func (c *Client) GetToken() string {
 // GetOperatorID returns the operator ID
 func (c *Client) GetOperatorID() string {
 	// This could be stored in the config or derived from the token
+	return ""
+}
+
+func (c *Client) getClusterUUID() string {
+	// Prefer env var so it can be overridden per-invocation without editing config.
+	if v := strings.TrimSpace(os.Getenv("PIPEOPS_CLUSTER_UUID")); v != "" {
+		return v
+	}
+	if c.config != nil && c.config.Settings != nil {
+		return strings.TrimSpace(c.config.Settings.DefaultClusterUUID)
+	}
 	return ""
 }
 
@@ -517,7 +530,12 @@ func (c *Client) GetServers() (*models.ServersResponse, error) {
 	}
 
 	ctx := context.Background()
-	resp, _, err := c.sdkClient.Servers.List(ctx)
+	clusterUUID := c.getClusterUUID()
+	if clusterUUID == "" {
+		return nil, errors.New("cluster UUID is required (use --cluster, set PIPEOPS_CLUSTER_UUID, or set settings.default_cluster_uuid in ~/.pipeops.json)")
+	}
+
+	resp, _, err := c.sdkClient.Servers.List(ctx, clusterUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -551,7 +569,12 @@ func (c *Client) GetServer(serverID string) (*models.Server, error) {
 	}
 
 	ctx := context.Background()
-	resp, _, err := c.sdkClient.Servers.Get(ctx, serverID)
+	clusterUUID := c.getClusterUUID()
+	if clusterUUID == "" {
+		return nil, errors.New("cluster UUID is required (set PIPEOPS_CLUSTER_UUID or settings.default_cluster_uuid in ~/.pipeops.json)")
+	}
+
+	resp, _, err := c.sdkClient.Servers.Get(ctx, clusterUUID, serverID)
 	if err != nil {
 		return nil, err
 	}
@@ -573,27 +596,7 @@ func (c *Client) CreateServer(req *models.ServerCreateRequest) (*models.Server, 
 		return nil, errors.New("not authenticated")
 	}
 
-	ctx := context.Background()
-	sdkReq := &sdk.CreateServerRequest{
-		Name:     req.Name,
-		Provider: req.Type, // Type maps to Provider in SDK
-		Region:   req.Region,
-	}
-
-	resp, _, err := c.sdkClient.Servers.Create(ctx, sdkReq)
-	if err != nil {
-		return nil, err
-	}
-
-	return &models.Server{
-		ID:        resp.Data.Server.ID,
-		Name:      resp.Data.Server.Name,
-		Status:    resp.Data.Server.Status,
-		Type:      resp.Data.Server.Provider,
-		Region:    resp.Data.Server.Region,
-		CreatedAt: resp.Data.Server.CreatedAt.Time,
-		UpdatedAt: resp.Data.Server.UpdatedAt.Time,
-	}, nil
+	return nil, errors.New("server creation is not yet supported via the CLI; use the PipeOps web console")
 }
 
 // UpdateServer updates an existing server
@@ -613,6 +616,11 @@ func (c *Client) DeleteServer(serverID string) error {
 	}
 
 	ctx := context.Background()
-	_, err := c.sdkClient.Servers.Delete(ctx, serverID)
+	clusterUUID := c.getClusterUUID()
+	if clusterUUID == "" {
+		return errors.New("cluster UUID is required (set PIPEOPS_CLUSTER_UUID or settings.default_cluster_uuid in ~/.pipeops.json)")
+	}
+
+	_, err := c.sdkClient.Servers.Delete(ctx, clusterUUID, serverID)
 	return err
 }
