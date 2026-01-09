@@ -27,9 +27,9 @@ Examples:
 			return
 		}
 
-		// Allow overriding the cluster UUID per invocation.
-		if clusterUUID, _ := cmd.Flags().GetString("cluster"); clusterUUID != "" {
-			cfg.Settings.DefaultClusterUUID = clusterUUID
+		// Allow overriding the workspace UUID per invocation.
+		if workspaceUUID, _ := cmd.Flags().GetString("workspace"); workspaceUUID != "" {
+			cfg.Settings.DefaultWorkspaceUUID = workspaceUUID
 		}
 
 		// Create client with the loaded configuration
@@ -111,7 +111,7 @@ Examples:
 }
 
 func init() {
-	listCmd.Flags().String("cluster", "", "Cluster UUID to scope server listing (or set PIPEOPS_CLUSTER_UUID)")
+	listCmd.Flags().String("workspace", "", "Workspace UUID to scope server listing (or set PIPEOPS_WORKSPACE_UUID)")
 }
 
 // GetListCmd returns the list command for registration

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -33,7 +34,7 @@ func NewClient() ClientAPI {
 	}
 
 	// Initialize legacy client for features not yet in SDK
-	legacyClient := libs.NewHttpClient()
+	legacyClient := libs.NewHttpClientWithURL(baseURL)
 
 	return &Client{
 		sdkClient:    sdkClient,
@@ -64,7 +65,7 @@ func NewClientWithConfig(cfg *config.Config) ClientAPI {
 	}
 
 	// Initialize legacy client for features not yet in SDK
-	legacyClient := libs.NewHttpClient()
+	legacyClient := libs.NewHttpClientWithURL(baseURL)
 
 	return &Client{
 		sdkClient:    sdkClient,
@@ -80,6 +81,17 @@ func (c *Client) LoadConfig() error {
 		return err
 	}
 	c.config = cfg
+
+	// Ensure the SDK client picks up the latest token and base URL.
+	if cfg.OAuth != nil && strings.TrimSpace(cfg.OAuth.AccessToken) != "" {
+		c.sdkClient.SetToken(cfg.OAuth.AccessToken)
+	}
+
+	baseURL := config.GetAPIURL()
+	if cfg.OAuth != nil && strings.TrimSpace(cfg.OAuth.BaseURL) != "" {
+		baseURL = cfg.OAuth.BaseURL
+	}
+	c.legacyClient = libs.NewHttpClientWithURL(baseURL)
 	return nil
 }
 
@@ -123,6 +135,54 @@ func (c *Client) getClusterUUID() string {
 	return ""
 }
 
+func (c *Client) getWorkspaceUUID() string {
+	// Prefer env var so it can be overridden per-invocation without editing config.
+	if v := strings.TrimSpace(os.Getenv("PIPEOPS_WORKSPACE_UUID")); v != "" {
+		return v
+	}
+	if c.config != nil && c.config.Settings != nil {
+		return strings.TrimSpace(c.config.Settings.DefaultWorkspaceUUID)
+	}
+	return ""
+}
+
+func (c *Client) resolveWorkspaceUUID(ctx context.Context) (string, error) {
+	if workspaceUUID := c.getWorkspaceUUID(); workspaceUUID != "" {
+		return workspaceUUID, nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	resp, _, err := c.sdkClient.Workspaces.List(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	for _, ws := range resp.Data.Workspaces {
+		if v := strings.TrimSpace(ws.UUID); v != "" {
+			return v, nil
+		}
+	}
+
+	return "", errors.New("workspace UUID is required (use --workspace, set PIPEOPS_WORKSPACE_UUID, or set settings.default_workspace_uuid in ~/.pipeops.json)")
+}
+
+func sdkStatusCode(err error) (int, bool) {
+	var apiErr *sdk.ErrorResponse
+	if errors.As(err, &apiErr) && apiErr != nil && apiErr.Response != nil {
+		return apiErr.Response.StatusCode, true
+	}
+	return 0, false
+}
+
+func timestampToTime(ts *sdk.Timestamp) time.Time {
+	if ts == nil {
+		return time.Time{}
+	}
+	return ts.Time
+}
+
 // SetToken sets the authentication token
 func (c *Client) SetToken(token string) {
 	if c.config.OAuth == nil {
@@ -163,19 +223,34 @@ func (c *Client) GetProjects() (*models.ProjectsResponse, error) {
 	ctx := context.Background()
 	resp, _, err := c.sdkClient.Projects.List(ctx, nil)
 	if err != nil {
+		if status, ok := sdkStatusCode(err); ok && status == http.StatusNotFound {
+			return c.legacyClient.GetProjects(c.GetToken())
+		}
 		return nil, err
+	}
+
+	// The SDK list endpoint may return only project names (no timestamps/status). Prefer
+	// the legacy endpoint when available to keep CLI output consistent.
+	if len(resp.Data.Projects) > 0 && resp.Data.Projects[0].CreatedAt == nil && resp.Data.Projects[0].UpdatedAt == nil {
+		if legacyResp, legacyErr := c.legacyClient.GetProjects(c.GetToken()); legacyErr == nil {
+			return legacyResp, nil
+		}
 	}
 
 	// Convert SDK response to CLI models
 	projects := make([]models.Project, len(resp.Data.Projects))
 	for i, p := range resp.Data.Projects {
+		id := strings.TrimSpace(p.UUID)
+		if id == "" {
+			id = p.ID
+		}
 		projects[i] = models.Project{
-			ID:          p.ID,
+			ID:          id,
 			Name:        p.Name,
 			Description: p.Description,
 			Status:      p.Status,
-			CreatedAt:   p.CreatedAt.Time,
-			UpdatedAt:   p.UpdatedAt.Time,
+			CreatedAt:   timestampToTime(p.CreatedAt),
+			UpdatedAt:   timestampToTime(p.UpdatedAt),
 		}
 	}
 
@@ -196,16 +271,24 @@ func (c *Client) GetProject(projectID string) (*models.Project, error) {
 	ctx := context.Background()
 	resp, _, err := c.sdkClient.Projects.Get(ctx, projectID)
 	if err != nil {
+		if status, ok := sdkStatusCode(err); ok && status == http.StatusNotFound {
+			return c.legacyClient.GetProject(c.GetToken(), projectID)
+		}
 		return nil, err
 	}
 
+	id := strings.TrimSpace(resp.Data.Project.UUID)
+	if id == "" {
+		id = resp.Data.Project.ID
+	}
+
 	return &models.Project{
-		ID:          resp.Data.Project.ID,
+		ID:          id,
 		Name:        resp.Data.Project.Name,
 		Description: resp.Data.Project.Description,
 		Status:      resp.Data.Project.Status,
-		CreatedAt:   resp.Data.Project.CreatedAt.Time,
-		UpdatedAt:   resp.Data.Project.UpdatedAt.Time,
+		CreatedAt:   timestampToTime(resp.Data.Project.CreatedAt),
+		UpdatedAt:   timestampToTime(resp.Data.Project.UpdatedAt),
 	}, nil
 }
 
@@ -226,13 +309,18 @@ func (c *Client) CreateProject(req *models.ProjectCreateRequest) (*models.Projec
 		return nil, err
 	}
 
+	id := strings.TrimSpace(resp.Data.Project.UUID)
+	if id == "" {
+		id = resp.Data.Project.ID
+	}
+
 	return &models.Project{
-		ID:          resp.Data.Project.ID,
+		ID:          id,
 		Name:        resp.Data.Project.Name,
 		Description: resp.Data.Project.Description,
 		Status:      resp.Data.Project.Status,
-		CreatedAt:   resp.Data.Project.CreatedAt.Time,
-		UpdatedAt:   resp.Data.Project.UpdatedAt.Time,
+		CreatedAt:   timestampToTime(resp.Data.Project.CreatedAt),
+		UpdatedAt:   timestampToTime(resp.Data.Project.UpdatedAt),
 	}, nil
 }
 
@@ -253,13 +341,18 @@ func (c *Client) UpdateProject(projectID string, req *models.ProjectUpdateReques
 		return nil, err
 	}
 
+	id := strings.TrimSpace(resp.Data.Project.UUID)
+	if id == "" {
+		id = resp.Data.Project.ID
+	}
+
 	return &models.Project{
-		ID:          resp.Data.Project.ID,
+		ID:          id,
 		Name:        resp.Data.Project.Name,
 		Description: resp.Data.Project.Description,
 		Status:      resp.Data.Project.Status,
-		CreatedAt:   resp.Data.Project.CreatedAt.Time,
-		UpdatedAt:   resp.Data.Project.UpdatedAt.Time,
+		CreatedAt:   timestampToTime(resp.Data.Project.CreatedAt),
+		UpdatedAt:   timestampToTime(resp.Data.Project.UpdatedAt),
 	}, nil
 }
 
@@ -504,7 +597,7 @@ func (c *Client) GetAddonDeployments(projectID string) ([]models.AddonDeployment
 				AddonID:   d.AddOnID,
 				Name:      d.AddOnName,
 				Status:    d.Status,
-				CreatedAt: d.CreatedAt.Time,
+				CreatedAt: timestampToTime(d.CreatedAt),
 			})
 		}
 	}
@@ -530,27 +623,38 @@ func (c *Client) GetServers() (*models.ServersResponse, error) {
 	}
 
 	ctx := context.Background()
-	clusterUUID := c.getClusterUUID()
-	if clusterUUID == "" {
-		return nil, errors.New("cluster UUID is required (use --cluster, set PIPEOPS_CLUSTER_UUID, or set settings.default_cluster_uuid in ~/.pipeops.json)")
+	workspaceUUID, wsErr := c.resolveWorkspaceUUID(ctx)
+	if wsErr != nil {
+		// Prefer legacy as a fallback when workspace resolution isn't possible.
+		if legacyResp, legacyErr := c.legacyClient.GetServers(c.GetToken()); legacyErr == nil {
+			return legacyResp, nil
+		}
+		return nil, wsErr
 	}
 
-	resp, _, err := c.sdkClient.Servers.List(ctx, clusterUUID)
+	resp, _, err := c.sdkClient.Servers.List(ctx, workspaceUUID)
 	if err != nil {
+		if status, ok := sdkStatusCode(err); ok && status == http.StatusNotFound {
+			return c.legacyClient.GetServers(c.GetToken())
+		}
 		return nil, err
 	}
 
 	// Convert SDK response to CLI models
 	servers := make([]models.Server, len(resp.Data.Servers))
 	for i, s := range resp.Data.Servers {
+		id := strings.TrimSpace(s.UUID)
+		if id == "" {
+			id = s.ID
+		}
 		servers[i] = models.Server{
-			ID:        s.ID,
+			ID:        id,
 			Name:      s.Name,
 			Status:    s.Status,
 			Type:      s.Provider, // Provider maps to Type in CLI
 			Region:    s.Region,
-			CreatedAt: s.CreatedAt.Time,
-			UpdatedAt: s.UpdatedAt.Time,
+			CreatedAt: timestampToTime(s.CreatedAt),
+			UpdatedAt: timestampToTime(s.UpdatedAt),
 		}
 	}
 
@@ -568,25 +672,39 @@ func (c *Client) GetServer(serverID string) (*models.Server, error) {
 		return nil, errors.New("not authenticated")
 	}
 
-	ctx := context.Background()
-	clusterUUID := c.getClusterUUID()
-	if clusterUUID == "" {
-		return nil, errors.New("cluster UUID is required (set PIPEOPS_CLUSTER_UUID or settings.default_cluster_uuid in ~/.pipeops.json)")
+	// Prefer legacy as it returns the richer server object and doesn't require workspace scoping.
+	if server, err := c.legacyClient.GetServer(c.GetToken(), serverID); err == nil {
+		return server, nil
 	}
 
-	resp, _, err := c.sdkClient.Servers.Get(ctx, clusterUUID, serverID)
+	ctx := context.Background()
+	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// In the SDK, "server" resources are represented as clusters and require a workspace UUID.
+	resp, _, err := c.sdkClient.Servers.Get(ctx, serverID, workspaceUUID)
+	if err != nil {
+		if status, ok := sdkStatusCode(err); ok && status == http.StatusNotFound {
+			return c.legacyClient.GetServer(c.GetToken(), serverID)
+		}
+		return nil, err
+	}
+
+	id := strings.TrimSpace(resp.Data.Server.UUID)
+	if id == "" {
+		id = resp.Data.Server.ID
+	}
+
 	return &models.Server{
-		ID:        resp.Data.Server.ID,
+		ID:        id,
 		Name:      resp.Data.Server.Name,
 		Status:    resp.Data.Server.Status,
 		Type:      resp.Data.Server.Provider,
 		Region:    resp.Data.Server.Region,
-		CreatedAt: resp.Data.Server.CreatedAt.Time,
-		UpdatedAt: resp.Data.Server.UpdatedAt.Time,
+		CreatedAt: timestampToTime(resp.Data.Server.CreatedAt),
+		UpdatedAt: timestampToTime(resp.Data.Server.UpdatedAt),
 	}, nil
 }
 
@@ -615,12 +733,12 @@ func (c *Client) DeleteServer(serverID string) error {
 		return errors.New("not authenticated")
 	}
 
-	ctx := context.Background()
-	clusterUUID := c.getClusterUUID()
-	if clusterUUID == "" {
-		return errors.New("cluster UUID is required (set PIPEOPS_CLUSTER_UUID or settings.default_cluster_uuid in ~/.pipeops.json)")
+	// Prefer legacy first for compatibility.
+	if err := c.legacyClient.DeleteServer(c.GetToken(), serverID); err == nil {
+		return nil
 	}
 
-	_, err := c.sdkClient.Servers.Delete(ctx, clusterUUID, serverID)
+	ctx := context.Background()
+	_, err := c.sdkClient.Servers.Delete(ctx, serverID, "")
 	return err
 }

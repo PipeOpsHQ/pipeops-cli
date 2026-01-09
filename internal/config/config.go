@@ -60,8 +60,11 @@ type Settings struct {
 	// DefaultClusterUUID is used by APIs that are scoped to a specific cluster.
 	// It can be overridden per-invocation with the PIPEOPS_CLUSTER_UUID env var.
 	DefaultClusterUUID string `json:"default_cluster_uuid,omitempty"`
-	OutputFormat  string `json:"output_format,omitempty"`
-	Debug         bool   `json:"debug,omitempty"`
+	// DefaultWorkspaceUUID is used by APIs that are scoped to a workspace.
+	// It can be overridden per-invocation with the PIPEOPS_WORKSPACE_UUID env var.
+	DefaultWorkspaceUUID string `json:"default_workspace_uuid,omitempty"`
+	OutputFormat         string `json:"output_format,omitempty"`
+	Debug                bool   `json:"debug,omitempty"`
 }
 
 // GetClientID returns the OAuth client ID from environment or build-time default
@@ -94,7 +97,7 @@ func GetDefaultScopes() []string {
 	if envScopes := os.Getenv("PIPEOPS_SCOPES"); envScopes != "" {
 		scopesStr = envScopes
 	}
-	
+
 	// Support both space and comma separated scopes
 	if strings.Contains(scopesStr, ",") {
 		return strings.Split(scopesStr, ",")
@@ -112,9 +115,10 @@ func DefaultConfig() *Config {
 			Scopes:       GetDefaultScopes(),
 		},
 		Settings: &Settings{
-			DefaultClusterUUID: strings.TrimSpace(os.Getenv("PIPEOPS_CLUSTER_UUID")),
-			OutputFormat: "table",
-			Debug:        false,
+			DefaultClusterUUID:   strings.TrimSpace(os.Getenv("PIPEOPS_CLUSTER_UUID")),
+			DefaultWorkspaceUUID: strings.TrimSpace(os.Getenv("PIPEOPS_WORKSPACE_UUID")),
+			OutputFormat:         "table",
+			Debug:                false,
 		},
 	}
 }
