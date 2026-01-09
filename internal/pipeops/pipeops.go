@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -223,18 +222,7 @@ func (c *Client) GetProjects() (*models.ProjectsResponse, error) {
 	ctx := context.Background()
 	resp, _, err := c.sdkClient.Projects.List(ctx, nil)
 	if err != nil {
-		if status, ok := sdkStatusCode(err); ok && status == http.StatusNotFound {
-			return c.legacyClient.GetProjects(c.GetToken())
-		}
 		return nil, err
-	}
-
-	// The SDK list endpoint may return only project names (no timestamps/status). Prefer
-	// the legacy endpoint when available to keep CLI output consistent.
-	if len(resp.Data.Projects) > 0 && resp.Data.Projects[0].CreatedAt == nil && resp.Data.Projects[0].UpdatedAt == nil {
-		if legacyResp, legacyErr := c.legacyClient.GetProjects(c.GetToken()); legacyErr == nil {
-			return legacyResp, nil
-		}
 	}
 
 	// Convert SDK response to CLI models
@@ -271,9 +259,6 @@ func (c *Client) GetProject(projectID string) (*models.Project, error) {
 	ctx := context.Background()
 	resp, _, err := c.sdkClient.Projects.Get(ctx, projectID)
 	if err != nil {
-		if status, ok := sdkStatusCode(err); ok && status == http.StatusNotFound {
-			return c.legacyClient.GetProject(c.GetToken(), projectID)
-		}
 		return nil, err
 	}
 
@@ -623,20 +608,13 @@ func (c *Client) GetServers() (*models.ServersResponse, error) {
 	}
 
 	ctx := context.Background()
-	workspaceUUID, wsErr := c.resolveWorkspaceUUID(ctx)
-	if wsErr != nil {
-		// Prefer legacy as a fallback when workspace resolution isn't possible.
-		if legacyResp, legacyErr := c.legacyClient.GetServers(c.GetToken()); legacyErr == nil {
-			return legacyResp, nil
-		}
-		return nil, wsErr
+	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	resp, _, err := c.sdkClient.Servers.List(ctx, workspaceUUID)
 	if err != nil {
-		if status, ok := sdkStatusCode(err); ok && status == http.StatusNotFound {
-			return c.legacyClient.GetServers(c.GetToken())
-		}
 		return nil, err
 	}
 
@@ -672,11 +650,6 @@ func (c *Client) GetServer(serverID string) (*models.Server, error) {
 		return nil, errors.New("not authenticated")
 	}
 
-	// Prefer legacy as it returns the richer server object and doesn't require workspace scoping.
-	if server, err := c.legacyClient.GetServer(c.GetToken(), serverID); err == nil {
-		return server, nil
-	}
-
 	ctx := context.Background()
 	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
 	if err != nil {
@@ -686,9 +659,6 @@ func (c *Client) GetServer(serverID string) (*models.Server, error) {
 	// In the SDK, "server" resources are represented as clusters and require a workspace UUID.
 	resp, _, err := c.sdkClient.Servers.Get(ctx, serverID, workspaceUUID)
 	if err != nil {
-		if status, ok := sdkStatusCode(err); ok && status == http.StatusNotFound {
-			return c.legacyClient.GetServer(c.GetToken(), serverID)
-		}
 		return nil, err
 	}
 
@@ -731,11 +701,6 @@ func (c *Client) UpdateServer(serverID string, req *models.ServerUpdateRequest) 
 func (c *Client) DeleteServer(serverID string) error {
 	if !c.IsAuthenticated() {
 		return errors.New("not authenticated")
-	}
-
-	// Prefer legacy first for compatibility.
-	if err := c.legacyClient.DeleteServer(c.GetToken(), serverID); err == nil {
-		return nil
 	}
 
 	ctx := context.Background()

@@ -172,11 +172,17 @@ func PrintProjectContextWithOptions(projectID string, opts OutputOptions) {
 
 // FormatDate formats a date for display
 func FormatDate(t time.Time) string {
+	if t.IsZero() {
+		return "N/A"
+	}
 	return t.Format("2006-01-02 15:04:05")
 }
 
 // FormatDateShort formats a date in short format
 func FormatDateShort(t time.Time) string {
+	if t.IsZero() {
+		return "N/A"
+	}
 	return t.Format("2006-01-02")
 }
 
@@ -271,7 +277,7 @@ func HandleError(err error, message string, opts OutputOptions) {
 func PromptUser(message string) (string, error) {
 	// Clean the message (remove : or space at end)
 	message = strings.TrimSuffix(strings.TrimSpace(message), ":")
-	
+
 	prompt := promptui.Prompt{
 		Label: message,
 	}
@@ -341,7 +347,7 @@ func StartSpinner(message string, opts OutputOptions) interface{} {
 	if opts.Format == OutputFormatJSON || opts.Quiet {
 		return nil
 	}
-	
+
 	s := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
 	s.Suffix = fmt.Sprintf(" %s", message)
 	s.Color("cyan")
