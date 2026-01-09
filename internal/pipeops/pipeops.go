@@ -271,34 +271,16 @@ func (c *Client) GetProjects() (*models.ProjectsResponse, error) {
 	}
 
 	ctx := context.Background()
-	resp, _, err := c.sdkClient.Projects.List(ctx, nil)
+
+	// Resolve workspace UUID to scope project listing
+	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert SDK response to CLI models
-	projects := make([]models.Project, len(resp.Data.Projects))
-	for i, p := range resp.Data.Projects {
-		id := strings.TrimSpace(p.UUID)
-		if id == "" {
-			id = p.ID
-		}
-		projects[i] = models.Project{
-			ID:          id,
-			Name:        p.Name,
-			Description: p.Description,
-			Status:      p.Status,
-			CreatedAt:   timestampToTime(p.CreatedAt),
-			UpdatedAt:   timestampToTime(p.UpdatedAt),
-		}
-	}
-
-	return &models.ProjectsResponse{
-		Projects: projects,
-		Total:    len(projects),
-		Page:     1,
-		PerPage:  len(projects),
-	}, nil
+	// Use legacy client to fetch projects from workspace
+	token := c.config.OAuth.AccessToken
+	return c.legacyClient.GetProjectsByWorkspace(token, workspaceUUID)
 }
 
 // GetProject retrieves a specific project
@@ -308,24 +290,16 @@ func (c *Client) GetProject(projectID string) (*models.Project, error) {
 	}
 
 	ctx := context.Background()
-	resp, _, err := c.sdkClient.Projects.Get(ctx, projectID)
+
+	// Resolve workspace UUID
+	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	id := strings.TrimSpace(resp.Data.Project.UUID)
-	if id == "" {
-		id = resp.Data.Project.ID
-	}
-
-	return &models.Project{
-		ID:          id,
-		Name:        resp.Data.Project.Name,
-		Description: resp.Data.Project.Description,
-		Status:      resp.Data.Project.Status,
-		CreatedAt:   timestampToTime(resp.Data.Project.CreatedAt),
-		UpdatedAt:   timestampToTime(resp.Data.Project.UpdatedAt),
-	}, nil
+	// Use legacy client with workspace-scoped endpoint
+	token := c.config.OAuth.AccessToken
+	return c.legacyClient.GetProjectByWorkspace(token, projectID, workspaceUUID)
 }
 
 // CreateProject creates a new project
@@ -411,31 +385,15 @@ func (c *Client) GetLogs(req *models.LogsRequest) (*models.LogsResponse, error) 
 
 	ctx := context.Background()
 
-	// Build SDK request options
-	opts := &sdk.LogsOptions{
-		Limit: req.Limit,
-	}
-
-	resp, _, err := c.sdkClient.Projects.GetLogs(ctx, req.ProjectID, opts)
+	// Resolve workspace UUID
+	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert SDK response to CLI models
-	logs := make([]models.LogEntry, 0)
-	for _, logMap := range resp.Data.Logs {
-		// Convert map to log entry
-		entry := models.LogEntry{
-			Message: fmt.Sprintf("%v", logMap),
-		}
-		logs = append(logs, entry)
-	}
-
-	return &models.LogsResponse{
-		Logs:       logs,
-		TotalCount: len(logs),
-		HasMore:    false,
-	}, nil
+	// Use legacy client with workspace-scoped endpoint
+	token := c.config.OAuth.AccessToken
+	return c.legacyClient.GetLogsByWorkspace(token, req, workspaceUUID)
 }
 
 // StreamLogs streams project logs

@@ -123,11 +123,14 @@ func detectAuthError(resp *resty.Response) error {
 type HttpClients interface {
 	VerifyToken(token string, operatorID string) (*models.PipeOpsTokenVerificationResponse, error)
 	GetProjects(token string) (*models.ProjectsResponse, error)
+	GetProjectsByWorkspace(token string, workspaceUUID string) (*models.ProjectsResponse, error)
 	GetProject(token string, projectID string) (*models.Project, error)
+	GetProjectByWorkspace(token string, projectID string, workspaceUUID string) (*models.Project, error)
 	CreateProject(token string, req *models.ProjectCreateRequest) (*models.Project, error)
 	UpdateProject(token string, projectID string, req *models.ProjectUpdateRequest) (*models.Project, error)
 	DeleteProject(token string, projectID string) error
 	GetLogs(token string, req *models.LogsRequest) (*models.LogsResponse, error)
+	GetLogsByWorkspace(token string, req *models.LogsRequest, workspaceUUID string) (*models.LogsResponse, error)
 	StreamLogs(token string, req *models.LogsRequest, callback func(*models.StreamLogEntry) error) error
 	GetServices(token string, projectID string, addonID string) (*models.ListServicesResponse, error)
 	StartProxy(token string, req *models.ProxyRequest) (*models.ProxyResponse, error)
@@ -273,6 +276,153 @@ func (h *HttpClient) GetProjects(token string) (*models.ProjectsResponse, error)
 	}
 
 	return projectsResp, nil
+}
+
+// GetProjectsByWorkspace retrieves projects for a specific workspace
+func (h *HttpClient) GetProjectsByWorkspace(token string, workspaceUUID string) (*models.ProjectsResponse, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	if strings.TrimSpace(workspaceUUID) == "" {
+		return nil, errors.New("workspace UUID is empty")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		Get("/workspace/fetch/" + workspaceUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		if authErr := detectAuthError(resp); authErr != nil {
+			return nil, authErr
+		}
+		return nil, ErrInvalidToken
+	}
+
+	if resp.StatusCode() == 404 {
+		return nil, fmt.Errorf("workspace not found")
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	// Parse workspace response to extract projects
+	var wsResp struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+		Data    struct {
+			Workspace struct {
+				Projects []struct {
+					ID     int    `json:"ID"`
+					UUID   string `json:"UUID"`
+					Name   string `json:"Name"`
+					Status string `json:"Status"`
+				} `json:"Projects"`
+			} `json:"workspace"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(resp.Body(), &wsResp); err != nil {
+		return nil, fmt.Errorf("failed to parse workspace response: %w", err)
+	}
+
+	projects := make([]models.Project, len(wsResp.Data.Workspace.Projects))
+	for i, p := range wsResp.Data.Workspace.Projects {
+		id := p.UUID
+		if id == "" {
+			id = fmt.Sprintf("%d", p.ID)
+		}
+		projects[i] = models.Project{
+			ID:     id,
+			Name:   p.Name,
+			Status: p.Status,
+		}
+	}
+
+	return &models.ProjectsResponse{
+		Projects: projects,
+		Total:    len(projects),
+		Page:     1,
+		PerPage:  len(projects),
+	}, nil
+}
+
+// GetProjectByWorkspace retrieves a specific project by ID with workspace scope
+func (h *HttpClient) GetProjectByWorkspace(token string, projectID string, workspaceUUID string) (*models.Project, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	if strings.TrimSpace(projectID) == "" {
+		return nil, errors.New("project ID is empty")
+	}
+
+	if strings.TrimSpace(workspaceUUID) == "" {
+		return nil, errors.New("workspace UUID is empty")
+	}
+
+	resp, err := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		SetQueryParam("workspace_uuid", workspaceUUID).
+		Get("/project/fetch/" + projectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get project: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		if authErr := detectAuthError(resp); authErr != nil {
+			return nil, authErr
+		}
+		return nil, ErrInvalidToken
+	}
+
+	if resp.StatusCode() == 404 {
+		return nil, fmt.Errorf("project not found")
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	// Parse response
+	var apiResp struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+		Data    struct {
+			Project struct {
+				ID          int    `json:"ID"`
+				UUID        string `json:"UUID"`
+				Name        string `json:"Name"`
+				Status      string `json:"Status"`
+				Repository  string `json:"Repository"`
+				Branch      string `json:"Branch"`
+				Language    string `json:"Language"`
+				ClusterName string `json:"ClusterName"`
+				ClusterUUID string `json:"ClusterUUID"`
+			} `json:"project"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(resp.Body(), &apiResp); err != nil {
+		return nil, fmt.Errorf("failed to parse project response: %w", err)
+	}
+
+	id := apiResp.Data.Project.UUID
+	if id == "" {
+		id = fmt.Sprintf("%d", apiResp.Data.Project.ID)
+	}
+
+	return &models.Project{
+		ID:     id,
+		Name:   apiResp.Data.Project.Name,
+		Status: apiResp.Data.Project.Status,
+	}, nil
 }
 
 // GetProject retrieves a specific project by ID
@@ -501,6 +651,110 @@ func (h *HttpClient) GetLogs(token string, req *models.LogsRequest) (*models.Log
 	}
 
 	return logsResp, nil
+}
+
+// GetLogsByWorkspace retrieves logs for a project using workspace-scoped endpoint
+func (h *HttpClient) GetLogsByWorkspace(token string, req *models.LogsRequest, workspaceUUID string) (*models.LogsResponse, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	if req == nil {
+		return nil, errors.New("request is nil")
+	}
+
+	if req.ProjectID == "" {
+		return nil, errors.New("project ID is required")
+	}
+
+	if workspaceUUID == "" {
+		return nil, errors.New("workspace UUID is required")
+	}
+
+	// Build query parameters - API requires app=project and workspace_uuid
+	request := h.client.R().
+		SetHeader("Authorization", "Bearer "+token).
+		SetHeader("Content-Type", "application/json").
+		SetQueryParam("app", "project").
+		SetQueryParam("workspace_uuid", workspaceUUID)
+
+	// Add optional query parameters
+	if req.Since != nil {
+		request.SetQueryParam("start_time", req.Since.Format(time.RFC3339))
+	}
+	if req.Until != nil {
+		request.SetQueryParam("end_time", req.Until.Format(time.RFC3339))
+	}
+	if req.Limit > 0 {
+		request.SetQueryParam("limit", fmt.Sprintf("%d", req.Limit))
+	}
+	if req.Tail > 0 {
+		request.SetQueryParam("limit", fmt.Sprintf("%d", req.Tail))
+	}
+
+	endpoint := fmt.Sprintf("/project/logs/%s", req.ProjectID)
+
+	resp, err := request.Get(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get logs: %w", err)
+	}
+
+	if resp.StatusCode() == 401 {
+		if authErr := detectAuthError(resp); authErr != nil {
+			return nil, authErr
+		}
+		return nil, ErrInvalidToken
+	}
+
+	if resp.StatusCode() == 404 {
+		return nil, fmt.Errorf("project not found")
+	}
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("API error: %s", resp.String())
+	}
+
+	// Parse response
+	var apiResp struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+		Data    []struct {
+			Timestamp string `json:"timestamp"`
+			Message   string `json:"message"`
+			Level     string `json:"level"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(resp.Body(), &apiResp); err != nil {
+		return nil, fmt.Errorf("failed to parse logs response: %w", err)
+	}
+
+	logs := make([]models.LogEntry, 0)
+	if apiResp.Data != nil {
+		for _, l := range apiResp.Data {
+			entry := models.LogEntry{
+				Message:   l.Message,
+				Level:     models.LogLevel(l.Level),
+				Timestamp: parseTimestamp(l.Timestamp),
+			}
+			logs = append(logs, entry)
+		}
+	}
+
+	return &models.LogsResponse{
+		Logs:       logs,
+		TotalCount: len(logs),
+		HasMore:    false,
+	}, nil
+}
+
+// parseTimestamp parses a timestamp string to time.Time
+func parseTimestamp(ts string) time.Time {
+	t, err := time.Parse(time.RFC3339Nano, ts)
+	if err != nil {
+		t, _ = time.Parse(time.RFC3339, ts)
+	}
+	return t
 }
 
 // StreamLogs streams logs in real-time for a project or addon
