@@ -36,16 +36,16 @@ Examples:
 }
 
 var deployCmd = &cobra.Command{
-	Use:   "deploy <project-id>",
+	Use:   "deploy [project-id]",
 	Short: "Deploy a project",
 	Long: `Deploy a project to trigger a new deployment.
 
 Examples:
-  pipeops project deploy proj-123`,
-	Args: cobra.ExactArgs(1),
+  pipeops project deploy proj-123
+  pipeops project deploy  # Interactive selection`,
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
-		projectID := args[0]
 
 		client := pipeops.NewClient()
 		if err := client.LoadConfig(); err != nil {
@@ -56,6 +56,43 @@ Examples:
 		if !client.IsAuthenticated() {
 			utils.HandleError(nil, "You are not logged in. Please run 'pipeops auth login' first.", opts)
 			return
+		}
+
+		var projectID string
+		if len(args) == 1 {
+			projectID = args[0]
+		} else {
+			// Try linked project first
+			projectContext, err := utils.LoadProjectContext()
+			if err == nil && projectContext.ProjectID != "" {
+				projectID = projectContext.ProjectID
+			} else {
+				// Interactive project selection
+				projectsResp, err := client.GetProjects()
+				if err != nil {
+					utils.HandleError(err, "Error fetching projects", opts)
+					return
+				}
+
+				if len(projectsResp.Projects) == 0 {
+					utils.PrintWarning("No projects found", opts)
+					return
+				}
+
+				var options []string
+				for _, p := range projectsResp.Projects {
+					status := utils.GetStatusIcon(p.Status)
+					options = append(options, fmt.Sprintf("%s %s (%s)", status, p.Name, p.ID))
+				}
+
+				idx, _, err := utils.SelectOption("Select a project to deploy", options)
+				if err != nil {
+					utils.HandleError(err, "Selection cancelled", opts)
+					return
+				}
+
+				projectID = projectsResp.Projects[idx].ID
+			}
 		}
 
 		utils.PrintInfo(fmt.Sprintf("Deploying project %s...", projectID), opts)

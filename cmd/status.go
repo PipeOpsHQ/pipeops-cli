@@ -148,12 +148,36 @@ func showProjectStatus(client pipeops.ClientAPI, args []string, opts utils.Outpu
 	} else {
 		// Try to get from linked project
 		projectContext, err := utils.LoadProjectContext()
-		if err != nil || projectContext.ProjectID == "" {
-			utils.HandleError(fmt.Errorf("project ID is required"), "Project ID is required. Use 'pipeops link' to link a project or provide project ID as argument", opts)
-			return
+		if err == nil && projectContext.ProjectID != "" {
+			projectID = projectContext.ProjectID
+			isLinkedProject = true
+		} else {
+			// Interactive project selection
+			projectsResp, err := client.GetProjects()
+			if err != nil {
+				utils.HandleError(err, "Error fetching projects", opts)
+				return
+			}
+
+			if len(projectsResp.Projects) == 0 {
+				utils.PrintWarning("No projects found", opts)
+				return
+			}
+
+			var options []string
+			for _, p := range projectsResp.Projects {
+				status := utils.GetStatusIcon(p.Status)
+				options = append(options, fmt.Sprintf("%s %s (%s)", status, p.Name, p.ID))
+			}
+
+			idx, _, err := utils.SelectOption("Select a project", options)
+			if err != nil {
+				utils.HandleError(err, "Selection cancelled", opts)
+				return
+			}
+
+			projectID = projectsResp.Projects[idx].ID
 		}
-		projectID = projectContext.ProjectID
-		isLinkedProject = true
 	}
 
 	// Get project details

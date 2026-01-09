@@ -12,11 +12,12 @@ import (
 	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
 	"github.com/PipeOpsHQ/pipeops-cli/internal/validation"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
 var logsCmd = &cobra.Command{
-	Use:   "logs <project-id>",
+	Use:   "logs [project-id]",
 	Short: "📄 View logs for a project",
 	Long: `📄 The "logs" command retrieves and displays logs for a specific project.
 Use --follow to stream logs in real-time.
@@ -32,22 +33,11 @@ Examples:
     pipeops project logs proj-123 --since "2024-01-01T10:00:00Z"
 
   - Get last 100 lines:
-    pipeops project logs proj-123 --tail 100`,
+    pipeops project logs proj-123 --tail 100
+    
+  - Interactive project selection:
+    pipeops project logs`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 1 {
-			fmt.Println("❌ Project ID is required")
-			fmt.Println("Usage: pipeops project logs <project-id>")
-			return
-		}
-
-		projectID := args[0]
-
-		// Validate project ID
-		if err := validation.ValidateProjectID(projectID); err != nil {
-			fmt.Printf("❌ Invalid project ID: %v\n", err)
-			return
-		}
-
 		client := pipeops.NewClient()
 
 		// Load configuration
@@ -60,6 +50,41 @@ Examples:
 		if !client.IsAuthenticated() {
 			fmt.Println("❌ You are not logged in. Please run 'pipeops auth login' first.")
 			return
+		}
+
+		var projectID string
+		if len(args) == 1 {
+			projectID = args[0]
+			// Validate project ID
+			if err := validation.ValidateProjectID(projectID); err != nil {
+				fmt.Printf("❌ Invalid project ID: %v\n", err)
+				return
+			}
+		} else {
+			// Interactive project selection
+			projectsResp, err := client.GetProjects()
+			if err != nil {
+				fmt.Printf("❌ Error fetching projects: %v\n", err)
+				return
+			}
+
+			if len(projectsResp.Projects) == 0 {
+				fmt.Println("⚠️ No projects found")
+				return
+			}
+
+			var options []string
+			for _, p := range projectsResp.Projects {
+				options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.ID))
+			}
+
+			idx, err := selectProject(options)
+			if err != nil {
+				fmt.Printf("❌ Selection cancelled: %v\n", err)
+				return
+			}
+
+			projectID = projectsResp.Projects[idx].ID
 		}
 
 		// Parse flags
@@ -163,7 +188,18 @@ Examples:
 			fmt.Println()
 		}
 	},
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
+}
+
+// selectProject prompts user to select from a list of projects
+func selectProject(options []string) (int, error) {
+	prompt := promptui.Select{
+		Label: "Select a project",
+		Items: options,
+		Size:  10,
+	}
+	idx, _, err := prompt.Run()
+	return idx, err
 }
 
 func init() {

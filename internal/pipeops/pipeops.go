@@ -527,7 +527,52 @@ func (c *Client) StreamLogs(req *models.LogsRequest, callback func(*models.Strea
 		App:           "project",
 	}
 
-	// For now, just fetch logs (SDK may not have streaming support yet)
+	// If follow mode, poll for new logs every 2 seconds
+	if req.Follow {
+		seenLogs := make(map[string]bool)
+		for {
+			resp, _, err := c.sdkClient.Projects.TailLogs(ctx, req.ProjectID, opts)
+			if err != nil {
+				return fmt.Errorf("failed to fetch logs: %w", err)
+			}
+
+			// Process new logs
+			for _, logMap := range resp.Data.Logs {
+				msg := ""
+				if m, ok := logMap["message"]; ok {
+					msg = fmt.Sprintf("%v", m)
+				} else {
+					msg = fmt.Sprintf("%v", logMap)
+				}
+
+				// Create a unique key for this log entry
+				logKey := msg
+				if ts, ok := logMap["timestamp"]; ok {
+					logKey = fmt.Sprintf("%v:%s", ts, msg)
+				}
+
+				// Skip already-seen logs
+				if seenLogs[logKey] {
+					continue
+				}
+				seenLogs[logKey] = true
+
+				streamEntry := &models.StreamLogEntry{
+					LogEntry: models.LogEntry{
+						Message: msg,
+					},
+				}
+				if err := callback(streamEntry); err != nil {
+					return err
+				}
+			}
+
+			// Wait before polling again
+			time.Sleep(2 * time.Second)
+		}
+	}
+
+	// Non-follow mode: just fetch logs once
 	resp, _, err := c.sdkClient.Projects.TailLogs(ctx, req.ProjectID, opts)
 	if err != nil {
 		return err

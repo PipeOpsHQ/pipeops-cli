@@ -33,24 +33,6 @@ Examples:
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
 
-		// Get project ID
-		var projectID string
-		if len(args) == 1 {
-			projectID = args[0]
-		} else {
-			projectContext, err := utils.LoadProjectContext()
-			if err != nil {
-				utils.HandleError(err, "Error loading project context", opts)
-				return
-			}
-
-			projectID = projectContext.ProjectID
-			if projectID == "" {
-				utils.HandleError(fmt.Errorf("project ID is required"), "Project ID is required. Use --project flag or link a project with 'pipeops link'", opts)
-				return
-			}
-		}
-
 		client := pipeops.NewClient()
 
 		// Load configuration
@@ -62,6 +44,43 @@ Examples:
 		// Check if user is authenticated
 		if !utils.RequireAuth(client, opts) {
 			return
+		}
+
+		// Get project ID
+		var projectID string
+		if len(args) == 1 {
+			projectID = args[0]
+		} else {
+			projectContext, err := utils.LoadProjectContext()
+			if err == nil && projectContext.ProjectID != "" {
+				projectID = projectContext.ProjectID
+			} else {
+				// Interactive project selection
+				projectsResp, err := client.GetProjects()
+				if err != nil {
+					utils.HandleError(err, "Error fetching projects", opts)
+					return
+				}
+
+				if len(projectsResp.Projects) == 0 {
+					utils.PrintWarning("No projects found", opts)
+					return
+				}
+
+				var options []string
+				for _, p := range projectsResp.Projects {
+					status := utils.GetStatusIcon(p.Status)
+					options = append(options, fmt.Sprintf("%s %s (%s)", status, p.Name, p.ID))
+				}
+
+				idx, _, err := utils.SelectOption("Select a project", options)
+				if err != nil {
+					utils.HandleError(err, "Selection cancelled", opts)
+					return
+				}
+
+				projectID = projectsResp.Projects[idx].ID
+			}
 		}
 
 		// Parse flags
