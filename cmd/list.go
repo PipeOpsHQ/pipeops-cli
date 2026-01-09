@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
@@ -54,17 +55,46 @@ Examples:
 			if projectID == "" {
 				// Try to get from linked project
 				projectContext, err := utils.LoadProjectContext()
-				if err != nil || projectContext.ProjectID == "" {
-					utils.HandleError(fmt.Errorf("project ID is required"), "Project ID is required. Use --project flag or link a project with 'pipeops link'", opts)
-					return
+				if err == nil && projectContext.ProjectID != "" {
+					projectID = projectContext.ProjectID
+				} else {
+					// Interactive project selection
+					projectsResp, err := client.GetProjects()
+					if err != nil {
+						utils.HandleError(err, "Error fetching projects", opts)
+						return
+					}
+
+					if len(projectsResp.Projects) == 0 {
+						utils.PrintWarning("No projects found", opts)
+						return
+					}
+
+					var options []string
+					for _, p := range projectsResp.Projects {
+						status := utils.GetStatusIcon(p.Status)
+						options = append(options, fmt.Sprintf("%s %s (%s)", status, p.Name, p.ID))
+					}
+
+					idx, _, err := utils.SelectOption("Select a project", options)
+					if err != nil {
+						utils.HandleError(err, "Selection cancelled", opts)
+						return
+					}
+
+					projectID = projectsResp.Projects[idx].ID
 				}
-				projectID = projectContext.ProjectID
 			}
 
 			utils.PrintInfo(fmt.Sprintf("Fetching addon deployments for project '%s'...", projectID), opts)
 
 			deployments, err := client.GetAddonDeployments(projectID)
 			if err != nil {
+				// Check if it's a 500 error (API not fully implemented)
+				if strings.Contains(err.Error(), "500") {
+					utils.PrintWarning("The addon deployments API is not yet available. Please check the PipeOps dashboard for addon deployments.", opts)
+					return
+				}
 				utils.HandleError(err, "Error fetching addon deployments", opts)
 				return
 			}
