@@ -32,6 +32,7 @@ func NewPKCEOAuthService(cfg *config.Config) *PKCEOAuthService {
 // OAuthCallbackResult represents the result of OAuth callback
 type OAuthCallbackResult struct {
 	Code  string
+	Token string // Direct token if server returns it
 	Error error
 }
 
@@ -97,9 +98,17 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 		fmt.Print("\r                                                                \r") // Clear line
 		if result.Error != nil {
 			if result.Error.Error() == "callback handled" {
+				// If token was returned directly, use it
+				if result.Token != "" {
+					return s.handleDirectToken(result.Token)
+				}
 				return s.exchangeCodeForToken(ctx, result.Code, pkceChallenge.CodeVerifier)
 			}
 			return result.Error
+		}
+		// If token was returned directly, use it
+		if result.Token != "" {
+			return s.handleDirectToken(result.Token)
 		}
 		return s.exchangeCodeForToken(ctx, result.Code, pkceChallenge.CodeVerifier)
 	case <-time.After(10 * time.Minute):
@@ -111,6 +120,17 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 		fmt.Print("\r                                                                \r") // Clear line
 		return ctx.Err()
 	}
+}
+
+// handleDirectToken handles a token that was returned directly in the callback
+func (s *PKCEOAuthService) handleDirectToken(token string) error {
+	s.config.OAuth.AccessToken = token
+	s.config.OAuth.RefreshToken = "" // Direct tokens don't have refresh tokens
+	s.config.OAuth.ExpiresAt = time.Now().Add(30 * 24 * time.Hour) // Default 30 day expiry
+
+	fmt.Println("🎉 Authentication successful!")
+	fmt.Println("✅ You're now logged in to PipeOps")
+	return nil
 }
 
 // findAvailablePort finds an available port for the callback server
@@ -221,7 +241,19 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 
 		// Get authorization code
 		code := r.URL.Query().Get("code")
-		if code == "" {
+		
+		// Also check for token parameter (some servers return token directly)
+		token := r.URL.Query().Get("token")
+		if token == "" {
+			token = r.URL.Query().Get("access_token")
+		}
+		
+		// Debug: log all query parameters
+		if s.config.Settings != nil && s.config.Settings.Debug {
+			fmt.Printf("🔍 Debug: Callback query params: %v\n", r.URL.Query())
+		}
+		
+		if code == "" && token == "" {
 			w.WriteHeader(400)
 			noCodePage := `
 <!DOCTYPE html>
@@ -282,7 +314,7 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 </body>
 </html>`
 		w.Write([]byte(successPage))
-		resultChan <- OAuthCallbackResult{Code: code}
+		resultChan <- OAuthCallbackResult{Code: code, Token: token}
 	})
 
 	server := &http.Server{
@@ -340,6 +372,11 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 		return fmt.Errorf("token exchange failed: %s", string(body))
 	}
 
+	// Debug: log raw response
+	if s.config.Settings != nil && s.config.Settings.Debug {
+		fmt.Printf("🔍 Debug: Token response: %s\n", string(body))
+	}
+
 	// Parse token response - new format includes redirect_url
 	var tokenResp struct {
 		AccessToken  string `json:"access_token"`
@@ -347,14 +384,34 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 		ExpiresIn    int    `json:"expires_in"`
 		TokenType    string `json:"token_type"`
 		RedirectURL  string `json:"redirect_url,omitempty"` // New field for redirect handling
+		// Also check for data wrapper format
+		Data struct {
+			Token string `json:"token"`
+		} `json:"data,omitempty"`
 	}
 
 	if err := json.Unmarshal(body, &tokenResp); err != nil {
 		return fmt.Errorf("failed to parse token response: %w", err)
 	}
 
+	// Check for token in data wrapper (alternative format)
+	accessToken := tokenResp.AccessToken
+	if accessToken == "" && tokenResp.Data.Token != "" {
+		accessToken = tokenResp.Data.Token
+	}
+
+	// Debug: show token format
+	if s.config.Settings != nil && s.config.Settings.Debug {
+		segments := strings.Count(accessToken, ".")
+		if segments == 2 {
+			fmt.Printf("🔍 Debug: Token format: JWT (3 segments)\n")
+		} else {
+			fmt.Printf("🔍 Debug: Token format: Opaque (%d segments)\n", segments+1)
+		}
+	}
+
 	// Save tokens
-	s.config.OAuth.AccessToken = tokenResp.AccessToken
+	s.config.OAuth.AccessToken = accessToken
 	s.config.OAuth.RefreshToken = tokenResp.RefreshToken
 	s.config.OAuth.ExpiresAt = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
 
