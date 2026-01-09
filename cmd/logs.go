@@ -29,10 +29,7 @@ Examples:
     pipeops logs --follow
 
   - View last 100 lines:
-    pipeops logs --lines 100
-
-  - Filter logs by service:
-    pipeops logs --service web-service`,
+    pipeops logs --lines 100`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
 
@@ -68,8 +65,6 @@ Examples:
 		}
 
 		// Parse flags
-		serviceName, _ := cmd.Flags().GetString("service")
-		containerName, _ := cmd.Flags().GetString("container")
 		follow, _ := cmd.Flags().GetBool("follow")
 		lines, _ := cmd.Flags().GetInt("lines")
 		sinceStr, _ := cmd.Flags().GetString("since")
@@ -78,8 +73,6 @@ Examples:
 		// Build logs request
 		req := &models.LogsRequest{
 			ProjectID: projectID,
-			Source:    serviceName,
-			Container: containerName,
 			Tail:      lines,
 			Follow:    follow,
 		}
@@ -188,8 +181,6 @@ func init() {
 	rootCmd.AddCommand(logsCmd)
 
 	// Add flags
-	logsCmd.Flags().StringP("service", "s", "", "Filter logs by service name")
-	logsCmd.Flags().StringP("container", "c", "", "Filter logs by container name")
 	logsCmd.Flags().BoolP("follow", "f", false, "Stream logs in real-time")
 	logsCmd.Flags().IntP("lines", "n", 100, "Number of lines to show")
 	logsCmd.Flags().String("since", "", "Show logs since timestamp (RFC3339)")

@@ -19,7 +19,7 @@ var logsCmd = &cobra.Command{
 	Use:   "logs <project-id>",
 	Short: "📄 View logs for a project",
 	Long: `📄 The "logs" command retrieves and displays logs for a specific project.
-You can filter logs by level, source, container, and time range. Use --follow to stream logs in real-time.
+Use --follow to stream logs in real-time.
 
 Examples:
   - View recent logs:
@@ -27,9 +27,6 @@ Examples:
 
   - Follow logs in real-time:
     pipeops project logs proj-123 --follow
-
-  - Filter by log level:
-    pipeops project logs proj-123 --level error
 
   - View logs from specific time:
     pipeops project logs proj-123 --since "2024-01-01T10:00:00Z"
@@ -66,35 +63,17 @@ Examples:
 		}
 
 		// Parse flags
-		level, _ := cmd.Flags().GetString("level")
-		source, _ := cmd.Flags().GetString("source")
-		container, _ := cmd.Flags().GetString("container")
 		sinceStr, _ := cmd.Flags().GetString("since")
 		untilStr, _ := cmd.Flags().GetString("until")
 		limitStr, _ := cmd.Flags().GetString("limit")
 		tail, _ := cmd.Flags().GetInt("tail")
 		follow, _ := cmd.Flags().GetBool("follow")
-		addonID, _ := cmd.Flags().GetString("addon")
 
 		// Build logs request
 		req := &models.LogsRequest{
 			ProjectID: projectID,
-			AddonID:   addonID,
 			Tail:      tail,
 			Follow:    follow,
-		}
-
-		// Parse level
-		if level != "" {
-			req.Level = models.LogLevel(level)
-		}
-
-		// Parse source and container
-		if source != "" {
-			req.Source = source
-		}
-		if container != "" {
-			req.Container = container
 		}
 
 		// Parse time filters
@@ -129,9 +108,6 @@ Examples:
 		if follow {
 			// Stream logs in real-time
 			fmt.Printf("Streaming logs for project %s", projectID)
-			if addonID != "" {
-				fmt.Printf(" (addon: %s)", addonID)
-			}
 			fmt.Println("... (Press Ctrl+C to stop)")
 
 			// Set up signal handling
@@ -162,11 +138,7 @@ Examples:
 			}
 		} else {
 			// Get logs once
-			fmt.Printf("Fetching logs for project %s", projectID)
-			if addonID != "" {
-				fmt.Printf(" (addon: %s)", addonID)
-			}
-			fmt.Println("...")
+			fmt.Printf("Fetching logs for project %s...\n", projectID)
 
 			resp, err := client.GetLogs(req)
 			if err != nil {
@@ -195,18 +167,14 @@ Examples:
 }
 
 func init() {
-	logsCmd.Flags().StringP("level", "l", "", "Filter by log level (debug, info, warn, error, fatal)")
-	logsCmd.Flags().StringP("source", "s", "", "Filter by log source")
-	logsCmd.Flags().StringP("container", "c", "", "Filter by container name")
 	logsCmd.Flags().String("since", "", "Show logs since timestamp (RFC3339 format)")
 	logsCmd.Flags().String("until", "", "Show logs until timestamp (RFC3339 format)")
 	logsCmd.Flags().String("limit", "", "Maximum number of logs to retrieve")
 	logsCmd.Flags().IntP("tail", "t", 100, "Number of recent log lines to show")
 	logsCmd.Flags().BoolP("follow", "f", false, "Stream logs in real-time")
-	logsCmd.Flags().StringP("addon", "a", "", "Get logs for a specific addon")
 }
 
-// printLogEntry formats and prints a log entry with colors
+// printLogEntry formats and prints a log entry
 func printLogEntry(entry *models.LogEntry) {
 	// Format timestamp
 	timestamp := entry.Timestamp.Format("2006-01-02 15:04:05")
@@ -218,24 +186,10 @@ func printLogEntry(entry *models.LogEntry) {
 	// Format level with fixed width
 	level := fmt.Sprintf("%-5s", strings.ToUpper(string(entry.Level)))
 
-	// Build source info
-	sourceInfo := ""
-	if entry.Source != "" {
-		sourceInfo = fmt.Sprintf("[%s]", entry.Source)
-	}
-	if entry.Container != "" {
-		if sourceInfo != "" {
-			sourceInfo += fmt.Sprintf("[%s]", entry.Container)
-		} else {
-			sourceInfo = fmt.Sprintf("[%s]", entry.Container)
-		}
-	}
-
 	// Print formatted log entry
-	fmt.Printf("%s %s%s%s %s %s\n",
+	fmt.Printf("%s %s%s%s %s\n",
 		timestamp,
 		levelColor, level, resetColor,
-		sourceInfo,
 		entry.Message)
 }
 

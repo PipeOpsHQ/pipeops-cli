@@ -19,7 +19,7 @@ import (
 type Client struct {
 	sdkClient    *sdk.Client
 	config       *config.Config
-	legacyClient libs.HttpClients // Fallback for features not yet in SDK
+	legacyClient libs.HttpClients // Required for exec/shell/containers not in SDK
 }
 
 // NewClient creates a new PipeOps client
@@ -33,7 +33,6 @@ func NewClient() ClientAPI {
 		sdkClient, _ = sdk.NewClient("")
 	}
 
-	// Initialize legacy client for features not yet in SDK
 	legacyClient := libs.NewHttpClientWithURL(baseURL)
 
 	return &Client{
@@ -64,7 +63,6 @@ func NewClientWithConfig(cfg *config.Config) ClientAPI {
 		sdkClient.SetToken(cfg.OAuth.AccessToken)
 	}
 
-	// Initialize legacy client for features not yet in SDK
 	legacyClient := libs.NewHttpClientWithURL(baseURL)
 
 	return &Client{
@@ -278,9 +276,31 @@ func (c *Client) GetProjects() (*models.ProjectsResponse, error) {
 		return nil, err
 	}
 
-	// Use legacy client to fetch projects from workspace
-	token := c.config.OAuth.AccessToken
-	return c.legacyClient.GetProjectsByWorkspace(token, workspaceUUID)
+	// Use SDK with workspace scoping
+	opts := &sdk.ProjectListOptions{
+		WorkspaceUUID: workspaceUUID,
+	}
+	resp, _, err := c.sdkClient.Projects.List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert SDK response to models
+	var projects []models.Project
+	for _, p := range resp.Data.Projects {
+		id := strings.TrimSpace(p.UUID)
+		if id == "" {
+			id = p.ID
+		}
+		projects = append(projects, models.Project{
+			ID:          id,
+			Name:        p.Name,
+			Description: p.Description,
+			Status:      p.Status,
+		})
+	}
+
+	return &models.ProjectsResponse{Projects: projects}, nil
 }
 
 // GetProject retrieves a specific project
@@ -297,9 +317,26 @@ func (c *Client) GetProject(projectID string) (*models.Project, error) {
 		return nil, err
 	}
 
-	// Use legacy client with workspace-scoped endpoint
-	token := c.config.OAuth.AccessToken
-	return c.legacyClient.GetProjectByWorkspace(token, projectID, workspaceUUID)
+	// Use SDK with workspace scoping
+	opts := &sdk.ProjectGetOptions{
+		WorkspaceUUID: workspaceUUID,
+	}
+	resp, _, err := c.sdkClient.Projects.Get(ctx, projectID, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	id := strings.TrimSpace(resp.Data.Project.UUID)
+	if id == "" {
+		id = resp.Data.Project.ID
+	}
+
+	return &models.Project{
+		ID:          id,
+		Name:        resp.Data.Project.Name,
+		Description: resp.Data.Project.Description,
+		Status:      resp.Data.Project.Status,
+	}, nil
 }
 
 // CreateProject creates a new project
@@ -391,9 +428,71 @@ func (c *Client) GetLogs(req *models.LogsRequest) (*models.LogsResponse, error) 
 		return nil, err
 	}
 
-	// Use legacy client with workspace-scoped endpoint
-	token := c.config.OAuth.AccessToken
-	return c.legacyClient.GetLogsByWorkspace(token, req, workspaceUUID)
+	// Use SDK with workspace scoping
+	opts := &sdk.LogsOptions{
+		Limit:         req.Limit,
+		WorkspaceUUID: workspaceUUID,
+		App:           "project",
+	}
+	if req.Since != nil {
+		opts.StartTime = req.Since.Format(time.RFC3339)
+	}
+	if req.Until != nil {
+		opts.EndTime = req.Until.Format(time.RFC3339)
+	}
+
+	resp, _, err := c.sdkClient.Projects.GetLogs(ctx, req.ProjectID, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert SDK response to models
+	var entries []models.LogEntry
+	for _, logMap := range resp.Data.Logs {
+		entry := models.LogEntry{}
+
+		// Extract message
+		if m, ok := logMap["message"]; ok {
+			entry.Message = fmt.Sprintf("%v", m)
+		} else if m, ok := logMap["log"]; ok {
+			entry.Message = fmt.Sprintf("%v", m)
+		} else {
+			// Fallback: stringify the whole map
+			entry.Message = fmt.Sprintf("%v", logMap)
+		}
+
+		// Extract timestamp
+		if ts, ok := logMap["timestamp"]; ok {
+			if tsStr, ok := ts.(string); ok {
+				if t, err := time.Parse(time.RFC3339Nano, tsStr); err == nil {
+					entry.Timestamp = t
+				} else if t, err := time.Parse(time.RFC3339, tsStr); err == nil {
+					entry.Timestamp = t
+				}
+			}
+		} else if ts, ok := logMap["time"]; ok {
+			if tsStr, ok := ts.(string); ok {
+				if t, err := time.Parse(time.RFC3339Nano, tsStr); err == nil {
+					entry.Timestamp = t
+				} else if t, err := time.Parse(time.RFC3339, tsStr); err == nil {
+					entry.Timestamp = t
+				}
+			}
+		}
+
+		// Extract level
+		if lvl, ok := logMap["level"]; ok {
+			entry.Level = models.LogLevel(fmt.Sprintf("%v", lvl))
+		} else if lvl, ok := logMap["severity"]; ok {
+			entry.Level = models.LogLevel(fmt.Sprintf("%v", lvl))
+		} else {
+			entry.Level = models.LogLevelInfo
+		}
+
+		entries = append(entries, entry)
+	}
+
+	return &models.LogsResponse{Logs: entries}, nil
 }
 
 // StreamLogs streams project logs
@@ -404,9 +503,17 @@ func (c *Client) StreamLogs(req *models.LogsRequest, callback func(*models.Strea
 
 	ctx := context.Background()
 
-	// Build SDK request options
+	// Resolve workspace UUID
+	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Build SDK request options with workspace scoping
 	opts := &sdk.LogsOptions{
-		Limit: req.Limit,
+		Limit:         req.Limit,
+		WorkspaceUUID: workspaceUUID,
+		App:           "project",
 	}
 
 	// For now, just fetch logs (SDK may not have streaming support yet)
@@ -417,9 +524,15 @@ func (c *Client) StreamLogs(req *models.LogsRequest, callback func(*models.Strea
 
 	// Convert and callback with each log entry
 	for _, logMap := range resp.Data.Logs {
+		msg := ""
+		if m, ok := logMap["message"]; ok {
+			msg = fmt.Sprintf("%v", m)
+		} else {
+			msg = fmt.Sprintf("%v", logMap)
+		}
 		streamEntry := &models.StreamLogEntry{
 			LogEntry: models.LogEntry{
-				Message: fmt.Sprintf("%v", logMap),
+				Message: msg,
 			},
 		}
 		if err := callback(streamEntry); err != nil {
@@ -500,14 +613,22 @@ func (c *Client) GetAddons() (*models.AddonListResponse, error) {
 	}
 
 	// Convert SDK response to CLI models
-	addons := make([]models.Addon, len(resp.Data.AddOns))
-	for i, a := range resp.Data.AddOns {
+	addons := make([]models.Addon, len(resp.Data))
+	for i, a := range resp.Data {
+		id := a.UID
+		if id == "" {
+			id = a.UUID
+		}
+		if id == "" {
+			id = a.ID
+		}
 		addons[i] = models.Addon{
-			ID:          a.ID,
+			ID:          id,
 			Name:        a.Name,
 			Description: a.Description,
 			Category:    a.Category,
-			Icon:        a.Icon,
+			Icon:        a.ImageURL,
+			Status:      a.Status,
 		}
 	}
 
