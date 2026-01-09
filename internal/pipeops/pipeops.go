@@ -12,6 +12,7 @@ import (
 	"github.com/PipeOpsHQ/pipeops-cli/libs"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
 	sdk "github.com/PipeOpsHQ/pipeops-go-sdk/pipeops"
+	"github.com/manifoldco/promptui"
 )
 
 // Client represents the PipeOps client wrapping the Go SDK
@@ -158,13 +159,63 @@ func (c *Client) resolveWorkspaceUUID(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	for _, ws := range resp.Data.Workspaces {
-		if v := strings.TrimSpace(ws.UUID); v != "" {
-			return v, nil
+	workspaces := resp.Data.Workspaces
+	if len(workspaces) == 0 {
+		return "", errors.New("no workspaces found - create a workspace first")
+	}
+
+	// If only one workspace, auto-select it
+	if len(workspaces) == 1 {
+		uuid := strings.TrimSpace(workspaces[0].UUID)
+		if uuid != "" {
+			// Save selection for future use
+			c.saveDefaultWorkspace(uuid)
+			return uuid, nil
 		}
 	}
 
-	return "", errors.New("workspace UUID is required (use --workspace, set PIPEOPS_WORKSPACE_UUID, or set settings.default_workspace_uuid in ~/.pipeops.json)")
+	// Multiple workspaces exist - prompt user to select
+	fmt.Println("\nYou have multiple workspaces. Please select one:")
+	options := make([]string, len(workspaces))
+	for i, ws := range workspaces {
+		options[i] = fmt.Sprintf("%s (%s)", ws.Name, ws.UUID)
+	}
+
+	idx, err := promptSelectWorkspace(options)
+	if err != nil {
+		return "", fmt.Errorf("workspace selection cancelled: %w", err)
+	}
+
+	selectedUUID := strings.TrimSpace(workspaces[idx].UUID)
+	if selectedUUID == "" {
+		return "", errors.New("selected workspace has no UUID")
+	}
+
+	// Save selection for future use
+	c.saveDefaultWorkspace(selectedUUID)
+	fmt.Printf("✓ Selected workspace: %s\n\n", workspaces[idx].Name)
+
+	return selectedUUID, nil
+}
+
+// promptSelectWorkspace uses promptui to let user select a workspace
+func promptSelectWorkspace(options []string) (int, error) {
+	prompt := promptui.Select{
+		Label: "Select a workspace",
+		Items: options,
+		Size:  10,
+	}
+
+	idx, _, err := prompt.Run()
+	return idx, err
+}
+
+// saveDefaultWorkspace saves the selected workspace to config
+func (c *Client) saveDefaultWorkspace(uuid string) {
+	if c.config != nil && c.config.Settings != nil {
+		c.config.Settings.DefaultWorkspaceUUID = uuid
+		_ = config.Save(c.config) // Best effort save
+	}
 }
 
 func sdkStatusCode(err error) (int, bool) {
@@ -706,4 +757,22 @@ func (c *Client) DeleteServer(serverID string) error {
 	ctx := context.Background()
 	_, err := c.sdkClient.Servers.Delete(ctx, serverID, "")
 	return err
+}
+
+// GetWorkspaces retrieves all workspaces for the authenticated user
+func (c *Client) GetWorkspaces(ctx context.Context) ([]sdk.Workspace, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	resp, _, err := c.sdkClient.Workspaces.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.Workspaces, nil
 }

@@ -1,8 +1,11 @@
 package pipeops
 
 import (
+	"context"
+
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
+	sdk "github.com/PipeOpsHQ/pipeops-go-sdk/pipeops"
 )
 
 // ClientAPI defines the interface for PipeOps API operations
@@ -31,6 +34,7 @@ type ClientAPI interface {
 	UpdateServer(serverID string, req *models.ServerUpdateRequest) (*models.Server, error)
 	DeleteServer(serverID string) error
 	VerifyToken() (*models.PipeOpsTokenVerificationResponse, error)
+	GetWorkspaces(ctx context.Context) ([]sdk.Workspace, error)
 	LoadConfig() error
 	SaveConfig() error
 	GetConfig() *config.Config

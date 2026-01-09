@@ -1,8 +1,11 @@
 package pipeops
 
 import (
+	"context"
+
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
+	sdk "github.com/PipeOpsHQ/pipeops-go-sdk/pipeops"
 )
 
 // MockClient is a mock implementation of ClientAPI
@@ -34,6 +37,7 @@ type MockClient struct {
 	UpdateServerFunc          func(serverID string, req *models.ServerUpdateRequest) (*models.Server, error)
 	DeleteServerFunc          func(serverID string) error
 	VerifyTokenFunc           func() (*models.PipeOpsTokenVerificationResponse, error)
+	GetWorkspacesFunc         func(ctx context.Context) ([]sdk.Workspace, error)
 }
 
 func (m *MockClient) IsAuthenticated() bool {
@@ -223,4 +227,11 @@ func (m *MockClient) GetConfig() *config.Config {
 		return m.GetConfigFunc()
 	}
 	return config.DefaultConfig()
+}
+
+func (m *MockClient) GetWorkspaces(ctx context.Context) ([]sdk.Workspace, error) {
+	if m.GetWorkspacesFunc != nil {
+		return m.GetWorkspacesFunc(ctx)
+	}
+	return nil, nil
 }
