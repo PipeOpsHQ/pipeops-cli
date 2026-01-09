@@ -290,7 +290,7 @@ func (c *Client) GetProjects() (*models.ProjectsResponse, error) {
 	for _, p := range resp.Data.Projects {
 		id := strings.TrimSpace(p.UUID)
 		if id == "" {
-			id = p.ID
+			id = p.ID.String()
 		}
 		projects = append(projects, models.Project{
 			ID:          id,
@@ -311,15 +311,24 @@ func (c *Client) GetProject(projectID string) (*models.Project, error) {
 
 	ctx := context.Background()
 
-	// SDK v0.6.2+ handles workspace fallback automatically
-	resp, _, err := c.sdkClient.Projects.Get(ctx, projectID)
+	// Resolve workspace UUID
+	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use SDK with workspace scoping
+	opts := &sdk.ProjectGetOptions{
+		WorkspaceUUID: workspaceUUID,
+	}
+	resp, _, err := c.sdkClient.Projects.Get(ctx, projectID, opts)
 	if err != nil {
 		return nil, err
 	}
 
 	id := strings.TrimSpace(resp.Data.Project.UUID)
 	if id == "" {
-		id = resp.Data.Project.ID
+		id = resp.Data.Project.ID.String()
 	}
 
 	return &models.Project{
@@ -349,7 +358,7 @@ func (c *Client) CreateProject(req *models.ProjectCreateRequest) (*models.Projec
 
 	id := strings.TrimSpace(resp.Data.Project.UUID)
 	if id == "" {
-		id = resp.Data.Project.ID
+		id = resp.Data.Project.ID.String()
 	}
 
 	return &models.Project{
@@ -381,7 +390,7 @@ func (c *Client) UpdateProject(projectID string, req *models.ProjectUpdateReques
 
 	id := strings.TrimSpace(resp.Data.Project.UUID)
 	if id == "" {
-		id = resp.Data.Project.ID
+		id = resp.Data.Project.ID.String()
 	}
 
 	return &models.Project{
