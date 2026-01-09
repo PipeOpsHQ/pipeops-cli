@@ -3,7 +3,7 @@ module github.com/PipeOpsHQ/pipeops-cli
 go 1.24.0
 
 require (
-	github.com/PipeOpsHQ/pipeops-go-sdk v0.7.1
+	github.com/PipeOpsHQ/pipeops-go-sdk v0.8.0
 	github.com/briandowns/spinner v1.23.2
 	github.com/fatih/color v1.18.0
 	github.com/go-resty/resty/v2 v2.16.2

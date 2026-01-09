@@ -752,25 +752,37 @@ func (c *Client) GetAddonDeployments(projectID string) ([]models.AddonDeployment
 	}
 
 	ctx := context.Background()
-	resp, _, err := c.sdkClient.AddOns.ListDeployments(ctx)
+
+	// Resolve workspace UUID
+	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert SDK response to CLI models and filter by projectID
+	// Build options with workspace and project scoping
+	opts := &sdk.ListDeploymentsOptions{
+		WorkspaceUUID: workspaceUUID,
+	}
+	if projectID != "" {
+		opts.ProjectUUID = projectID
+	}
+
+	resp, _, err := c.sdkClient.AddOns.ListDeployments(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert SDK response to CLI models
 	deployments := make([]models.AddonDeployment, 0)
 	for _, d := range resp.Data.Deployments {
-		// Filter by project ID if specified
-		if projectID == "" || d.ProjectID == projectID {
-			deployments = append(deployments, models.AddonDeployment{
-				ID:        d.ID,
-				ProjectID: d.ProjectID,
-				AddonID:   d.AddOnID,
-				Name:      d.AddOnName,
-				Status:    d.Status,
-				CreatedAt: timestampToTime(d.CreatedAt),
-			})
-		}
+		deployments = append(deployments, models.AddonDeployment{
+			ID:        d.ID,
+			ProjectID: d.ProjectID,
+			AddonID:   d.AddOnID,
+			Name:      d.AddOnName,
+			Status:    d.Status,
+			CreatedAt: timestampToTime(d.CreatedAt),
+		})
 	}
 
 	return deployments, nil

@@ -2,6 +2,7 @@ package addons
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
@@ -75,6 +76,11 @@ Examples:
 
 		deployments, err := client.GetAddonDeployments(projectID)
 		if err != nil {
+			// Check if it's a 500 error (API not fully implemented)
+			if strings.Contains(err.Error(), "500") {
+				utils.PrintWarning("The addon deployments API is not yet available. Please check the PipeOps dashboard for addon deployments.", opts)
+				return
+			}
 			utils.HandleError(err, "Error fetching addon deployments", opts)
 			return
 		}
