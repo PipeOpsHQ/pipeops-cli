@@ -11,13 +11,15 @@ import (
 
 // listCmd represents the list command
 var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List projects or addons",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List projects or addons",
 	Long: `List all projects or addons in your PipeOps account.
 
 Examples:
   - List all projects:
     pipeops list
+    pipeops ls
 
   - List all addons:
     pipeops list --addons

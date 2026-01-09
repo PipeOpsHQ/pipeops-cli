@@ -11,12 +11,14 @@ import (
 
 // listCmd represents the command to list all projects
 var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all projects",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List all projects",
 	Long: `List all projects in your PipeOps account.
 
 Examples:
   pipeops project list
+  pipeops project ls
   pipeops project list --json`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)

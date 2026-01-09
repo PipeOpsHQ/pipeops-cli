@@ -12,12 +12,14 @@ import (
 
 // listCmd represents the command to list all workspaces
 var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all workspaces",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List all workspaces",
 	Long: `List all workspaces in your PipeOps account.
 
 Examples:
   pipeops workspace list
+  pipeops workspace ls
   pipeops workspace list --json`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)

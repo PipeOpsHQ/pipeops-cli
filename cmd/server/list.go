@@ -11,12 +11,14 @@ import (
 
 // listCmd represents the command to list all servers
 var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all servers",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List all servers",
 	Long: `List all servers in your PipeOps account.
 
 Examples:
   pipeops server list
+  pipeops server ls
   pipeops server list --json`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
