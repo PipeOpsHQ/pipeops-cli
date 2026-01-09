@@ -311,17 +311,8 @@ func (c *Client) GetProject(projectID string) (*models.Project, error) {
 
 	ctx := context.Background()
 
-	// Resolve workspace UUID
-	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Use SDK with workspace scoping
-	opts := &sdk.ProjectGetOptions{
-		WorkspaceUUID: workspaceUUID,
-	}
-	resp, _, err := c.sdkClient.Projects.Get(ctx, projectID, opts)
+	// SDK v0.6.2+ handles workspace fallback automatically
+	resp, _, err := c.sdkClient.Projects.Get(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -411,6 +402,17 @@ func (c *Client) DeleteProject(projectID string) error {
 
 	ctx := context.Background()
 	_, err := c.sdkClient.Projects.Delete(ctx, projectID)
+	return err
+}
+
+// DeployProject triggers a deployment for a project
+func (c *Client) DeployProject(projectID string) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+
+	ctx := context.Background()
+	_, err := c.sdkClient.Projects.Deploy(ctx, projectID)
 	return err
 }
 

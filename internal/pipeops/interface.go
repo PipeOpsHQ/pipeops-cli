@@ -16,6 +16,7 @@ type ClientAPI interface {
 	CreateProject(req *models.ProjectCreateRequest) (*models.Project, error)
 	UpdateProject(projectID string, req *models.ProjectUpdateRequest) (*models.Project, error)
 	DeleteProject(projectID string) error
+	DeployProject(projectID string) error
 	GetLogs(req *models.LogsRequest) (*models.LogsResponse, error)
 	StreamLogs(req *models.LogsRequest, callback func(*models.StreamLogEntry) error) error
 	GetServices(projectID string, addonID string) (*models.ListServicesResponse, error)

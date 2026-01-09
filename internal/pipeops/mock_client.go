@@ -19,6 +19,7 @@ type MockClient struct {
 	CreateProjectFunc         func(req *models.ProjectCreateRequest) (*models.Project, error)
 	UpdateProjectFunc         func(projectID string, req *models.ProjectUpdateRequest) (*models.Project, error)
 	DeleteProjectFunc         func(projectID string) error
+	DeployProjectFunc         func(projectID string) error
 	GetLogsFunc               func(req *models.LogsRequest) (*models.LogsResponse, error)
 	StreamLogsFunc            func(req *models.LogsRequest, callback func(*models.StreamLogEntry) error) error
 	GetServicesFunc           func(projectID string, addonID string) (*models.ListServicesResponse, error)
@@ -78,6 +79,13 @@ func (m *MockClient) UpdateProject(projectID string, req *models.ProjectUpdateRe
 func (m *MockClient) DeleteProject(projectID string) error {
 	if m.DeleteProjectFunc != nil {
 		return m.DeleteProjectFunc(projectID)
+	}
+	return nil
+}
+
+func (m *MockClient) DeployProject(projectID string) error {
+	if m.DeployProjectFunc != nil {
+		return m.DeployProjectFunc(projectID)
 	}
 	return nil
 }
