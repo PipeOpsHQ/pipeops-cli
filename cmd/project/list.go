@@ -89,8 +89,8 @@ Examples:
 
 			fmt.Println()
 			fmt.Println("Next steps:")
-			fmt.Println("   pipeops project deploy <project-id>  # Deploy a project")
 			fmt.Println("   pipeops project logs <project-id>    # View project logs")
+			fmt.Println("   pipeops status --project <project-id>  # View project status")
 		}
 	},
 	Args: cobra.NoArgs,

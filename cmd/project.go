@@ -9,15 +9,15 @@ var projectCmd = &cobra.Command{
 	Use:   "project",
 	Short: "Manage project-related operations.",
 	Long: `The project command provides a set of subcommands for managing 
-project-related operations on PipeOps. These include deploying, configuring, 
-and interacting with projects seamlessly.
+project-related operations on PipeOps. These include viewing logs, 
+configuring, and interacting with projects seamlessly.
 
 Examples:
   - List all projects:
     pipeops project list
 
-  - Deploy a project:
-    pipeops project deploy --name my-project
+  - View project logs:
+    pipeops project logs <project-id>
 
   - Update project configurations:
     pipeops project update --id project-id`,

@@ -18,5 +18,4 @@ func (p *projectModel) Register() {
 	p.logs()
 	p.rootCmd.AddCommand(GetUpdateCmd())
 	p.rootCmd.AddCommand(GetDeleteCmd())
-	p.rootCmd.AddCommand(GetDeployCmd())
 }
