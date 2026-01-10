@@ -71,7 +71,6 @@ Examples:
 			if !opts.Quiet {
 				fmt.Printf("\nACTIONS\n")
 				fmt.Printf("├─ View details: pipeops addons info <addon-id>\n")
-				fmt.Printf("├─ Deploy addon: pipeops deploy --addon <addon-id> --project <project-id>\n")
 				fmt.Printf("└─ List deployments: pipeops addons deployments --project <project-id>\n")
 			}
 		}
