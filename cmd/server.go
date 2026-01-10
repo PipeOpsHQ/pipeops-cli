@@ -16,14 +16,11 @@ Examples:
   - List all servers:
     pipeops server list
 
-  - Provision a new server:
-    pipeops server provision --name my-server --region us-east
+  - Create a new server:
+    pipeops server create
 
-  - Configure an existing server:
-    pipeops server configure --id server-id --settings new-config
-
-  - Monitor server status:
-    pipeops server status --id server-id`,
+  - Delete a server:
+    pipeops server delete <server-id>`,
 }
 
 func init() {
@@ -39,6 +36,5 @@ func registerServerSubcommands() {
 	// Add server commands
 	serverCmd.AddCommand(server.GetListCmd())
 	serverCmd.AddCommand(server.GetCreateCmd())
-	serverCmd.AddCommand(server.GetUpdateCmd())
 	serverCmd.AddCommand(server.GetDeleteCmd())
 }

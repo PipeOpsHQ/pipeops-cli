@@ -663,7 +663,9 @@ func (c *Client) GetAddons() (*models.AddonListResponse, error) {
 	}
 
 	ctx := context.Background()
-	resp, _, err := c.sdkClient.AddOns.List(ctx)
+	// Use limit=100 to get more addons
+	opts := &sdk.ListAddOnsOptions{Limit: 100}
+	resp, _, err := c.sdkClient.AddOns.List(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
