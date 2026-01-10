@@ -12,16 +12,11 @@ import (
 var deploymentsCmd = &cobra.Command{
 	Use:     "deployments",
 	Aliases: []string{"deps"},
-	Short:   "List addon deployments for a project",
-	Long: `List all addon deployments for a specific project.
-
-If no project ID is provided, an interactive selection will be shown.
+	Short:   "List addon deployments in your workspace",
+	Long: `List all addon deployments in your workspace.
 
 Examples:
-  - List deployments for a project:
-    pipeops addons deployments --project proj-123
-
-  - Interactive project selection:
+  - List all addon deployments:
     pipeops addons deployments`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
@@ -36,45 +31,9 @@ Examples:
 			return
 		}
 
-		projectID, _ := cmd.Flags().GetString("project")
+		utils.PrintInfo("Fetching addon deployments...", opts)
 
-		if projectID == "" {
-			// Try linked project first
-			projectContext, err := utils.LoadProjectContext()
-			if err == nil && projectContext.ProjectID != "" {
-				projectID = projectContext.ProjectID
-			} else {
-				// Interactive project selection
-				projectsResp, err := client.GetProjects()
-				if err != nil {
-					utils.HandleError(err, "Error fetching projects", opts)
-					return
-				}
-
-				if len(projectsResp.Projects) == 0 {
-					utils.PrintWarning("No projects found", opts)
-					return
-				}
-
-				var options []string
-				for _, p := range projectsResp.Projects {
-					status := utils.GetStatusIcon(p.Status)
-					options = append(options, fmt.Sprintf("%s %s (%s)", status, p.Name, p.ID))
-				}
-
-				idx, _, err := utils.SelectOption("Select a project", options)
-				if err != nil {
-					utils.HandleError(err, "Selection cancelled", opts)
-					return
-				}
-
-				projectID = projectsResp.Projects[idx].ID
-			}
-		}
-
-		utils.PrintInfo(fmt.Sprintf("Fetching addon deployments for project '%s'...", projectID), opts)
-
-		deployments, err := client.GetAddonDeployments(projectID)
+		deployments, err := client.GetAddonDeployments("")
 		if err != nil {
 			// Check if it's a 500 error (API not fully implemented)
 			if strings.Contains(err.Error(), "500") {
@@ -89,25 +48,28 @@ Examples:
 			utils.PrintJSON(deployments)
 		} else {
 			if len(deployments) == 0 {
-				utils.PrintWarning("No addon deployments found for this project", opts)
+				utils.PrintWarning("No addon deployments found in this workspace", opts)
 				return
 			}
 
-			headers := []string{"DEPLOYMENT ID", "ADDON NAME", "STATUS", "URL", "CREATED"}
+			headers := []string{"ID", "NAME", "CATEGORY", "STATUS", "ENVIRONMENT", "URL"}
 			var rows [][]string
 
 			for _, deployment := range deployments {
-				url := deployment.URL
+				url := deployment.DeploymentURL
 				if url == "" {
 					url = "N/A"
+				} else {
+					url = utils.TruncateString(url, 40)
 				}
 
 				rows = append(rows, []string{
-					deployment.ID,
+					utils.TruncateString(deployment.ID, 20),
 					deployment.Name,
+					deployment.Category,
 					utils.GetStatusIcon(deployment.Status) + " " + deployment.Status,
+					deployment.Environment,
 					url,
-					utils.FormatDateShort(deployment.CreatedAt),
 				})
 			}
 
@@ -120,5 +82,4 @@ Examples:
 
 func init() {
 	AddonsCmd.AddCommand(deploymentsCmd)
-	deploymentsCmd.Flags().StringP("project", "p", "", "Project ID")
 }

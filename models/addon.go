@@ -53,15 +53,15 @@ type AddonDeployResponse struct {
 
 // AddonDeployment represents a deployed addon instance
 type AddonDeployment struct {
-	ID        string            `json:"id"`
-	AddonID   string            `json:"addon_id"`
-	ProjectID string            `json:"project_id"`
-	Name      string            `json:"name"`
-	Status    string            `json:"status"`
-	URL       string            `json:"url,omitempty"`
-	EnvVars   map[string]string `json:"env_vars,omitempty"`
-	CreatedAt time.Time         `json:"created_at"`
-	UpdatedAt time.Time         `json:"updated_at"`
+	ID            string    `json:"id"`
+	Name          string    `json:"name"`
+	DeploymentURL string    `json:"deployment_url,omitempty"`
+	Category      string    `json:"category"`
+	Status        string    `json:"status"`
+	Environment   string    `json:"environment,omitempty"`
+	Version       string    `json:"version,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // AddonDeploymentsResponse represents the response when listing addon deployments

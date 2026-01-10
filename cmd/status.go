@@ -318,8 +318,8 @@ func showProjectStatus(client pipeops.ClientAPI, args []string, opts utils.Outpu
 
 				fmt.Printf("%s ├─ ID: %s\n", subSymbol, addon.ID)
 				fmt.Printf("%s ├─ Status: %s\n", subSymbol, addon.Status)
-				if addon.URL != "" {
-					fmt.Printf("%s ├─ URL: %s\n", subSymbol, addon.URL)
+				if addon.DeploymentURL != "" {
+					fmt.Printf("%s ├─ URL: %s\n", subSymbol, addon.DeploymentURL)
 				}
 				fmt.Printf("%s └─ Created: %s\n", subSymbol, utils.FormatDateShort(addon.CreatedAt))
 			}

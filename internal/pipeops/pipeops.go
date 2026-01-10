@@ -726,7 +726,7 @@ func (c *Client) GetAddon(addonID string) (*models.Addon, error) {
 	}, nil
 }
 
-// GetAddonDeployments retrieves a list of addon deployments
+// GetAddonDeployments retrieves a list of addon deployments for the workspace
 func (c *Client) GetAddonDeployments(projectID string) ([]models.AddonDeployment, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
@@ -740,12 +740,9 @@ func (c *Client) GetAddonDeployments(projectID string) ([]models.AddonDeployment
 		return nil, err
 	}
 
-	// Build options with workspace and project scoping
+	// Build options with workspace scoping
 	opts := &sdk.ListDeploymentsOptions{
 		WorkspaceUUID: workspaceUUID,
-	}
-	if projectID != "" {
-		opts.ProjectUUID = projectID
 	}
 
 	resp, _, err := c.sdkClient.AddOns.ListDeployments(ctx, opts)
@@ -755,14 +752,16 @@ func (c *Client) GetAddonDeployments(projectID string) ([]models.AddonDeployment
 
 	// Convert SDK response to CLI models
 	deployments := make([]models.AddonDeployment, 0)
-	for _, d := range resp.Data.Deployments {
+	for _, d := range resp.Data {
 		deployments = append(deployments, models.AddonDeployment{
-			ID:        d.ID,
-			ProjectID: d.ProjectID,
-			AddonID:   d.AddOnID,
-			Name:      d.AddOnName,
-			Status:    d.Status,
-			CreatedAt: timestampToTime(d.CreatedAt),
+			ID:            d.UID,
+			Name:          d.Name,
+			DeploymentURL: d.DeploymentURL,
+			Category:      d.Category,
+			Status:        d.Status,
+			Environment:   d.Environment,
+			Version:       d.Version,
+			CreatedAt:     timestampToTime(d.CreatedAt),
 		})
 	}
 

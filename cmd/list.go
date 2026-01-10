@@ -111,7 +111,7 @@ Examples:
 				var rows [][]string
 
 				for _, deployment := range deployments {
-					url := deployment.URL
+					url := deployment.DeploymentURL
 					if url == "" {
 						url = "N/A"
 					}
