@@ -30,6 +30,7 @@ import (
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/internal/updater"
+	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -57,20 +58,14 @@ var rootCmd = &cobra.Command{
 			// Set a global flag that other commands can check
 			cmd.Root().SetContext(context.WithValue(cmd.Root().Context(), "json", true))
 		}
-
-		// Check for updates periodically (but don't block the command)
+	},
+	PersistentPostRun: func(cmd *cobra.Command, args []string) {
+		// Check for updates after command completes
 		ctx := cmd.Context()
 		if ctx == nil {
 			ctx = context.Background()
 		}
-		go func() {
-			if err := checkForUpdatesBackground(ctx, cmd); err != nil {
-				// Log errors to stderr for debugging if verbose mode is enabled
-				if verbose, _ := cmd.Flags().GetBool("verbose"); verbose {
-					fmt.Fprintf(os.Stderr, "Update check warning: %v\n", err)
-				}
-			}
-		}()
+		checkForUpdatesAndPrompt(ctx, cmd)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if cmd.Flag("version").Changed {
@@ -83,7 +78,69 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-// checkForUpdatesBackground runs a background update check
+// checkForUpdatesAndPrompt checks for updates and prompts user to update
+func checkForUpdatesAndPrompt(ctx context.Context, cmd *cobra.Command) {
+	// Skip update check if specifically disabled
+	if shouldSkipUpdateCheck(cmd) {
+		return
+	}
+
+	// Check if it's been more than 24 hours since last check
+	if !shouldCheckForUpdates() {
+		return
+	}
+
+	// Get current version
+	currentVersion := Version
+	if currentVersion == "" {
+		currentVersion = "dev"
+	}
+
+	// Create update service
+	updateService := updater.NewUpdateService(currentVersion)
+
+	// Check for updates with a short timeout
+	checkCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	release, hasUpdate, err := updateService.CheckForUpdates(checkCtx)
+	if err != nil {
+		// Silently fail - don't interrupt user
+		if verbose, _ := cmd.Flags().GetBool("verbose"); verbose {
+			fmt.Fprintf(os.Stderr, "Update check warning: %v\n", err)
+		}
+		return
+	}
+
+	// Update last check time
+	_ = updateLastCheckTime()
+
+	// If update available, show notification and prompt
+	if hasUpdate {
+		fmt.Printf("\n")
+		yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
+		fmt.Printf("%s A new version of PipeOps CLI is available: %s (current: %s)\n", yellow("📦"), release.TagName, currentVersion)
+		fmt.Printf("\n")
+
+		// Ask user if they want to update now
+		fmt.Printf("Would you like to update now? [y/N]: ")
+		var response string
+		fmt.Scanln(&response)
+
+		if response == "y" || response == "Y" || response == "yes" || response == "Yes" {
+			fmt.Printf("\n")
+			opts := utils.OutputOptions{Format: utils.OutputFormatTable}
+			if err := updateService.UpdateCLI(ctx, release, opts); err != nil {
+				fmt.Printf("❌ Update failed: %v\n", err)
+				fmt.Printf("   You can manually update by running: pipeops update\n")
+			}
+		} else {
+			fmt.Printf("\n💡 Run 'pipeops update' when you're ready to update.\n")
+		}
+	}
+}
+
+// checkForUpdatesBackground runs a background update check (deprecated, kept for reference)
 func checkForUpdatesBackground(ctx context.Context, cmd *cobra.Command) error {
 	// Skip update check if specifically disabled
 	if shouldSkipUpdateCheck(cmd) {
