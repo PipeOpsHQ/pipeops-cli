@@ -51,7 +51,7 @@ Examples:
 }
 
 var shellCmd = &cobra.Command{
-	Use:   "shell [project-id] <container-name>",
+	Use:   "shell [project-id] [container-name]",
 	Short: "Start an interactive shell in a container",
 	Long: `Start an interactive shell session in a container within your project.
 
@@ -62,13 +62,16 @@ Examples:
     pipeops shell proj-123 web-container
 
   - Start a shell (with linked project):
-    pipeops shell web-container`,
+    pipeops shell web-container
+    
+  - Interactive selection (with linked project):
+    pipeops shell`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
 		utils.PrintWarning("The 'shell' command is coming soon! Please check our documentation for updates.", opts)
 		return
 	},
-	Args: cobra.RangeArgs(1, 2),
+	Args: cobra.MaximumNArgs(2),
 }
 
 var execContainersCmd = &cobra.Command{
