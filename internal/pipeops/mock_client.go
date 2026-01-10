@@ -29,7 +29,6 @@ type MockClient struct {
 	StartShellFunc            func(req *models.ShellRequest) (*models.ShellResponse, error)
 	GetAddonsFunc             func() (*models.AddonListResponse, error)
 	GetAddonFunc              func(addonID string) (*models.Addon, error)
-	DeployAddonFunc           func(req *models.AddonDeployRequest) (*models.AddonDeployResponse, error)
 	GetAddonDeploymentsFunc   func(projectID string) ([]models.AddonDeployment, error)
 	DeleteAddonDeploymentFunc func(deploymentID string) error
 	GetServersFunc            func() (*models.ServersResponse, error)
@@ -149,13 +148,6 @@ func (m *MockClient) GetAddons() (*models.AddonListResponse, error) {
 func (m *MockClient) GetAddon(addonID string) (*models.Addon, error) {
 	if m.GetAddonFunc != nil {
 		return m.GetAddonFunc(addonID)
-	}
-	return nil, nil
-}
-
-func (m *MockClient) DeployAddon(req *models.AddonDeployRequest) (*models.AddonDeployResponse, error) {
-	if m.DeployAddonFunc != nil {
-		return m.DeployAddonFunc(req)
 	}
 	return nil, nil
 }

@@ -26,7 +26,6 @@ type ClientAPI interface {
 	StartShell(req *models.ShellRequest) (*models.ShellResponse, error)
 	GetAddons() (*models.AddonListResponse, error)
 	GetAddon(addonID string) (*models.Addon, error)
-	DeployAddon(req *models.AddonDeployRequest) (*models.AddonDeployResponse, error)
 	GetAddonDeployments(projectID string) ([]models.AddonDeployment, error)
 	DeleteAddonDeployment(deploymentID string) error
 	GetServers() (*models.ServersResponse, error)

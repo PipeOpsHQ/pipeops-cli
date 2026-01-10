@@ -103,8 +103,7 @@ Examples:
 			if !opts.Quiet {
 				fmt.Printf("\n💡 TIPS\n")
 				fmt.Printf("├─ View server details: pipeops server status <server-id>\n")
-				fmt.Printf("├─ Create new server: pipeops server create <server-name>\n")
-				fmt.Printf("├─ Update server: pipeops server update <server-id>\n")
+				fmt.Printf("├─ Install agent: pipeops agent install\n")
 				fmt.Printf("└─ Delete server: pipeops server delete <server-id>\n")
 			}
 		}

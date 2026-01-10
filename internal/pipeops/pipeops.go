@@ -707,43 +707,22 @@ func (c *Client) GetAddon(addonID string) (*models.Addon, error) {
 		return nil, err
 	}
 
+	// Get ID from UID, UUID, or ID field
+	id := resp.Data.UID
+	if id == "" {
+		id = resp.Data.UUID
+	}
+	if id == "" {
+		id = resp.Data.ID
+	}
+
 	return &models.Addon{
-		ID:          resp.Data.AddOn.ID,
-		Name:        resp.Data.AddOn.Name,
-		Description: resp.Data.AddOn.Description,
-		Category:    resp.Data.AddOn.Category,
-		Icon:        resp.Data.AddOn.Icon,
-	}, nil
-}
-
-// DeployAddon deploys an addon
-func (c *Client) DeployAddon(req *models.AddonDeployRequest) (*models.AddonDeployResponse, error) {
-	if !c.IsAuthenticated() {
-		return nil, errors.New("not authenticated")
-	}
-
-	ctx := context.Background()
-	// Convert map[string]string to map[string]interface{}
-	config := make(map[string]interface{})
-	for k, v := range req.Config {
-		config[k] = v
-	}
-
-	sdkReq := &sdk.DeployAddOnRequest{
-		AddOnUUID: req.AddonID,
-		ProjectID: req.ProjectID,
-		Config:    config,
-	}
-
-	resp, _, err := c.sdkClient.AddOns.Deploy(ctx, sdkReq)
-	if err != nil {
-		return nil, err
-	}
-
-	return &models.AddonDeployResponse{
-		DeploymentID: resp.Data.Deployment.ID,
-		Status:       resp.Data.Deployment.Status,
-		Message:      resp.Message,
+		ID:          id,
+		Name:        resp.Data.Name,
+		Description: resp.Data.Description,
+		Category:    resp.Data.Category,
+		Icon:        resp.Data.ImageURL,
+		Status:      resp.Data.Status,
 	}, nil
 }
 

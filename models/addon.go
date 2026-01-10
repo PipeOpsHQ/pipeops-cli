@@ -35,9 +35,11 @@ type AddonListResponse struct {
 
 // AddonDeployRequest represents a request to deploy an addon
 type AddonDeployRequest struct {
-	AddonID   string            `json:"addon_id"`
-	ProjectID string            `json:"project_id"`
-	Name      string            `json:"name"`
+	ID        string            `json:"id"`
+	Server    string            `json:"Server"`
+	Workspace string            `json:"Workspace"`
+	ProjectID string            `json:"project_id,omitempty"`
+	Name      string            `json:"name,omitempty"`
 	EnvVars   map[string]string `json:"env_vars,omitempty"`
 	Config    map[string]string `json:"config,omitempty"`
 }

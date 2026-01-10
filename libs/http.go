@@ -141,7 +141,6 @@ type HttpClients interface {
 	// Addon Management
 	GetAddons(token string) (*models.AddonListResponse, error)
 	GetAddon(token string, addonID string) (*models.Addon, error)
-	DeployAddon(token string, req *models.AddonDeployRequest) (*models.AddonDeployResponse, error)
 	GetAddonDeployments(token string, projectID string) ([]models.AddonDeployment, error)
 	DeleteAddonDeployment(token string, deploymentID string) error
 
@@ -1171,41 +1170,6 @@ func (h *HttpClient) GetAddon(token string, addonID string) (*models.Addon, erro
 	}
 
 	return addon, nil
-}
-
-// DeployAddon deploys an addon
-func (h *HttpClient) DeployAddon(token string, req *models.AddonDeployRequest) (*models.AddonDeployResponse, error) {
-	if strings.TrimSpace(token) == "" {
-		return nil, errors.New("token is empty")
-	}
-
-	if req == nil {
-		return nil, errors.New("request is nil")
-	}
-
-	resp, err := h.client.R().
-		SetHeader("Authorization", "Bearer "+token).
-		SetHeader("Content-Type", "application/json").
-		SetBody(req).
-		Post("/addons/deploy")
-	if err != nil {
-		return nil, fmt.Errorf("failed to deploy addon: %w", err)
-	}
-
-	if resp.StatusCode() == 401 {
-		return nil, ErrInvalidToken
-	}
-
-	if resp.IsError() {
-		return nil, fmt.Errorf("API error: %s", resp.String())
-	}
-
-	var deployResp *models.AddonDeployResponse
-	if err := json.Unmarshal(resp.Body(), &deployResp); err != nil {
-		return nil, fmt.Errorf("failed to parse deploy response: %w", err)
-	}
-
-	return deployResp, nil
 }
 
 // GetAddonDeployments retrieves a list of addon deployments
