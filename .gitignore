@@ -1,39 +1,8 @@
-# Build artifacts
-dist/
-vendor/
-build/
-bin/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Test artifacts
-coverage.out
-coverage.html
-*.test
-
-# Config files (contains sensitive tokens)
-.pipeops.json
-*.pem
-*.key
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Environment files
-.env
-.env.local
-
-# Temporary files
-tmp/
-temp/
-
-# Claude Code guidance file
-CLAUDE.md
-.gocache/*
-pipeops
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+pipeops-cli
