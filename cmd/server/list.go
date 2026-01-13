@@ -63,7 +63,6 @@ Examples:
 				fmt.Println()
 				fmt.Println("Ready to create your first server?")
 				fmt.Println("   Visit: https://app.pipeops.io")
-				fmt.Println("   Or use: pipeops server create <server-name>")
 			}
 			return
 		}
@@ -103,8 +102,7 @@ Examples:
 			if !opts.Quiet {
 				fmt.Printf("\n💡 TIPS\n")
 				fmt.Printf("├─ View server details: pipeops server status <server-id>\n")
-				fmt.Printf("├─ Install agent: pipeops agent install\n")
-				fmt.Printf("└─ Delete server: pipeops server delete <server-id>\n")
+				fmt.Printf("└─ Install agent: pipeops agent install\n")
 			}
 		}
 	},
