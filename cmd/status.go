@@ -5,437 +5,106 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
-	"github.com/PipeOpsHQ/pipeops-cli/models"
+	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
 
+// statusCmd represents the status command
 var statusCmd = &cobra.Command{
-	Use:   "status [project-id]",
-	Short: "Show project or addon status",
-	Long: `Show the status of a project or addon.
+	Use:   "status",
+	Short: "Show authentication status",
+	Long: `Display current authentication status.` + `
 
-View detailed information about your project's health, deployments, and services.
-Can also show information about specific addons.
-
-Examples:
-  - Show status for linked project:
-    pipeops status
-
-  - Show status for specific project:
-    pipeops status proj-123
-
-  - Show addon information:
-    pipeops status --addon redis
-
-  - Show status in JSON format:
-    pipeops status --json`,
+Examples:` + `
+  pipeops status` + `
+  pipeops status --json`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
 
-		// Parse flags
-		addonID, _ := cmd.Flags().GetString("addon")
-
-		client := pipeops.NewClient()
-
 		// Load configuration
-		if err := client.LoadConfig(); err != nil {
-			utils.HandleError(err, "Error loading configuration", opts)
+		cfg, err := config.Load()
+		if err != nil {
+			utils.HandleError(err, "Failed to load configuration", opts)
 			return
 		}
 
-		// Check if user is authenticated
-		if !utils.RequireAuth(client, opts) {
-			return
+		// Calculate time until expiration
+		var timeUntilExpiry time.Duration
+		var expiryStatus string
+
+		if cfg.OAuth.AccessToken != "" {
+			timeUntilExpiry = time.Until(cfg.OAuth.ExpiresAt)
+
+			if timeUntilExpiry > 24*time.Hour {
+				days := int(timeUntilExpiry.Hours() / 24)
+				expiryStatus = fmt.Sprintf("%d days", days)
+			} else if timeUntilExpiry > time.Hour {
+			hours := int(timeUntilExpiry.Hours())
+				expiryStatus = fmt.Sprintf("%d hours", hours)
+			} else if timeUntilExpiry > 0 {
+				minutes := int(timeUntilExpiry.Minutes())
+				expiryStatus = fmt.Sprintf("%d minutes", minutes)
+			} else {
+				expiryStatus = "expired"
+			}
 		}
 
-		if addonID != "" {
-			// Show addon status
-			showAddonStatus(client, addonID, opts)
+		// Prepare status information
+		status := map[string]interface{}{
+			"authenticated": cfg.IsAuthenticated(),
+			"api_endpoint":  cfg.OAuth.BaseURL,
+			"client_id":     cfg.OAuth.ClientID,
+			"scopes":        cfg.OAuth.Scopes,
+		}
+
+		if cfg.OAuth.AccessToken != "" {
+			status["token_expires_at"] = cfg.OAuth.ExpiresAt.Format(time.RFC3339)
+			status["token_expires_in_seconds"] = int(timeUntilExpiry.Seconds())
+			status["expires_in_human"] = expiryStatus
+		}
+
+		// Output result
+		if opts.Format == utils.OutputFormatJSON {
+			utils.PrintJSON(status)
 		} else {
-			// Show project status (existing behavior)
-			showProjectStatus(client, args, opts)
+			if cfg.IsAuthenticated() {
+				if timeUntilExpiry > 24*time.Hour {
+					fmt.Printf("✅ Authenticated (%s remaining)\n", expiryStatus)
+					fmt.Println()
+					fmt.Println("🚀 You're all set! Try these commands:")
+					fmt.Println("   pipeops project list    # View your projects")
+					fmt.Println("   pipeops me         # See your profile")
+				} else if timeUntilExpiry > time.Hour {
+					fmt.Printf("✅ Authenticated (%s remaining)\n", expiryStatus)
+					fmt.Println("💡 Your session is active and ready to use")
+				} else if timeUntilExpiry > 0 {
+					fmt.Printf("⚠️  Authenticated (%s remaining)\n", expiryStatus)
+					fmt.Println("🔄 Consider refreshing soon: pipeops login")
+				} else {
+					fmt.Println("❌ Token expired")
+					fmt.Println("🔑 Please login again: pipeops login")
+				}
+			} else {
+				fmt.Println("❌ Not authenticated")
+				fmt.Println()
+				fmt.Println("👋 Welcome to PipeOps! Let's get you started:")
+				fmt.Println("   pipeops login      # Authenticate with your account")
+				fmt.Println("   pipeops --help          # Explore available commands")
+			}
 		}
 	},
-	Args: cobra.MaximumNArgs(1),
-}
-
-func showAddonStatus(client pipeops.ClientAPI, addonID string, opts utils.OutputOptions) {
-	utils.PrintInfo(fmt.Sprintf("Getting addon '%s' information...", addonID), opts)
-
-	addon, err := client.GetAddon(addonID)
-	if err != nil {
-		utils.HandleError(err, "Error fetching addon information", opts)
-		return
-	}
-
-	if opts.Format == utils.OutputFormatJSON {
-		utils.PrintJSON(addon)
-	} else {
-		// Display addon information
-		utils.PrintInfo(fmt.Sprintf("Addon: %s", addon.Name), opts)
-
-		fmt.Printf("\nADDON DETAILS\n")
-		fmt.Printf("├─ ID: %s\n", addon.ID)
-		fmt.Printf("├─ Name: %s\n", addon.Name)
-		fmt.Printf("├─ Category: %s\n", addon.Category)
-		fmt.Printf("├─ Version: %s\n", addon.Version)
-		fmt.Printf("├─ Status: %s %s\n", utils.GetStatusIcon(addon.Status), addon.Status)
-		fmt.Printf("└─ Image: %s\n", addon.Image)
-
-		if addon.Description != "" {
-			fmt.Printf("\nDESCRIPTION\n")
-			fmt.Printf("%s\n", addon.Description)
-		}
-
-		if len(addon.Tags) > 0 {
-			fmt.Printf("\nTAGS\n")
-			for i, tag := range addon.Tags {
-				if i == len(addon.Tags)-1 {
-					fmt.Printf("└─ %s\n", tag)
-				} else {
-					fmt.Printf("├─ %s\n", tag)
-				}
-			}
-		}
-
-		if len(addon.Ports) > 0 {
-			fmt.Printf("\nPORTS\n")
-			for i, port := range addon.Ports {
-				if i == len(addon.Ports)-1 {
-					fmt.Printf("└─ %d\n", port)
-				} else {
-					fmt.Printf("├─ %d\n", port)
-				}
-			}
-		}
-
-		if len(addon.EnvVars) > 0 {
-			fmt.Printf("\nENVIRONMENT VARIABLES\n")
-			i := 0
-			for key, value := range addon.EnvVars {
-				if i == len(addon.EnvVars)-1 {
-					fmt.Printf("└─ %s=%s\n", key, value)
-				} else {
-					fmt.Printf("├─ %s=%s\n", key, value)
-				}
-				i++
-			}
-		}
-
-		fmt.Printf("\nTIMESTAMPS\n")
-		fmt.Printf("├─ Created: %s\n", utils.FormatDate(addon.CreatedAt))
-		fmt.Printf("└─ Updated: %s\n", utils.FormatDate(addon.UpdatedAt))
-
-		// Show helpful tips
-		if !opts.Quiet {
-			fmt.Printf("\nNEXT STEPS\n")
-			fmt.Printf("├─ Deploy addon: pipeops deploy --addon %s --project <project-id>\n", addon.ID)
-			fmt.Printf("├─ List all addons: pipeops list --addons\n")
-			fmt.Printf("└─ View addon deployments: pipeops list --deployments --project <project-id>\n")
-		}
-	}
-}
-
-func showProjectStatus(client pipeops.ClientAPI, args []string, opts utils.OutputOptions) {
-	// Get project ID
-	var projectID string
-	var isLinkedProject bool
-
-	if len(args) == 1 {
-		projectID = args[0]
-	} else {
-		// Try to get from linked project
-		projectContext, err := utils.LoadProjectContext()
-		if err == nil && projectContext.ProjectID != "" {
-			projectID = projectContext.ProjectID
-			isLinkedProject = true
-		} else {
-			// Interactive project selection
-			projectsResp, err := client.GetProjects()
-			if err != nil {
-				utils.HandleError(err, "Error fetching projects", opts)
-				return
-			}
-
-			if len(projectsResp.Projects) == 0 {
-				utils.PrintWarning("No projects found", opts)
-				return
-			}
-
-			var options []string
-			for _, p := range projectsResp.Projects {
-				status := utils.GetStatusIcon(p.Status)
-				options = append(options, fmt.Sprintf("%s %s (%s)", status, p.Name, p.ID))
-			}
-
-			idx, _, err := utils.SelectOption("Select a project", options)
-			if err != nil {
-				utils.HandleError(err, "Selection cancelled", opts)
-				return
-			}
-
-			projectID = projectsResp.Projects[idx].ID
-		}
-	}
-
-	// Get project details
-	utils.PrintInfo(fmt.Sprintf("Getting project '%s' status...", projectID), opts)
-
-	project, err := client.GetProject(projectID)
-	if err != nil {
-		utils.HandleError(err, "Error fetching project", opts)
-		return
-	}
-
-	// Get services for the project
-	services, err := client.GetServices(projectID, "")
-	if err != nil {
-		// Services might not be available for all projects, don't fail
-		services = &models.ListServicesResponse{Services: []models.ServiceInfo{}}
-	}
-
-	// Get addon deployments for the project
-	addonDeployments, err := client.GetAddonDeployments(projectID)
-	if err != nil {
-		// Addon deployments might not be available, don't fail
-		addonDeployments = []models.AddonDeployment{}
-	}
-
-	if opts.Format == utils.OutputFormatJSON {
-		statusData := map[string]interface{}{
-			"project":           project,
-			"services":          services,
-			"addon_deployments": addonDeployments,
-			"is_linked":         isLinkedProject,
-		}
-		utils.PrintJSON(statusData)
-	} else {
-		// Display enhanced project information
-		fmt.Printf("\n")
-		if isLinkedProject {
-			utils.PrintInfo(fmt.Sprintf("Linked Project: %s", project.Name), opts)
-		} else {
-			utils.PrintInfo(fmt.Sprintf("Project: %s", project.Name), opts)
-		}
-
-		// Project Overview
-		fmt.Printf("\nPROJECT OVERVIEW\n")
-		fmt.Printf("├─ ID: %s\n", project.ID)
-		fmt.Printf("├─ Name: %s\n", project.Name)
-		fmt.Printf("├─ Status: %s %s\n", getStatusIcon(project.Status), project.Status)
-
-		// Add description if available
-		if project.Description != "" {
-			fmt.Printf("├─ Description: %s\n", utils.TruncateString(project.Description, 60))
-		}
-
-		fmt.Printf("├─ Created: %s\n", utils.FormatDate(project.CreatedAt))
-		fmt.Printf("└─ Last Updated: %s\n", utils.FormatDate(project.UpdatedAt))
-
-		// Health Status Summary
-		healthyServices := 0
-		unhealthyServices := 0
-		unknownServices := 0
-
-		for _, service := range services.Services {
-			switch strings.ToLower(service.Health) {
-			case "healthy":
-				healthyServices++
-			case "unhealthy":
-				unhealthyServices++
-			default:
-				unknownServices++
-			}
-		}
-
-		if len(services.Services) > 0 {
-			fmt.Printf("\nHEALTH STATUS\n")
-			fmt.Printf("├─ Total Services: %d\n", len(services.Services))
-			if healthyServices > 0 {
-				fmt.Printf("├─ Healthy: %d\n", healthyServices)
-			}
-			if unhealthyServices > 0 {
-				fmt.Printf("├─ Unhealthy: %d\n", unhealthyServices)
-			}
-			if unknownServices > 0 {
-				fmt.Printf("└─ Unknown: %d\n", unknownServices)
-			}
-		}
-
-		// Show services with more details
-		if len(services.Services) > 0 {
-			fmt.Printf("\nSERVICES (%d)\n", len(services.Services))
-			for i, service := range services.Services {
-				symbol := "├─"
-				if i == len(services.Services)-1 {
-					symbol = "└─"
-				}
-
-				// Enhanced service display
-				healthIcon := getHealthIcon(service.Health)
-				fmt.Printf("%s %s %s\n", symbol, healthIcon, service.Name)
-
-				// Add sub-details for each service
-				subSymbol := "│  "
-				if i == len(services.Services)-1 {
-					subSymbol = "   "
-				}
-
-				fmt.Printf("%s ├─ Status: %s\n", subSymbol, service.Health)
-				if service.Type != "" {
-					fmt.Printf("%s ├─ Type: %s\n", subSymbol, service.Type)
-				}
-				if service.Protocol != "" {
-					fmt.Printf("%s ├─ Protocol: %s\n", subSymbol, service.Protocol)
-				}
-				if service.Port != 0 {
-					fmt.Printf("%s └─ Port: %d\n", subSymbol, service.Port)
-				} else {
-					fmt.Printf("%s └─ Port: N/A\n", subSymbol)
-				}
-			}
-		}
-
-		// Show addon deployments
-		if len(addonDeployments) > 0 {
-			fmt.Printf("\nADDON DEPLOYMENTS (%d)\n", len(addonDeployments))
-			for i, addon := range addonDeployments {
-				symbol := "├─"
-				if i == len(addonDeployments)-1 {
-					symbol = "└─"
-				}
-
-				statusIcon := utils.GetStatusIcon(addon.Status)
-				fmt.Printf("%s %s %s\n", symbol, statusIcon, addon.Name)
-
-				// Add sub-details for each addon
-				subSymbol := "│  "
-				if i == len(addonDeployments)-1 {
-					subSymbol = "   "
-				}
-
-				fmt.Printf("%s ├─ ID: %s\n", subSymbol, addon.ID)
-				fmt.Printf("%s ├─ Status: %s\n", subSymbol, addon.Status)
-				if addon.DeploymentURL != "" {
-					fmt.Printf("%s ├─ URL: %s\n", subSymbol, addon.DeploymentURL)
-				}
-				fmt.Printf("%s └─ Created: %s\n", subSymbol, utils.FormatDateShort(addon.CreatedAt))
-			}
-		}
-
-		// Recent Activity
-		fmt.Printf("\nRECENT ACTIVITY\n")
-		fmt.Printf("├─ Last deployment: %s\n", utils.FormatDate(project.UpdatedAt))
-		fmt.Printf("└─ Project age: %s\n", getProjectAge(project.CreatedAt))
-
-		// Show helpful tips based on project state
-		if !opts.Quiet {
-			fmt.Printf("\nACTIONS\n")
-
-			// Context-aware actions
-			if isLinkedProject {
-				fmt.Printf("├─ Deploy changes: pipeops deploy\n")
-				fmt.Printf("├─ View logs: pipeops logs\n")
-				fmt.Printf("├─ Unlink project: pipeops unlink\n")
-			} else {
-				fmt.Printf("├─ Link to directory: pipeops link %s\n", projectID)
-				fmt.Printf("├─ View logs: pipeops logs --project %s\n", projectID)
-				fmt.Printf("├─ Deploy: pipeops deploy --project %s\n", projectID)
-			}
-
-			// Common actions
-			if len(addonDeployments) == 0 {
-				fmt.Printf("├─ Add addon: pipeops deploy --addon <addon-id> --project %s\n", projectID)
-			} else {
-				fmt.Printf("├─ Manage addons: pipeops list --deployments --project %s\n", projectID)
-			}
-
-			if len(services.Services) > 0 {
-				fmt.Printf("├─ Connect to service: pipeops connect --project %s\n", projectID)
-				fmt.Printf("├─ Execute command: pipeops exec --project %s\n", projectID)
-			}
-
-			fmt.Printf("└─ Open dashboard: https://app.pipeops.io/projects/%s\n", projectID)
-		}
-	}
-}
-
-// getProjectAge calculates and formats the age of a project
-func getProjectAge(createdAt time.Time) string {
-	duration := time.Since(createdAt)
-	days := int(duration.Hours() / 24)
-
-	if days == 0 {
-		hours := int(duration.Hours())
-		if hours == 0 {
-			return "Less than an hour"
-		}
-		if hours == 1 {
-			return "1 hour"
-		}
-		return fmt.Sprintf("%d hours", hours)
-	}
-
-	if days == 1 {
-		return "1 day"
-	}
-
-	if days < 30 {
-		return fmt.Sprintf("%d days", days)
-	}
-
-	months := days / 30
-	if months == 1 {
-		return "1 month"
-	}
-
-	if months < 12 {
-		return fmt.Sprintf("%d months", months)
-	}
-
-	years := months / 12
-	if years == 1 {
-		return "1 year"
-	}
-
-	return fmt.Sprintf("%d years", years)
-}
-
-// getStatusIcon returns an icon for project status
-func getStatusIcon(status string) string {
-	switch strings.ToLower(status) {
-	case "active", "running", "healthy":
-		return "[OK]"
-	case "deploying", "building", "starting":
-		return "[PENDING]"
-	case "stopped", "inactive":
-		return "[STOPPED]"
-	case "error", "failed", "crashed":
-		return "[ERROR]"
-	default:
-		return "[UNKNOWN]"
-	}
-}
-
-// getHealthIcon returns an icon for service health
-func getHealthIcon(health string) string {
-	switch strings.ToLower(health) {
-	case "healthy":
-		return "[OK]"
-	case "unhealthy":
-		return "[ERROR]"
-	case "unknown":
-		return "[WARN]"
-	default:
-		return "[UNKNOWN]"
-	}
+	Args: cobra.NoArgs,
 }
 
 func init() {
 	rootCmd.AddCommand(statusCmd)
+}
 
-	// Add flags
-	statusCmd.Flags().StringP("addon", "a", "", "Show addon status instead of project status")
+// formatScopes formats scopes for display
+func formatScopes(scopes []string) string {
+	if len(scopes) == 0 {
+		return "none"
+	}
+	return strings.Join(scopes, ", ")
 }

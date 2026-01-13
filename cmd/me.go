@@ -1,4 +1,4 @@
-package auth
+package cmd
 
 import (
 	"context"
@@ -19,8 +19,8 @@ var meCmd = &cobra.Command{
 	Long: `Display information about the currently authenticated user.
 
 Examples:
-  pipeops auth me
-  pipeops auth me --json`,
+  pipeops me
+  pipeops me --json`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
 
@@ -45,9 +45,9 @@ Examples:
 				fmt.Println("Not authenticated")
 				fmt.Println()
 				fmt.Println("You need to log in first:")
-				fmt.Println("   pipeops auth login")
+				fmt.Println("   pipeops login")
 				fmt.Println()
-				fmt.Println("Need help? Run: pipeops auth --help")
+				fmt.Println("Need help? Run: pipeops --help")
 			}
 			return
 		}
@@ -76,7 +76,7 @@ Examples:
 				fmt.Println()
 				fmt.Println("This might help:")
 				fmt.Println("   • Check your internet connection")
-				fmt.Println("   • Try: pipeops auth login")
+				fmt.Println("   • Try: pipeops login")
 				fmt.Println("   • For debugging: pipeops auth debug")
 				showTokenInfo(cfg, authService, opts)
 			}
@@ -149,16 +149,16 @@ Examples:
 			if timeUntilExpiry <= 0 {
 				fmt.Println()
 				fmt.Println("Your session has expired")
-				fmt.Println("Please login again: pipeops auth login")
+				fmt.Println("Please login again: pipeops login")
 			} else if timeUntilExpiry < 1*time.Hour {
 				fmt.Println()
 				fmt.Println("Your session expires soon")
-				fmt.Println("Refresh it: pipeops auth login")
+				fmt.Println("Refresh it: pipeops login")
 			} else {
 				fmt.Println()
 				fmt.Println("Ready to go! Try these commands:")
 				fmt.Println("   pipeops project list    # View your projects")
-				fmt.Println("   pipeops auth status     # Check auth details")
+				fmt.Println("   pipeops status     # Check auth details")
 			}
 		}
 	},
@@ -188,6 +188,6 @@ func showTokenInfo(cfg *config.Config, authService *auth.PKCEOAuthService, opts 
 	fmt.Printf("Token expires in %s\n", expiryStatus)
 }
 
-func (k *authModel) me() {
-	k.rootCmd.AddCommand(meCmd)
+func init() {
+	rootCmd.AddCommand(meCmd)
 }

@@ -1,4 +1,4 @@
-package auth
+package cmd
 
 import (
 	"fmt"
@@ -15,9 +15,9 @@ var logoutCmd = &cobra.Command{
 	Long: `Logout from your PipeOps account and clear stored authentication tokens.
 
 Examples:
-  pipeops auth logout
-  pipeops auth logout --json
-  pipeops auth logout --force`,
+  pipeops logout
+  pipeops logout --json
+  pipeops logout --force`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
 
@@ -75,9 +75,7 @@ Examples:
 	Args: cobra.NoArgs,
 }
 
-func (k *authModel) logout() {
-	k.rootCmd.AddCommand(logoutCmd)
-
-	// Add flags
+func init() {
+	rootCmd.AddCommand(logoutCmd)
 	logoutCmd.Flags().BoolP("force", "f", false, "Force logout without confirmation")
 }

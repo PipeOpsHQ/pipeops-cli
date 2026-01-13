@@ -1,4 +1,4 @@
-package auth
+package cmd
 
 import (
 	"context"
@@ -17,7 +17,7 @@ var loginCmd = &cobra.Command{
 	Long: `Login to PipeOps using OAuth2 authentication.
 
 Examples:
-  pipeops auth login`,
+  pipeops login`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Load configuration
 		cfg, err := config.Load()
@@ -58,7 +58,7 @@ Examples:
 			fmt.Println("Troubleshooting tips:")
 			fmt.Println("   • Check your internet connection")
 			fmt.Println("   • Make sure you complete the login in your browser")
-			fmt.Println("   • Try again: pipeops auth login")
+			fmt.Println("   • Try again: pipeops login")
 			return
 		}
 
@@ -73,14 +73,12 @@ Examples:
 		fmt.Println()
 		fmt.Println("What's next? Try these commands:")
 		fmt.Println("   pipeops project list     # See your projects")
-		fmt.Println("   pipeops auth me          # View your profile")
+		fmt.Println("   pipeops me          # View your profile")
 		fmt.Println("   pipeops --help           # Explore all commands")
 	},
 }
 
-func (k *authModel) login() {
-	k.rootCmd.AddCommand(loginCmd)
-
-	// Add flags
+func init() {
+	rootCmd.AddCommand(loginCmd)
 	loginCmd.Flags().Bool("json", false, "Output in JSON format")
 }
