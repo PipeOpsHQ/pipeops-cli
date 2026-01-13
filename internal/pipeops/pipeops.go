@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -14,6 +15,29 @@ import (
 	sdk "github.com/PipeOpsHQ/pipeops-go-sdk/pipeops"
 	"github.com/manifoldco/promptui"
 )
+
+// sdkClusterGetResponse is a custom struct to unmarshal the response from the GetServer API call.
+// This is needed because the SDK's Get method for servers is buggy and expects a list instead of a single object.
+type sdkClusterGetResponse struct {
+	Success bool   `json:"success,omitempty"`
+	Status  string `json:"status,omitempty"`
+	Message string `json:"message,omitempty"`
+	Data    struct {
+		Cluster sdkClusterListItem `json:"cluster,omitempty"`
+	} `json:"data,omitempty"`
+}
+
+type sdkClusterListItem struct {
+	Cluster struct {
+		UUID          string `json:"uuid,omitempty"`
+		Name          string `json:"name,omitempty"`
+		CloudProvider string `json:"cloudProvider,omitempty"`
+		Region        string `json:"region,omitempty"`
+		Status        string `json:"status,omitempty"`
+	} `json:"Cluster,omitempty"`
+	IsActive bool `json:"IsActive,omitempty"`
+	InUse    bool `json:"InUse,omitempty"`
+}
 
 // Client represents the PipeOps client wrapping the Go SDK
 type Client struct {
@@ -834,32 +858,40 @@ func (c *Client) GetServer(serverID string) (*models.Server, error) {
 		return nil, err
 	}
 
-	// In the SDK, "server" resources are represented as clusters and require a workspace UUID.
-	resp, _, err := c.sdkClient.Servers.Get(ctx, serverID, workspaceUUID)
+	// Bypassing the SDK's GetServer method due to a bug where it expects a list of servers instead of a single server.
+	// We are making a direct HTTP call to the API instead.
+	u := fmt.Sprintf("cluster/%s?workspace_uuid=%s", serverID, workspaceUUID)
+	req, err := c.sdkClient.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if resp == nil {
+	rawResp := new(sdkClusterGetResponse)
+	_, err = c.sdkClient.Do(ctx, req, rawResp)
+	if err != nil {
+		return nil, err
+	}
+
+	if rawResp == nil || rawResp.Data.Cluster.Cluster.UUID == "" {
 		return nil, errors.New("no cluster data returned")
 	}
 
-	id := strings.TrimSpace(resp.Data.Server.UUID)
-	if id == "" {
-		id = resp.Data.Server.ID
-	}
-	if id == "" {
-		return nil, errors.New("no cluster data returned")
+	cluster := rawResp.Data.Cluster
+	status := cluster.Cluster.Status
+	if status == "" {
+		if cluster.IsActive {
+			status = "active"
+		} else {
+			status = "inactive"
+		}
 	}
 
 	return &models.Server{
-		ID:        id,
-		Name:      resp.Data.Server.Name,
-		Status:    resp.Data.Server.Status,
-		Type:      resp.Data.Server.Provider,
-		Region:    resp.Data.Server.Region,
-		CreatedAt: timestampToTime(resp.Data.Server.CreatedAt),
-		UpdatedAt: timestampToTime(resp.Data.Server.UpdatedAt),
+		ID:        cluster.Cluster.UUID,
+		Name:      cluster.Cluster.Name,
+		Status:    status,
+		Type:      cluster.Cluster.CloudProvider,
+		Region:    cluster.Cluster.Region,
 	}, nil
 }
 
