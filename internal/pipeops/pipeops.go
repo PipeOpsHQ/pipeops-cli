@@ -840,9 +840,16 @@ func (c *Client) GetServer(serverID string) (*models.Server, error) {
 		return nil, err
 	}
 
+	if resp == nil {
+		return nil, errors.New("no cluster data returned")
+	}
+
 	id := strings.TrimSpace(resp.Data.Server.UUID)
 	if id == "" {
 		id = resp.Data.Server.ID
+	}
+	if id == "" {
+		return nil, errors.New("no cluster data returned")
 	}
 
 	return &models.Server{

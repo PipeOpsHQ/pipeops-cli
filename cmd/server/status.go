@@ -57,12 +57,17 @@ Examples:
 				headers := []string{"ATTRIBUTE", "VALUE"}
 				var rows [][]string
 
+				ip := server.IP
+				if ip == "" {
+					ip = "N/A"
+				}
+
 				rows = append(rows, []string{"ID", server.ID})
 				rows = append(rows, []string{"Name", server.Name})
 				rows = append(rows, []string{"Type", server.Type})
 				rows = append(rows, []string{"Status", server.Status})
 				rows = append(rows, []string{"Region", server.Region})
-				rows = append(rows, []string{"IP Address", server.IP})
+				rows = append(rows, []string{"IP Address", ip})
 				rows = append(rows, []string{"Created At", utils.FormatDate(server.CreatedAt)})
 
 				utils.PrintTable(headers, rows, opts)
