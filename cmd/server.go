@@ -14,7 +14,13 @@ interactions with servers.
 
 Examples:
   - List all servers:
-    pipeops server list`,
+    pipeops server list
+
+  - Create a new server:
+    pipeops server create
+
+  - Delete a server:
+    pipeops server delete <server-id>`,
 }
 
 func init() {
@@ -29,5 +35,6 @@ func init() {
 func registerServerSubcommands() {
 	// Add server commands
 	serverCmd.AddCommand(server.GetListCmd())
-	serverCmd.AddCommand(server.GetStatusCmd())
+	serverCmd.AddCommand(server.GetCreateCmd())
+	serverCmd.AddCommand(server.GetDeleteCmd())
 }
