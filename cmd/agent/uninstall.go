@@ -45,7 +45,7 @@ func confirmUninstall() bool {
 func executeUninstall() {
 	log.Println("Uninstalling PipeOps agent and destroying cluster...")
 
-	uninstallScript := "curl -fsSL https://get.pipeops.dev/k8-uninstall.sh | bash"
+	uninstallScript := "curl -fsSL https://get.pipeops.dev/k8-uninstall.sh | bash -s -- --force"
 
 	// Pass PIPEOPS_TOKEN if present in environment, though the script might not strictly need it for local destruction
 	token := os.Getenv("PIPEOPS_TOKEN")
