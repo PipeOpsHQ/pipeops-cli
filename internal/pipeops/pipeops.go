@@ -827,11 +827,15 @@ func (c *Client) GetServers() (*models.ServersResponse, error) {
 		if id == "" {
 			id = s.ID
 		}
+		provider := s.Provider
+		if provider == "" {
+			provider = detectProviderFromName(s.Name)
+		}
 		servers[i] = models.Server{
 			ID:        id,
 			Name:      s.Name,
 			Status:    s.Status,
-			Type:      s.Provider, // Provider maps to Type in CLI
+			Type:      provider, // Provider maps to Type in CLI
 			Region:    s.Region,
 			CreatedAt: timestampToTime(s.CreatedAt),
 			UpdatedAt: timestampToTime(s.UpdatedAt),
@@ -886,13 +890,42 @@ func (c *Client) GetServer(serverID string) (*models.Server, error) {
 		}
 	}
 
+	provider := cluster.Cluster.CloudProvider
+	if provider == "" {
+		provider = detectProviderFromName(cluster.Cluster.Name)
+	}
+
 	return &models.Server{
 		ID:        cluster.Cluster.UUID,
 		Name:      cluster.Cluster.Name,
 		Status:    status,
-		Type:      cluster.Cluster.CloudProvider,
+		Type:      provider,
 		Region:    cluster.Cluster.Region,
 	}, nil
+}
+
+// detectProviderFromName attempts to detect the cloud provider from the server name.
+func detectProviderFromName(name string) string {
+	name = strings.ToLower(name)
+	if strings.Contains(name, "linode") {
+		return "Linode"
+	}
+	if strings.Contains(name, "hetzner") {
+		return "Hetzner"
+	}
+	if strings.Contains(name, "do") || strings.Contains(name, "digitalocean") {
+		return "DigitalOcean"
+	}
+	if strings.Contains(name, "gcp") || strings.Contains(name, "google") {
+		return "GCP"
+	}
+	if strings.Contains(name, "aws") || strings.Contains(name, "amazon") {
+		return "AWS"
+	}
+	if strings.Contains(name, "azure") || strings.Contains(name, "microsoft") {
+		return "Azure"
+	}
+	return "Unknown"
 }
 
 // CreateServer creates a new server
