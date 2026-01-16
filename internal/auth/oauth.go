@@ -136,7 +136,7 @@ func (s *PKCEOAuthService) handleDirectToken(token string) error {
 // findAvailablePort finds an available port for the callback server
 func (s *PKCEOAuthService) findAvailablePort() (int, error) {
 	// Try preferred ports first
-	preferredPorts := []int{8085, 8086, 8087, 8088, 8089}
+	preferredPorts := []int{8080, 8085, 8086, 8087, 8088, 8089}
 	for _, port := range preferredPorts {
 		listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 		if err == nil {

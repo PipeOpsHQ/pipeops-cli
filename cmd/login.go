@@ -29,6 +29,17 @@ Examples:
 		// Create PKCE OAuth service
 		oauthService := auth.NewPKCEOAuthService(cfg)
 
+		// Override config with flags if provided
+		if clientID, _ := cmd.Flags().GetString("client-id"); clientID != "" {
+			cfg.OAuth.ClientID = clientID
+		}
+		if authURL, _ := cmd.Flags().GetString("auth-url"); authURL != "" {
+			cfg.OAuth.DashboardURL = authURL
+		}
+		if tokenURL, _ := cmd.Flags().GetString("token-url"); tokenURL != "" {
+			cfg.OAuth.BaseURL = tokenURL
+		}
+
 		// Check if already authenticated (local check)
 		if oauthService.IsAuthenticated() {
 			// Validate with server to ensure token is still valid
@@ -81,4 +92,7 @@ Examples:
 func init() {
 	rootCmd.AddCommand(loginCmd)
 	loginCmd.Flags().Bool("json", false, "Output in JSON format")
+	loginCmd.Flags().String("client-id", "", "OAuth2 client ID")
+	loginCmd.Flags().String("auth-url", "", "OAuth2 authorization URL")
+	loginCmd.Flags().String("token-url", "", "OAuth2 token URL")
 }

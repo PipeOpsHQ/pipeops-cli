@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -33,7 +32,6 @@ import (
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var cfgFile string
@@ -213,7 +211,10 @@ func shouldSkipUpdateCheck(cmd *cobra.Command) bool {
 // shouldCheckForUpdates determines if it's time to check for updates
 func shouldCheckForUpdates() bool {
 	// Try to load existing config
-	cfg := loadConfigSafely()
+	cfg, err := config.Load()
+	if err != nil {
+		return true
+	}
 
 	if cfg.Updates == nil {
 		return true
@@ -227,65 +228,19 @@ func shouldCheckForUpdates() bool {
 	return true
 }
 
-// loadConfigSafely loads config without exiting on errors
-func loadConfigSafely() config.Config {
-	var cfg config.Config
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		if os.Getenv("PIPEOPS_DEBUG") == "true" {
-			fmt.Fprintf(os.Stderr, "Warning: failed to get home directory: %v\n", err)
-		}
-		return cfg
-	}
-
-	filename := fmt.Sprintf("%s/.pipeops.json", home)
-
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		return cfg
-	}
-
-	dataBytes, err := os.ReadFile(filename)
-	if err != nil {
-		if os.Getenv("PIPEOPS_DEBUG") == "true" {
-			fmt.Fprintf(os.Stderr, "Warning: failed to read config: %v\n", err)
-		}
-		return cfg
-	}
-
-	if err := json.Unmarshal(dataBytes, &cfg); err != nil {
-		if os.Getenv("PIPEOPS_DEBUG") == "true" {
-			fmt.Fprintf(os.Stderr, "Warning: failed to parse config: %v\n", err)
-		}
-	}
-	return cfg
-}
-
 // updateLastCheckTime updates the last update check time
 func updateLastCheckTime() error {
-	cfg := loadConfigSafely()
+	cfg, err := config.Load()
+	if err != nil {
+		cfg = config.DefaultConfig()
+	}
+
 	if cfg.Updates == nil {
 		cfg.Updates = &config.UpdateSettings{}
 	}
 	cfg.Updates.LastUpdateCheck = time.Now()
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
-	}
-
-	filename := fmt.Sprintf("%s/.pipeops.json", home)
-
-	dataBytes, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	if err := os.WriteFile(filename, dataBytes, 0600); err != nil {
-		return fmt.Errorf("failed to write config: %w", err)
-	}
-
-	return nil
+	return config.Save(cfg)
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -295,14 +250,12 @@ func Execute() error {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-
 	// Global flags
 	rootCmd.PersistentFlags().Bool("json", false, "Output in JSON format")
 	rootCmd.PersistentFlags().Bool("verbose", false, "Enable verbose output")
 	rootCmd.PersistentFlags().Bool("quiet", false, "Suppress non-essential output")
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.pipeops.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.pipeops.json)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -355,87 +308,4 @@ func init() {
 		yellow("{{rpad .Name .NamePadding }}"),
 		bold("FLAGS"),
 	))
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		// Search config in home directory with name ".pipeops-cli" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".pipeops")
-	}
-
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-	}
-}
-
-func GetConfig() (config.Config, error) {
-	var filename string
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return config.Config{}, fmt.Errorf("failed to get user home directory: %w", err)
-	}
-
-	filename = fmt.Sprintf("%s/%s", home, ".pipeops.json")
-
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		return config.Config{}, fmt.Errorf("config file does not exist: %s", filename)
-	}
-
-	dataBytes, err := os.ReadFile(filename)
-	if err != nil {
-		return config.Config{}, fmt.Errorf("failed to read config file: %w", err)
-	}
-
-	err = json.Unmarshal(dataBytes, &Conf)
-	if err != nil {
-		return config.Config{}, fmt.Errorf("failed to parse config file: %w", err)
-	}
-
-	return Conf, nil
-}
-
-func SaveConfig() error {
-	var filename string
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get user home directory: %w", err)
-	}
-
-	filename = fmt.Sprintf("%s/%s", home, ".pipeops.json")
-
-	if Conf.Version == nil {
-		Conf.Version = &config.VersionInfo{}
-	}
-	Conf.Version.Version = Version
-
-	dataBytes, err := json.MarshalIndent(Conf, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	err = os.WriteFile(filename, dataBytes, 0600)
-	if err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
-	}
-
-	if err := os.Chmod(filename, 0600); err != nil {
-		return fmt.Errorf("failed to set config file permissions: %w", err)
-	}
-
-	return nil
 }
