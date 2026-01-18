@@ -7,13 +7,15 @@ import (
 	"os"
 	"strings"
 
+	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
 
 var uninstallCmd = &cobra.Command{
-	Use:   "uninstall",
-	Short: "Uninstall PipeOps agent and destroy the cluster",
+	Use:     "uninstall",
+	Aliases: []string{"remove"},
+	Short:   "Uninstall PipeOps agent and destroy the cluster",
 	Long: `The "uninstall" command removes the PipeOps agent and destroys the Kubernetes cluster created by PipeOps.
 
 WARNING: This action is irreversible. It will remove the PipeOps agent and delete the cluster.`, 
@@ -27,7 +29,7 @@ WARNING: This action is irreversible. It will remove the PipeOps agent and delet
 			}
 		}
 
-		executeUninstall()
+		executeUninstall(cmd)
 	},
 }
 
@@ -42,16 +44,43 @@ func confirmUninstall() bool {
 	return response == "y" || response == "yes"
 }
 
-func executeUninstall() {
+func executeUninstall(cmd *cobra.Command) {
 	log.Println("Uninstalling PipeOps agent and destroying cluster...")
 
 	uninstallScript := "curl -fsSL https://get.pipeops.dev/k8-uninstall.sh | bash -s -- --force"
 
-	// Pass PIPEOPS_TOKEN if present in environment, though the script might not strictly need it for local destruction
-	token := os.Getenv("PIPEOPS_TOKEN")
+	// Gather environment variables
 	var envVars []string
+
+	// 1. Token
+	token := os.Getenv("PIPEOPS_TOKEN")
+	if token == "" {
+		// Try to load from config
+		cfg, err := config.Load()
+		if err == nil && cfg.IsAuthenticated() {
+			token = cfg.OAuth.AccessToken
+		}
+	}
 	if token != "" {
 		envVars = append(envVars, fmt.Sprintf("PIPEOPS_TOKEN=%s", token))
+	}
+
+	// 2. Cluster Name
+	clusterName, _ := cmd.Flags().GetString("cluster-name")
+	if clusterName == "" {
+		clusterName = os.Getenv("CLUSTER_NAME")
+	}
+	if clusterName != "" {
+		envVars = append(envVars, fmt.Sprintf("CLUSTER_NAME=%s", clusterName))
+	}
+
+	// 3. Cluster Type
+	clusterType, _ := cmd.Flags().GetString("cluster-type")
+	if clusterType == "" {
+		clusterType = os.Getenv("CLUSTER_TYPE")
+	}
+	if clusterType != "" {
+		envVars = append(envVars, fmt.Sprintf("CLUSTER_TYPE=%s", clusterType))
 	}
 
 	_, err := utils.RunShellCommandWithEnvStreaming(uninstallScript, envVars)
@@ -64,5 +93,7 @@ func executeUninstall() {
 
 func (a *agentModel) uninstall() {
 	uninstallCmd.Flags().Bool("force", false, "Skip confirmation prompt")
+	uninstallCmd.Flags().String("cluster-name", "", "Name of the cluster to destroy")
+	uninstallCmd.Flags().String("cluster-type", "", "Type of the cluster (k3s|minikube|k3d|kind|auto)")
 	a.rootCmd.AddCommand(uninstallCmd)
 }

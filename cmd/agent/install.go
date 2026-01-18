@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
@@ -94,10 +95,10 @@ Examples:
 			}
 
 			// Check if user is authenticated via OAuth
-			// cfg, err := config.Load()
-			// if err == nil && cfg.IsAuthenticated() {
-			// 	return nil
-			// }
+			cfg, err := config.Load()
+			if err == nil && cfg.IsAuthenticated() {
+				return nil
+			}
 
 			return fmt.Errorf("Error: PipeOps token is required. Provide token as argument: 'pipeops agent install <token>' or set PIPEOPS_TOKEN environment variable")
 		}
@@ -118,10 +119,10 @@ func getPipeOpsToken(cmd *cobra.Command, args []string) string {
 	}
 
 	// Check OAuth config
-	// cfg, err := config.Load()
-	// if err == nil && cfg.IsAuthenticated() {
-	// 	return strings.TrimSpace(cfg.OAuth.AccessToken)
-	// }
+	cfg, err := config.Load()
+	if err == nil && cfg.IsAuthenticated() {
+		return strings.TrimSpace(cfg.OAuth.AccessToken)
+	}
 
 	return ""
 }
@@ -207,7 +208,20 @@ func updateAgent(cmd *cobra.Command, token, clusterName string) {
 
 	// Update PipeOps agent
 	updateCmd := "curl -fsSL https://get.pipeops.dev/k8-install.sh | bash"
-	envVars := []string{fmt.Sprintf("PIPEOPS_TOKEN=%s", token)}
+	
+	clusterType, _ := cmd.Flags().GetString("cluster-type")
+	
+	envVars := []string{
+		fmt.Sprintf("PIPEOPS_TOKEN=%s", token),
+		"UPDATE=true",
+	}
+	
+	if clusterName != "" {
+		envVars = append(envVars, fmt.Sprintf("CLUSTER_NAME=%s", clusterName))
+	}
+	if clusterType != "" {
+		envVars = append(envVars, fmt.Sprintf("CLUSTER_TYPE=%s", clusterType))
+	}
 
 	_, err := utils.RunShellCommandWithEnvStreaming(updateCmd, envVars)
 	if err != nil {
