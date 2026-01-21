@@ -137,7 +137,7 @@ func TestRootCommandFlags(t *testing.T) {
 }
 
 func TestConfigFunctions(t *testing.T) {
-	// Test that GetConfig and SaveConfig return errors properly
+	// Test that config functions work properly
 	// Note: These tests require a valid config file setup
 
 	// Create temporary directory
@@ -145,24 +145,31 @@ func TestConfigFunctions(t *testing.T) {
 	os.Setenv("HOME", tempDir)
 	defer os.Unsetenv("HOME")
 
-	// Test GetConfig with non-existent file
-	_, err := GetConfig()
-	if err == nil {
-		t.Error("GetConfig() should return error when config file doesn't exist")
+	// Test config.Load with non-existent file
+	// It should return default config, not error (changed behavior in refactor)
+	cfg, err := config.Load()
+	if err != nil {
+		t.Errorf("config.Load() unexpected error: %v", err)
+	}
+	if cfg == nil {
+		t.Error("config.Load() returned nil config")
 	}
 
-	// Test SaveConfig
-	Conf = config.Config{
+	// Test Save
+	testCfg := &config.Config{
 		Version: &config.VersionInfo{Version: "test"},
 	}
-	err = SaveConfig()
+	err = config.Save(testCfg)
 	if err != nil {
-		t.Errorf("SaveConfig() unexpected error: %v", err)
+		t.Errorf("config.Save() unexpected error: %v", err)
 	}
 
-	// Now GetConfig should work
-	_, err = GetConfig()
+	// Now Load should return the saved config
+	loadedCfg, err := config.Load()
 	if err != nil {
-		t.Errorf("GetConfig() unexpected error after save: %v", err)
+		t.Errorf("config.Load() unexpected error after save: %v", err)
+	}
+	if loadedCfg.Version.Version != "test" {
+		t.Errorf("Expected version 'test', got %q", loadedCfg.Version.Version)
 	}
 }
