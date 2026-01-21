@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/PipeOpsHQ/pipeops-cli/internal/sanitize"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
@@ -31,7 +32,7 @@ Examples:
 		token := getJoinToken(cmd, args)
 
 		log.Println("Joining worker node to PipeOps cluster...")
-		log.Printf("Server URL: %s", serverURL)
+		log.Printf("Server URL: %s", sanitize.Log(serverURL))
 
 		// Set environment variables for the join script
 		envVars := []string{

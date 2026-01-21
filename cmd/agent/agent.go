@@ -20,3 +20,9 @@ func (a *agentModel) Register() {
 	a.uninstall()
 	a.registerUpdate()
 }
+
+func (a *agentModel) registerUpdate() {
+	updateCmd.Flags().String("cluster-name", "", "Name of the cluster to update")
+	updateCmd.Flags().String("cluster-type", "", "Type of the cluster (k3s|minikube|k3d|kind|auto)")
+	a.rootCmd.AddCommand(updateCmd)
+}
