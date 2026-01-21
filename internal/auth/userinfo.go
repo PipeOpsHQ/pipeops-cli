@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
-	"github.com/PipeOpsHQ/pipeops-cli/internal/sanitize"
 )
 
 // UserInfo represents the user information returned by the OAuth userinfo endpoint
@@ -116,7 +115,7 @@ func (s *UserInfoService) getUserInfoWithBearer(ctx context.Context, accessToken
 
 	// Debug information
 	if s.config.Settings != nil && s.config.Settings.Debug {
-		fmt.Printf("🔍 Debug: Making Bearer token request to %s\n", sanitize.Log(req.URL.String()))
+		fmt.Printf("🔍 Debug: Making Bearer token request to %s\n", config.SanitizeLog(req.URL.String()))
 		tokenPreview := accessToken
 		if len(accessToken) > 20 {
 			tokenPreview = accessToken[:20] + "..."
@@ -143,7 +142,7 @@ func (s *UserInfoService) getUserInfoWithBearer(ctx context.Context, accessToken
 	if s.config.Settings != nil && s.config.Settings.Debug {
 		fmt.Printf("🔍 Debug: Response status: %d\n", resp.StatusCode)
 		fmt.Printf("🔍 Debug: Response headers: %v\n", resp.Header)
-		fmt.Printf("🔍 Debug: Response body: %s\n", sanitize.Log(responseBody))
+		fmt.Printf("🔍 Debug: Response body: %s\n", config.SanitizeLog(responseBody))
 	}
 
 	// Check response status with detailed error messages

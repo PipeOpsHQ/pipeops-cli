@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
-	"github.com/PipeOpsHQ/pipeops-cli/internal/sanitize"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
@@ -145,7 +144,7 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 	// Install Kubernetes cluster with PipeOps agent integration
 	installCmd := "curl -fsSL https://get.pipeops.dev/k8-install.sh | bash"
 
-	log.Printf("Installing cluster type: %s", sanitize.Log(clusterType))
+	log.Printf("Installing cluster type: %s", config.SanitizeLog(clusterType))
 	log.Printf("PipeOps monitoring: %s", map[bool]string{true: "enabled", false: "disabled"}[enableMonitoring])
 
 	// Execute the installer with environment variables

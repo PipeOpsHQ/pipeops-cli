@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/PipeOpsHQ/pipeops-cli/internal/sanitize"
+	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/libs"
 	"github.com/spf13/viper"
 )
@@ -28,12 +28,12 @@ func RunCommand(name string, args ...string) (string, error) {
 	outStr := strings.TrimSpace(stdout.String())
 	errStr := strings.TrimSpace(stderr.String())
 
-	log.Printf("Command executed: %s %s", sanitize.Log(name), sanitize.Log(strings.Join(args, " ")))
+	log.Printf("Command executed: %s %s", config.SanitizeLog(name), config.SanitizeLog(strings.Join(args, " ")))
 	if outStr != "" {
-		log.Printf("stdout: %s", sanitize.Log(outStr))
+		log.Printf("stdout: %s", config.SanitizeLog(outStr))
 	}
 	if errStr != "" {
-		log.Printf("stderr: %s", sanitize.Log(errStr))
+		log.Printf("stderr: %s", config.SanitizeLog(errStr))
 	}
 
 	if err != nil {
@@ -56,12 +56,12 @@ func RunCommandWithEnv(name string, args []string, env []string) (string, error)
 	outStr := strings.TrimSpace(stdout.String())
 	errStr := strings.TrimSpace(stderr.String())
 
-	log.Printf("Command executed: %s %s", sanitize.Log(name), sanitize.Log(strings.Join(args, " ")))
+	log.Printf("Command executed: %s %s", config.SanitizeLog(name), config.SanitizeLog(strings.Join(args, " ")))
 	if outStr != "" {
-		log.Printf("stdout: %s", sanitize.Log(outStr))
+		log.Printf("stdout: %s", config.SanitizeLog(outStr))
 	}
 	if errStr != "" {
-		log.Printf("stderr: %s", sanitize.Log(errStr))
+		log.Printf("stderr: %s", config.SanitizeLog(errStr))
 	}
 
 	if err != nil {
@@ -85,7 +85,7 @@ func RunCommandWithEnvStreaming(name string, args []string, env []string) (strin
 	cmd.Stdout = io.MultiWriter(os.Stdout, &stdout)
 	cmd.Stderr = io.MultiWriter(os.Stderr, &stderr)
 
-	log.Printf("Running command: %s %s", sanitize.Log(name), sanitize.Log(strings.Join(args, " ")))
+	log.Printf("Running command: %s %s", config.SanitizeLog(name), config.SanitizeLog(strings.Join(args, " ")))
 	err := cmd.Run()
 
 	outStr := strings.TrimSpace(stdout.String())

@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
-	"github.com/PipeOpsHQ/pipeops-cli/internal/sanitize"
 )
 
 // PKCEOAuthService handles OAuth2 authentication with PKCE
@@ -252,7 +251,7 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 		
 		// Debug: log all query parameters
 		if s.config.Settings != nil && s.config.Settings.Debug {
-			fmt.Printf("🔍 Debug: Callback query params: %v\n", sanitize.Log(fmt.Sprintf("%v", r.URL.Query())))
+			fmt.Printf("🔍 Debug: Callback query params: %v\n", config.SanitizeLog(fmt.Sprintf("%v", r.URL.Query())))
 		}
 		
 		if code == "" && token == "" {
@@ -376,7 +375,7 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 
 	// Debug: log raw response
 	if s.config.Settings != nil && s.config.Settings.Debug {
-		fmt.Printf("🔍 Debug: Token response: %s\n", sanitize.Log(string(body)))
+		fmt.Printf("🔍 Debug: Token response: %s\n", config.SanitizeLog(string(body)))
 	}
 
 	// Parse token response - new format includes redirect_url

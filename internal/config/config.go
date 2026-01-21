@@ -123,6 +123,13 @@ func DefaultConfig() *Config {
 	}
 }
 
+// SanitizeLog removes newlines and other control characters to prevent log injection
+func SanitizeLog(s string) string {
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\r", "")
+	return s
+}
+
 // Load reads configuration from disk
 func Load() (*Config, error) {
 	configPath, err := getConfigPath()
