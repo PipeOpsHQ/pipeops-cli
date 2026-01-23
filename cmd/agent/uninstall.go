@@ -14,11 +14,11 @@ import (
 
 var uninstallCmd = &cobra.Command{
 	Use:     "uninstall",
-	Aliases: []string{"remove"},
+	Aliases: []string{"remove", "rm"},
 	Short:   "Uninstall PipeOps agent and destroy the cluster",
 	Long: `The "uninstall" command removes the PipeOps agent and destroys the Kubernetes cluster created by PipeOps.
 
-WARNING: This action is irreversible. It will remove the PipeOps agent and delete the cluster.`, 
+WARNING: This action is irreversible. It will remove the PipeOps agent and delete the cluster.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		force, _ := cmd.Flags().GetBool("force")
 
@@ -86,6 +86,18 @@ func executeUninstall(cmd *cobra.Command) {
 	_, err := utils.RunShellCommandWithEnvStreaming(uninstallScript, envVars)
 	if err != nil {
 		log.Fatalf("Error uninstalling PipeOps agent: %v", err)
+	}
+
+	// Run k3s-uninstall.sh if it exists to fully cleanup
+	k3sUninstallPath := "/usr/local/bin/k3s-uninstall.sh"
+	if _, err := os.Stat(k3sUninstallPath); err == nil {
+		log.Println("Running k3s cleanup script...")
+		_, err := utils.RunShellCommandWithEnvStreaming(k3sUninstallPath, nil)
+		if err != nil {
+			log.Printf("Warning: Failed to run k3s uninstall script: %v", err)
+		} else {
+			log.Println("k3s cleanup completed successfully.")
+		}
 	}
 
 	log.Println("PipeOps agent uninstalled and cluster destroyed successfully!")

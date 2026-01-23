@@ -34,15 +34,21 @@ func TestAgentCommands(t *testing.T) {
 		if cmd.Name() == "uninstall" {
 			foundUninstall = true
 			// Check aliases
-			hasAlias := false
+			hasRemoveAlias := false
+			hasRmAlias := false
 			for _, alias := range cmd.Aliases {
 				if alias == "remove" {
-					hasAlias = true
-					break
+					hasRemoveAlias = true
+				}
+				if alias == "rm" {
+					hasRmAlias = true
 				}
 			}
-			if !hasAlias {
+			if !hasRemoveAlias {
 				t.Error("uninstall command missing 'remove' alias")
+			}
+			if !hasRmAlias {
+				t.Error("uninstall command missing 'rm' alias")
 			}
 			// Check flags
 			if cmd.Flag("force") == nil {
