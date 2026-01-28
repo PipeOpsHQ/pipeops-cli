@@ -101,21 +101,21 @@ Examples:
 			printWorkspaceTable(workspaces, cfg, "WORKSPACES", opts)
 		} else {
 			if len(ownedWorkspaces) > 0 {
-				printWorkspaceTable(ownedWorkspaces, cfg, "👤 YOUR WORKSPACES", opts)
+				printWorkspaceTable(ownedWorkspaces, cfg, "[ YOUR WORKSPACES ]", opts)
 			}
 			
 			if len(sharedWorkspaces) > 0 {
 				if len(ownedWorkspaces) > 0 {
 					fmt.Println() // Add spacing between tables
 				}
-				printWorkspaceTable(sharedWorkspaces, cfg, "👥 SHARED WORKSPACES", opts)
+				printWorkspaceTable(sharedWorkspaces, cfg, "[ SHARED WORKSPACES ]", opts)
 			}
 		}
 
 		if cfg.Settings != nil && cfg.Settings.DefaultWorkspaceUUID != "" {
-			fmt.Printf("\n💡 Current workspace: %s\n", cfg.Settings.DefaultWorkspaceUUID)
+			fmt.Printf("\n[INFO] Current workspace: %s\n", cfg.Settings.DefaultWorkspaceUUID)
 		} else {
-			fmt.Printf("\n💡 TIP: Select a default workspace with: pipeops workspace select\n")
+			fmt.Printf("\n[TIP] Select a default workspace with: pipeops workspace select\n")
 		}
 	},
 	Args: cobra.NoArgs,

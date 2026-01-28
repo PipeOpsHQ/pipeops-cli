@@ -168,7 +168,7 @@ Examples:
 
 				// Show helpful tips
 				if !opts.Quiet {
-					fmt.Printf("\nTIPS\n")
+					fmt.Printf("\n[ TIPS ]\n")
 					fmt.Printf("├─ Deploy addon: pipeops deploy --addon <addon-id> --project <project-id>\n")
 					fmt.Printf("├─ View deployments: pipeops list --deployments --project <project-id>\n")
 					fmt.Printf("└─ Get addon info: pipeops status --addon <addon-id>\n")
@@ -194,7 +194,7 @@ Examples:
 					utils.PrintJSON([]interface{}{})
 				} else {
 					utils.PrintWarning("No projects found", opts)
-					fmt.Printf("\n🚀 GET STARTED\n")
+					fmt.Printf("\n[ GET STARTED ]\n")
 					fmt.Printf("├─ Create a project at: https://app.pipeops.io\n")
 					fmt.Printf("├─ Import from GitHub: pipeops create --from-github\n")
 					fmt.Printf("└─ Check documentation: https://docs.pipeops.io\n")
@@ -227,7 +227,7 @@ Examples:
 				utils.PrintJSON(projectsWithLink)
 			} else {
 				// Enhanced table display
-				fmt.Printf("\n📊 PROJECTS OVERVIEW\n")
+				fmt.Printf("\n[ PROJECTS OVERVIEW ]\n")
 				fmt.Printf("├─ Total: %d projects\n", len(projectsResp.Projects))
 
 				// Count projects by status
@@ -297,7 +297,7 @@ Examples:
 
 				// Enhanced tips section
 				if !opts.Quiet {
-					fmt.Printf("\n💡 QUICK ACTIONS\n")
+					fmt.Printf("\n[ QUICK ACTIONS ]\n")
 
 					if linkedProjectID != "" {
 						fmt.Printf("├─ Deploy linked project: pipeops deploy\n")
@@ -314,7 +314,7 @@ Examples:
 					fmt.Printf("└─ Deploy addon: pipeops deploy --addon <addon-id>\n")
 
 					// Add filtering hint
-					fmt.Printf("\n🔍 COMING SOON\n")
+					fmt.Printf("\n[ COMING SOON ]\n")
 					fmt.Printf("├─ Filter by status: pipeops list --status active\n")
 					fmt.Printf("├─ Search projects: pipeops list --search <term>\n")
 					fmt.Printf("└─ Sort options: pipeops list --sort name|created|updated\n")

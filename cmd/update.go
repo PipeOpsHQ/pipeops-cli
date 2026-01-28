@@ -35,8 +35,8 @@ Examples:
 // updateCheckCmd represents the update check command
 var updateCheckCmd = &cobra.Command{
 	Use:   "check",
-	Short: "🔍 Check for available updates",
-	Long: `🔍 Check for available updates without installing.
+	Short: "Check for available updates",
+	Long: `Check for available updates without installing.
 
 This command will check if a newer version of PipeOps CLI is available
 and display information about it, but won't install anything.
@@ -155,9 +155,9 @@ func runUpdateCheck(cmd *cobra.Command, args []string, allowInstall bool) {
 		return
 	}
 
-	fmt.Printf("\n🎉 Update completed successfully!\n")
+	fmt.Printf("\n[OK] Update completed successfully!\n")
 	fmt.Printf("   You are now running version %s\n", release.TagName)
-	fmt.Printf("\n💡 You may need to restart your terminal or shell to use the updated version.\n")
+	fmt.Printf("\n[INFO] You may need to restart your terminal or shell to use the updated version.\n")
 }
 
 func init() {

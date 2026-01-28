@@ -47,7 +47,7 @@ func GetOutputOptions(cmd *cobra.Command) OutputOptions {
 	}
 }
 
-// PrintSuccess prints a success message with emoji and color
+// PrintSuccess prints a success message with color
 func PrintSuccess(message string, opts OutputOptions) {
 	if opts.Quiet {
 		return
@@ -56,10 +56,10 @@ func PrintSuccess(message string, opts OutputOptions) {
 		return // JSON output doesn't include success messages
 	}
 	green := color.New(color.FgGreen, color.Bold).SprintFunc()
-	fmt.Printf("%s %s\n", green("✅"), green(message))
+	fmt.Printf("%s %s\n", green("[OK]"), green(message))
 }
 
-// PrintError prints an error message with emoji and color
+// PrintError prints an error message with color
 func PrintError(message string, opts OutputOptions) {
 	if opts.Format == OutputFormatJSON {
 		errorObj := map[string]interface{}{
@@ -70,11 +70,11 @@ func PrintError(message string, opts OutputOptions) {
 		fmt.Println(string(jsonBytes))
 	} else {
 		red := color.New(color.FgRed, color.Bold).SprintFunc()
-		fmt.Printf("%s %s\n", red("❌"), red(message))
+		fmt.Printf("%s %s\n", red("[ERROR]"), red(message))
 	}
 }
 
-// PrintInfo prints an info message with emoji and color
+// PrintInfo prints an info message with color
 func PrintInfo(message string, opts OutputOptions) {
 	if opts.Quiet {
 		return
@@ -83,10 +83,10 @@ func PrintInfo(message string, opts OutputOptions) {
 		return // JSON output doesn't include info messages
 	}
 	cyan := color.New(color.FgCyan).SprintFunc()
-	fmt.Printf("%s %s\n", cyan("🔍"), cyan(message))
+	fmt.Printf("%s %s\n", cyan("[INFO]"), cyan(message))
 }
 
-// PrintWarning prints a warning message with emoji and color
+// PrintWarning prints a warning message with color
 func PrintWarning(message string, opts OutputOptions) {
 	if opts.Quiet {
 		return
@@ -95,7 +95,7 @@ func PrintWarning(message string, opts OutputOptions) {
 		return // JSON output doesn't include warning messages
 	}
 	yellow := color.New(color.FgYellow).SprintFunc()
-	fmt.Printf("%s %s\n", yellow("⚠️ "), yellow(message))
+	fmt.Printf("%s %s\n", yellow("[WARN]"), yellow(message))
 }
 
 // PrintJSON prints data as JSON
@@ -161,12 +161,12 @@ func PrintProjectContextWithOptions(projectID string, opts OutputOptions) {
 
 	if IsLinkedProject() {
 		if linkedID, err := GetLinkedProject(); err == nil && linkedID == projectID {
-			fmt.Printf("📂 Using linked project: %s\n", bold(projectID))
+			fmt.Printf("Using linked project: %s\n", bold(projectID))
 		} else {
-			fmt.Printf("🎯 Using project: %s (overriding linked project)\n", bold(projectID))
+			fmt.Printf("Using project: %s (overriding linked project)\n", bold(projectID))
 		}
 	} else {
-		fmt.Printf("🎯 Using project: %s\n", bold(projectID))
+		fmt.Printf("Using project: %s\n", bold(projectID))
 	}
 }
 
@@ -194,19 +194,19 @@ func TruncateString(s string, length int) string {
 	return s[:length-3] + "..."
 }
 
-// GetStatusIcon returns an emoji icon for status
+// GetStatusIcon returns a text-based icon for status
 func GetStatusIcon(status string) string {
 	switch strings.ToLower(status) {
 	case "active", "running", "healthy", "success":
-		return "🟢"
+		return "[OK]"
 	case "deploying", "building", "starting", "pending":
-		return "🟡"
+		return "[...]"
 	case "stopped", "inactive", "paused":
-		return "⚪"
+		return "[-]"
 	case "error", "failed", "crashed":
-		return "🔴"
+		return "[ERR]"
 	default:
-		return "⚫"
+		return "[?]"
 	}
 }
 

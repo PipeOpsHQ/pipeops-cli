@@ -128,7 +128,7 @@ Examples:
 			}
 			utils.PrintTable(headers, rows, opts)
 
-			fmt.Printf("\nNEXT STEPS\n")
+			fmt.Printf("\n[ NEXT STEPS ]\n")
 			fmt.Printf("├─ Deploy: pipeops deploy\n")
 			fmt.Printf("├─ View logs: pipeops logs\n")
 			fmt.Printf("├─ Check status: pipeops status\n")
@@ -229,7 +229,7 @@ Examples:
 			utils.PrintSuccess("Successfully unlinked project from current directory", opts)
 
 			if !opts.Quiet {
-				fmt.Printf("\n🗑️  REMOVED\n")
+				fmt.Printf("\n[ REMOVED ]\n")
 				for i, item := range removedItems {
 					if i == len(removedItems)-1 {
 						fmt.Printf("└─ %s\n", item)
@@ -238,7 +238,7 @@ Examples:
 					}
 				}
 
-				fmt.Printf("\n💡 NEXT STEPS\n")
+				fmt.Printf("\n[ NEXT STEPS ]\n")
 				fmt.Printf("├─ Link another project: pipeops link\n")
 				fmt.Printf("├─ List projects: pipeops list\n")
 				fmt.Printf("└─ Specify project ID directly in commands\n")
