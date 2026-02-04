@@ -10,9 +10,10 @@ import (
 )
 
 var updateCmd = &cobra.Command{
-	Use:   "update",
-	Short: "Update PipeOps agent to the latest version",
-	Long: `The "update" command updates the PipeOps agent installed on your Kubernetes cluster to the latest available version.`,
+	Use:     "update",
+	Aliases: []string{"upgrade"},
+	Short:   "Update PipeOps agent to the latest version",
+	Long:    `The "update" command updates the PipeOps agent installed on your Kubernetes cluster to the latest available version.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		token := getPipeOpsToken(cmd, args)
 		if token == "" {

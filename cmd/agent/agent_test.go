@@ -57,6 +57,17 @@ func TestAgentCommands(t *testing.T) {
 		}
 		if cmd.Name() == "update" {
 			foundUpdate = true
+			// Check aliases
+			hasUpgradeAlias := false
+			for _, alias := range cmd.Aliases {
+				if alias == "upgrade" {
+					hasUpgradeAlias = true
+					break
+				}
+			}
+			if !hasUpgradeAlias {
+				t.Error("update command missing 'upgrade' alias")
+			}
 			// Check flags
 			if cmd.Flag("cluster-name") == nil {
 				t.Error("update command missing 'cluster-name' flag")
