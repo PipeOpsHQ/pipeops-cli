@@ -32,7 +32,12 @@ var updateCmd = &cobra.Command{
 
 		log.Println("Updating PipeOps agent...")
 
-		updateScript := "curl -fsSL https://get.pipeops.dev/k8-install.sh | bash"
+		var updateScript string
+		var err error
+		updateScript, err = getInstallCommand()
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
 		
 		envVars := []string{
 			fmt.Sprintf("PIPEOPS_TOKEN=%s", token),
@@ -46,7 +51,7 @@ var updateCmd = &cobra.Command{
 			envVars = append(envVars, fmt.Sprintf("CLUSTER_TYPE=%s", clusterType))
 		}
 
-		_, err := utils.RunShellCommandWithEnvStreaming(updateScript, envVars)
+		_, err = utils.RunShellCommandWithEnvStreaming(updateScript, envVars)
 		if err != nil {
 			log.Fatalf("Error updating PipeOps agent: %v", err)
 		}

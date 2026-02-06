@@ -4,12 +4,38 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
+
+// getScriptCommand returns the appropriate command to run a remote script based on available tools
+func getScriptCommand(scriptURL string) (string, error) {
+	// Check for bash (required for pipe)
+	if _, err := exec.LookPath("bash"); err != nil {
+		return "", fmt.Errorf("bash is required but was not found")
+	}
+
+	// Check for curl
+	if _, err := exec.LookPath("curl"); err == nil {
+		return fmt.Sprintf("curl -fsSL %s | bash", scriptURL), nil
+	}
+
+	// Check for wget
+	if _, err := exec.LookPath("wget"); err == nil {
+		return fmt.Sprintf("wget -qO- %s | bash", scriptURL), nil
+	}
+
+	return "", fmt.Errorf("neither curl nor wget was found. Please install one of them to proceed")
+}
+
+// getInstallCommand returns the install script command
+func getInstallCommand() (string, error) {
+	return getScriptCommand("https://get.pipeops.dev/k8-install.sh")
+}
 
 var installCmd = &cobra.Command{
 	Use:   "install [pipeops-token]",
@@ -142,14 +168,19 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 	}
 
 	// Install Kubernetes cluster with PipeOps agent integration
-	installCmd := "curl -fsSL https://get.pipeops.dev/k8-install.sh | bash"
+	var installScript string
+	var err error
+	installScript, err = getInstallCommand()
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 
 	log.Printf("Installing cluster type: %s", config.SanitizeLog(clusterType))
 	log.Printf("PipeOps monitoring: %s", map[bool]string{true: "enabled", false: "disabled"}[enableMonitoring])
 
 	// Execute the installer with environment variables
 	log.Println("[DEBUG] Executing installer script")
-	_, err := utils.RunShellCommandWithEnvStreaming(installCmd, envVars)
+	_, err = utils.RunShellCommandWithEnvStreaming(installScript, envVars)
 	if err != nil {
 		log.Fatalf("Error installing cluster with PipeOps agent: %v", err)
 	}
@@ -175,7 +206,12 @@ func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, ena
 	}
 
 	// The agent install script handles everything, including existing clusters
-	installCmd := "curl -fsSL https://get.pipeops.dev/k8-install.sh | bash"
+	var installScript string
+	var err error
+	installScript, err = getInstallCommand()
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 
 	// Set environment variables
 	envVars := []string{
@@ -185,7 +221,7 @@ func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, ena
 	}
 
 	log.Println("[DEBUG] Executing installer script")
-	_, err := utils.RunShellCommandWithEnvStreaming(installCmd, envVars)
+	_, err = utils.RunShellCommandWithEnvStreaming(installScript, envVars)
 	if err != nil {
 		log.Fatalf("Error installing PipeOps agent: %v", err)
 	}
@@ -207,23 +243,15 @@ func updateAgent(cmd *cobra.Command, token, clusterName string) {
 	log.Println("Updating PipeOps agent...")
 
 	// Update PipeOps agent
-	updateCmd := "curl -fsSL https://get.pipeops.dev/k8-install.sh | bash"
-	
-	clusterType, _ := cmd.Flags().GetString("cluster-type")
-	
-	envVars := []string{
-		fmt.Sprintf("PIPEOPS_TOKEN=%s", token),
-		"UPDATE=true",
+	var updateScript string
+	var err error
+	updateScript, err = getInstallCommand()
+	if err != nil {
+		log.Fatalf("Error: %v", err)
 	}
-	
-	if clusterName != "" {
-		envVars = append(envVars, fmt.Sprintf("CLUSTER_NAME=%s", clusterName))
-	}
-	if clusterType != "" {
-		envVars = append(envVars, fmt.Sprintf("CLUSTER_TYPE=%s", clusterType))
-	}
+	envVars := []string{fmt.Sprintf("PIPEOPS_TOKEN=%s", token)}
 
-	_, err := utils.RunShellCommandWithEnvStreaming(updateCmd, envVars)
+	_, err = utils.RunShellCommandWithEnvStreaming(updateScript, envVars)
 	if err != nil {
 		log.Fatalf("Error updating PipeOps agent: %v", err)
 	}

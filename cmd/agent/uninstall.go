@@ -47,7 +47,11 @@ func confirmUninstall() bool {
 func executeUninstall(cmd *cobra.Command) {
 	log.Println("Uninstalling PipeOps agent and destroying cluster...")
 
-	uninstallScript := "curl -fsSL https://get.pipeops.dev/k8-uninstall.sh | bash -s -- --force"
+	uninstallScript, err := getScriptCommand("https://get.pipeops.dev/k8-uninstall.sh")
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+	uninstallScript += " -s -- --force"
 
 	// Gather environment variables
 	var envVars []string
@@ -56,7 +60,8 @@ func executeUninstall(cmd *cobra.Command) {
 	token := os.Getenv("PIPEOPS_TOKEN")
 	if token == "" {
 		// Try to load from config
-		cfg, err := config.Load()
+		var cfg *config.Config
+		cfg, err = config.Load()
 		if err == nil && cfg.IsAuthenticated() {
 			token = cfg.OAuth.AccessToken
 		}
@@ -83,7 +88,7 @@ func executeUninstall(cmd *cobra.Command) {
 		envVars = append(envVars, fmt.Sprintf("CLUSTER_TYPE=%s", clusterType))
 	}
 
-	_, err := utils.RunShellCommandWithEnvStreaming(uninstallScript, envVars)
+	_, err = utils.RunShellCommandWithEnvStreaming(uninstallScript, envVars)
 	if err != nil {
 		log.Fatalf("Error uninstalling PipeOps agent: %v", err)
 	}

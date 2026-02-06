@@ -41,9 +41,12 @@ Examples:
 		}
 
 		// Run the join-worker script from GitHub
-		joinCmd := "curl -fsSL https://raw.githubusercontent.com/PipeOpsHQ/pipeops-k8-agent/main/scripts/join-worker.sh | bash"
+		joinCmd, err := getScriptCommand("https://raw.githubusercontent.com/PipeOpsHQ/pipeops-k8-agent/main/scripts/join-worker.sh")
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
 
-		_, err := utils.RunShellCommandWithEnvStreaming(joinCmd, envVars)
+		_, err = utils.RunShellCommandWithEnvStreaming(joinCmd, envVars)
 		if err != nil {
 			log.Fatalf("Error joining worker node: %v", err)
 		}
