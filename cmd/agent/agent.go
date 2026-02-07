@@ -19,6 +19,7 @@ func (a *agentModel) Register() {
 	a.funnel()
 	a.uninstall()
 	a.registerUpdate()
+	a.logs()
 }
 
 func (a *agentModel) registerUpdate() {

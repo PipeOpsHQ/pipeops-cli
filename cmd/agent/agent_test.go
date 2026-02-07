@@ -73,6 +73,15 @@ func TestAgentCommands(t *testing.T) {
 				t.Error("update command missing 'cluster-name' flag")
 			}
 		}
+		if cmd.Name() == "logs" {
+			// Check flags
+			if cmd.Flag("follow") == nil {
+				t.Error("logs command missing 'follow' flag")
+			}
+			if cmd.Flag("tail") == nil {
+				t.Error("logs command missing 'tail' flag")
+			}
+		}
 	}
 
 	if !foundInstall {
