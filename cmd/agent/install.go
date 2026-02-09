@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
@@ -19,14 +20,28 @@ func getScriptCommand(scriptURL string) (string, error) {
 		return "", fmt.Errorf("bash is required but was not found")
 	}
 
+	bashCmd := "bash"
+
+	// On Linux, if not root, try to use sudo to avoid permission errors
+	// macOS users should NOT use sudo as per script requirements
+	if runtime.GOOS == "linux" && !utils.IsRoot() {
+		if _, err := exec.LookPath("sudo"); err == nil {
+			// Use sudo with -E to preserve environment variables (tokens, etc.)
+			bashCmd = "sudo -E bash"
+			log.Println("[INFO] Running installation with sudo privileges...")
+		} else {
+			log.Println("[WARNING] Root privileges may be required but sudo was not found.")
+		}
+	}
+
 	// Check for curl
 	if _, err := exec.LookPath("curl"); err == nil {
-		return fmt.Sprintf("curl -fsSL %s | bash", scriptURL), nil
+		return fmt.Sprintf("curl -fsSL %s | %s", scriptURL, bashCmd), nil
 	}
 
 	// Check for wget
 	if _, err := exec.LookPath("wget"); err == nil {
-		return fmt.Sprintf("wget -qO- %s | bash", scriptURL), nil
+		return fmt.Sprintf("wget -qO- %s | %s", scriptURL, bashCmd), nil
 	}
 
 	return "", fmt.Errorf("neither curl nor wget was found. Please install one of them to proceed")
@@ -258,10 +273,6 @@ func updateAgent(cmd *cobra.Command, token, clusterName string) {
 
 	log.Println("PipeOps agent updated successfully!")
 }
-
-
-
-
 
 func (a *agentModel) install() {
 	// Add flags to the install command
