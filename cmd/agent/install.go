@@ -91,6 +91,21 @@ Examples:
 		if clusterName == "" {
 			clusterName = os.Getenv("CLUSTER_NAME")
 		}
+
+		// Try to auto-detect existing configuration if token or cluster name is missing
+		if token == "" || clusterName == "" {
+			if existingConfig, err := getAgentConfigFromCluster(); err == nil {
+				if token == "" {
+					token = existingConfig.Token
+					log.Println("[INFO] Using token from existing cluster configuration")
+				}
+				if clusterName == "" {
+					clusterName = existingConfig.ClusterName
+					log.Printf("[INFO] Using cluster name '%s' from existing configuration", clusterName)
+				}
+			}
+		}
+
 		if clusterName == "" {
 			clusterName = "pipeops-cluster"
 		}
@@ -138,6 +153,11 @@ Examples:
 			// Check if user is authenticated via OAuth
 			cfg, err := config.Load()
 			if err == nil && cfg.IsAuthenticated() {
+				return nil
+			}
+
+			// Check for existing agent configuration in the cluster
+			if _, err := getAgentConfigFromCluster(); err == nil {
 				return nil
 			}
 
@@ -215,6 +235,12 @@ func installNewCluster(cmd *cobra.Command, token, clusterName, clusterType strin
 // installOnExistingCluster installs PipeOps agent on an existing Kubernetes cluster
 func installOnExistingCluster(cmd *cobra.Command, token, clusterName string, enableMonitoring bool) {
 	log.Println("Installing PipeOps agent on existing cluster...")
+
+	if token == "" {
+		if existingConfig, err := getAgentConfigFromCluster(); err == nil {
+			token = existingConfig.Token
+		}
+	}
 
 	if token == "" {
 		log.Fatalf("Error: PipeOps token is required. Please provide it as an argument or set PIPEOPS_TOKEN environment variable.")
