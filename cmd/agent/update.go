@@ -16,13 +16,28 @@ var updateCmd = &cobra.Command{
 	Long:    `The "update" command updates the PipeOps agent installed on your Kubernetes cluster to the latest available version.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		token := getPipeOpsToken(cmd, args)
-		if token == "" {
-			log.Fatalf("Error: PipeOps token is required. Please login or set PIPEOPS_TOKEN environment variable.")
-		}
 
 		clusterName, _ := cmd.Flags().GetString("cluster-name")
 		if clusterName == "" {
 			clusterName = os.Getenv("CLUSTER_NAME")
+		}
+
+		// Try to auto-detect existing configuration if token or cluster name is missing
+		if token == "" || clusterName == "" {
+			if existingConfig, err := getAgentConfigFromCluster(); err == nil {
+				if token == "" {
+					token = existingConfig.Token
+					log.Println("[INFO] Using token from existing cluster configuration")
+				}
+				if clusterName == "" {
+					clusterName = existingConfig.ClusterName
+					log.Printf("[INFO] Using cluster name '%s' from existing configuration", clusterName)
+				}
+			}
+		}
+
+		if token == "" {
+			log.Fatalf("Error: PipeOps token is required. Please login or set PIPEOPS_TOKEN environment variable.")
 		}
 
 		clusterType, _ := cmd.Flags().GetString("cluster-type")
@@ -38,7 +53,7 @@ var updateCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Error: %v", err)
 		}
-		
+
 		envVars := []string{
 			fmt.Sprintf("PIPEOPS_TOKEN=%s", token),
 			"UPDATE=true",
