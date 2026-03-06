@@ -9,7 +9,7 @@ import (
 func TestAgentCommands(t *testing.T) {
 	// Create a dummy root command
 	rootCmd := &cobra.Command{Use: "pipeops"}
-	
+
 	// Initialize agent commands
 	agentModel := NewAgent(rootCmd)
 	agentModel.Register()
