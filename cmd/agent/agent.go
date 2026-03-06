@@ -20,6 +20,10 @@ func (a *agentModel) Register() {
 	a.uninstall()
 	a.registerUpdate()
 	a.logs()
+	a.releases()
+	a.status()
+	a.restart()
+	a.diagnostics()
 }
 
 func (a *agentModel) registerUpdate() {

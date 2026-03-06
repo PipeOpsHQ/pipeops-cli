@@ -39,7 +39,7 @@ Examples:
 		// Doing it in two steps in Go is cleaner and safer.
 
 		log.Println("Finding PipeOps agent pod...")
-		
+
 		// 1. Find the agent pod name
 		// kubectl get pods -n pipeops-system -l app=pipeops-agent -o jsonpath="{.items[0].metadata.name}"
 		findPodCmd := exec.Command("kubectl", "get", "pods", "-n", "pipeops-system", "-l", "app=pipeops-agent", "-o", "jsonpath={.items[0].metadata.name}")
@@ -57,11 +57,11 @@ Examples:
 		// 2. Stream logs
 		// kubectl logs -n pipeops-system <podName> [-f] [--tail=n]
 		kubectlArgs := []string{"logs", "-n", "pipeops-system", podName}
-		
+
 		if follow {
 			kubectlArgs = append(kubectlArgs, "-f")
 		}
-		
+
 		if tail > 0 {
 			kubectlArgs = append(kubectlArgs, fmt.Sprintf("--tail=%d", tail))
 		} else if !follow {
@@ -77,15 +77,15 @@ Examples:
 		if tail > 0 {
 			logCommand += fmt.Sprintf(" --tail=%d", tail)
 		}
-		
+
 		// For the actual execution, we can just use the args directly with os/exec to connect streams
 		// creating an interactive experience (Ctrl+C works properly)
 		cmdLog := exec.Command("kubectl", kubectlArgs...)
-		
+
 		// Connect streams directly
 		cmdLog.Stdout = cmd.OutOrStdout()
 		cmdLog.Stderr = cmd.OutOrStderr()
-		
+
 		log.Printf("Fetching logs from %s...", podName)
 		if err := cmdLog.Run(); err != nil {
 			// Don't fatal here as Ctrl+C might cause a non-zero exit which is fine for -f
