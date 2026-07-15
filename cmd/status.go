@@ -40,7 +40,7 @@ Examples:` + `
 				days := int(timeUntilExpiry.Hours() / 24)
 				expiryStatus = fmt.Sprintf("%d days", days)
 			} else if timeUntilExpiry > time.Hour {
-			hours := int(timeUntilExpiry.Hours())
+				hours := int(timeUntilExpiry.Hours())
 				expiryStatus = fmt.Sprintf("%d hours", hours)
 			} else if timeUntilExpiry > 0 {
 				minutes := int(timeUntilExpiry.Minutes())

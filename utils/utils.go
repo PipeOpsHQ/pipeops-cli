@@ -4,6 +4,7 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -15,7 +16,7 @@ import (
 	"strings"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
-	"github.com/PipeOpsHQ/pipeops-cli/libs"
+	sdk "github.com/PipeOpsHQ/pipeops-go-sdk/pipeops"
 	"github.com/spf13/viper"
 )
 
@@ -151,8 +152,13 @@ func ValidateOrPrompt() error {
 
 // validateAndSaveToken validates the token and saves it to the configuration if valid
 func validateAndSaveToken(token string) bool {
-	http := libs.NewHttpClient()
-	_, err := http.VerifyToken(token, "")
+	client, err := sdk.NewClient(config.GetAPIURL())
+	if err != nil {
+		return false
+	}
+	client.SetToken(token)
+
+	_, _, err = client.Users.GetSettings(context.Background())
 	if err != nil {
 		return false // Token is invalid
 	}

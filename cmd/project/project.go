@@ -14,8 +14,7 @@ func NewProject(rootCmd *cobra.Command) *projectModel {
 
 func (p *projectModel) Register() {
 	p.listProjects()
-	p.createProject() // Re-enabled to show disabled message
+	p.createProject()
 	p.logs()
-	p.rootCmd.AddCommand(GetUpdateCmd())
-	p.rootCmd.AddCommand(GetDeleteCmd())
+	registerOperationCommands(p.rootCmd)
 }

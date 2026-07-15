@@ -10,34 +10,62 @@ import (
 
 // MockClient is a mock implementation of ClientAPI
 type MockClient struct {
-	IsAuthenticatedFunc       func() bool
-	LoadConfigFunc            func() error
-	SaveConfigFunc            func() error
-	GetConfigFunc             func() *config.Config
-	GetProjectsFunc           func() (*models.ProjectsResponse, error)
-	GetProjectFunc            func(projectID string) (*models.Project, error)
-	CreateProjectFunc         func(req *models.ProjectCreateRequest) (*models.Project, error)
-	UpdateProjectFunc         func(projectID string, req *models.ProjectUpdateRequest) (*models.Project, error)
-	DeleteProjectFunc         func(projectID string) error
-	DeployProjectFunc         func(projectID string) error
-	GetLogsFunc               func(req *models.LogsRequest) (*models.LogsResponse, error)
-	StreamLogsFunc            func(req *models.LogsRequest, callback func(*models.StreamLogEntry) error) error
-	GetServicesFunc           func(projectID string, addonID string) (*models.ListServicesResponse, error)
-	StartProxyFunc            func(req *models.ProxyRequest) (*models.ProxyResponse, error)
-	GetContainersFunc         func(projectID string, addonID string) (*models.ListContainersResponse, error)
-	StartExecFunc             func(req *models.ExecRequest) (*models.ExecResponse, error)
-	StartShellFunc            func(req *models.ShellRequest) (*models.ShellResponse, error)
-	GetAddonsFunc             func() (*models.AddonListResponse, error)
-	GetAddonFunc              func(addonID string) (*models.Addon, error)
-	GetAddonDeploymentsFunc   func(projectID string) ([]models.AddonDeployment, error)
-	DeleteAddonDeploymentFunc func(deploymentID string) error
-	GetServersFunc            func() (*models.ServersResponse, error)
-	GetServerFunc             func(serverID string) (*models.Server, error)
-	CreateServerFunc          func(req *models.ServerCreateRequest) (*models.Server, error)
-	UpdateServerFunc          func(serverID string, req *models.ServerUpdateRequest) (*models.Server, error)
-	DeleteServerFunc          func(serverID string) error
-	VerifyTokenFunc           func() (*models.PipeOpsTokenVerificationResponse, error)
-	GetWorkspacesFunc         func(ctx context.Context) ([]sdk.Workspace, error)
+	IsAuthenticatedFunc              func() bool
+	LoadConfigFunc                   func() error
+	SaveConfigFunc                   func() error
+	GetConfigFunc                    func() *config.Config
+	GetProjectsFunc                  func() (*models.ProjectsResponse, error)
+	GetProjectFunc                   func(projectID string) (*models.Project, error)
+	CreateProjectFunc                func(req *models.ProjectCreateRequest) (*models.Project, error)
+	UpdateProjectFunc                func(projectID string, req *models.ProjectUpdateRequest) (*models.Project, error)
+	DeleteProjectFunc                func(projectID string) error
+	DeployProjectFunc                func(projectID string) error
+	RestartProjectFunc               func(projectID string) error
+	StopProjectFunc                  func(projectID string) error
+	GetProjectEnvVariablesFunc       func(projectID string) ([]sdk.EnvVariable, error)
+	UpdateProjectEnvVariablesFunc    func(projectID string, envVars []sdk.EnvVariable) ([]sdk.EnvVariable, error)
+	ListProjectDeploymentsFunc       func(projectID string, opts *sdk.ProjectDeploymentListOptions) (*sdk.ProjectDeploymentsResponse, error)
+	ListProjectDeploymentHistoryFunc func(projectID string, opts *sdk.ProjectDeploymentHistoryOptions) (*sdk.ProjectDeploymentHistoryResponse, error)
+	GetLogsFunc                      func(req *models.LogsRequest) (*models.LogsResponse, error)
+	StreamLogsFunc                   func(req *models.LogsRequest, callback func(*models.StreamLogEntry) error) error
+	GetServicesFunc                  func(projectID string, addonID string) (*models.ListServicesResponse, error)
+	StartProxyFunc                   func(req *models.ProxyRequest) (*models.ProxyResponse, error)
+	GetContainersFunc                func(projectID string, addonID string) (*models.ListContainersResponse, error)
+	StartExecFunc                    func(req *models.ExecRequest) (*models.ExecResponse, error)
+	StartShellFunc                   func(req *models.ShellRequest) (*models.ShellResponse, error)
+	GetAddonsFunc                    func() (*models.AddonListResponse, error)
+	GetAddonFunc                     func(addonID string) (*models.Addon, error)
+	DeployAddonFunc                  func(req *sdk.DeployAddOnRequest) (*models.AddonDeployment, error)
+	GetAddonDeploymentsFunc          func(projectID string) ([]models.AddonDeployment, error)
+	GetAddonDeploymentFunc           func(deploymentID string) (*models.AddonDeployment, error)
+	DeleteAddonDeploymentFunc        func(deploymentID string) error
+	ListAddonCategoriesFunc          func() ([]sdk.AddOnCategory, error)
+	GetAddonDeploymentSessionFunc    func(sessionID string) (map[string]interface{}, error)
+	ViewAddonDeploymentConfigsFunc   func(deploymentID string) (map[string]interface{}, error)
+	GetServersFunc                   func() (*models.ServersResponse, error)
+	GetServerFunc                    func(serverID string) (*models.Server, error)
+	GetServerConnectionFunc          func(serverID string) (map[string]interface{}, error)
+	GetServerCostAllocationFunc      func(serverID string) (map[string]interface{}, error)
+	CreateServerFunc                 func(req *models.ServerCreateRequest) (*models.Server, error)
+	UpdateServerFunc                 func(serverID string, req *models.ServerUpdateRequest) (*models.Server, error)
+	DeleteServerFunc                 func(serverID string) error
+	VerifyTokenFunc                  func() (*models.PipeOpsTokenVerificationResponse, error)
+	GetWorkspacesFunc                func(ctx context.Context) ([]sdk.Workspace, error)
+	GetWorkspaceFunc                 func(ctx context.Context, workspaceID string) (*sdk.Workspace, error)
+	CreateWorkspaceFunc              func(ctx context.Context, req *sdk.CreateWorkspaceRequest) (*sdk.Workspace, error)
+	UpdateWorkspaceFunc              func(ctx context.Context, workspaceID string, req *sdk.UpdateWorkspaceRequest) (*sdk.Workspace, error)
+	DeleteWorkspaceFunc              func(ctx context.Context, workspaceID string) error
+	ListEnvironmentsFunc             func(ctx context.Context) ([]sdk.Environment, error)
+	GetEnvironmentFunc               func(ctx context.Context, environmentID string) (*sdk.Environment, error)
+	CreateEnvironmentFunc            func(ctx context.Context, req *sdk.CreateEnvironmentRequest) (*sdk.Environment, error)
+	UpdateEnvironmentFunc            func(ctx context.Context, environmentID string, req *sdk.UpdateEnvironmentRequest) (*sdk.Environment, error)
+	DeleteEnvironmentFunc            func(ctx context.Context, environmentID string) error
+	SetEnvironmentVariablesFunc      func(ctx context.Context, environmentID string, envVars []sdk.EnvVariable) error
+	ListServiceAccountTokensFunc     func(ctx context.Context) ([]sdk.ServiceAccountToken, error)
+	GetServiceAccountTokenFunc       func(ctx context.Context, tokenID string) (*sdk.ServiceAccountToken, error)
+	CreateServiceAccountTokenFunc    func(ctx context.Context, req *sdk.ServiceAccountTokenRequest) (*sdk.ServiceAccountToken, error)
+	UpdateServiceAccountTokenFunc    func(ctx context.Context, tokenID string, req *sdk.ServiceAccountTokenUpdateRequest) (*sdk.ServiceAccountToken, error)
+	RevokeServiceAccountTokenFunc    func(ctx context.Context, tokenID string) error
 }
 
 func (m *MockClient) IsAuthenticated() bool {
@@ -87,6 +115,48 @@ func (m *MockClient) DeployProject(projectID string) error {
 		return m.DeployProjectFunc(projectID)
 	}
 	return nil
+}
+
+func (m *MockClient) RestartProject(projectID string) error {
+	if m.RestartProjectFunc != nil {
+		return m.RestartProjectFunc(projectID)
+	}
+	return nil
+}
+
+func (m *MockClient) StopProject(projectID string) error {
+	if m.StopProjectFunc != nil {
+		return m.StopProjectFunc(projectID)
+	}
+	return nil
+}
+
+func (m *MockClient) GetProjectEnvVariables(projectID string) ([]sdk.EnvVariable, error) {
+	if m.GetProjectEnvVariablesFunc != nil {
+		return m.GetProjectEnvVariablesFunc(projectID)
+	}
+	return nil, nil
+}
+
+func (m *MockClient) UpdateProjectEnvVariables(projectID string, envVars []sdk.EnvVariable) ([]sdk.EnvVariable, error) {
+	if m.UpdateProjectEnvVariablesFunc != nil {
+		return m.UpdateProjectEnvVariablesFunc(projectID, envVars)
+	}
+	return envVars, nil
+}
+
+func (m *MockClient) ListProjectDeployments(projectID string, opts *sdk.ProjectDeploymentListOptions) (*sdk.ProjectDeploymentsResponse, error) {
+	if m.ListProjectDeploymentsFunc != nil {
+		return m.ListProjectDeploymentsFunc(projectID, opts)
+	}
+	return &sdk.ProjectDeploymentsResponse{}, nil
+}
+
+func (m *MockClient) ListProjectDeploymentHistory(projectID string, opts *sdk.ProjectDeploymentHistoryOptions) (*sdk.ProjectDeploymentHistoryResponse, error) {
+	if m.ListProjectDeploymentHistoryFunc != nil {
+		return m.ListProjectDeploymentHistoryFunc(projectID, opts)
+	}
+	return &sdk.ProjectDeploymentHistoryResponse{}, nil
 }
 
 func (m *MockClient) GetLogs(req *models.LogsRequest) (*models.LogsResponse, error) {
@@ -152,6 +222,13 @@ func (m *MockClient) GetAddon(addonID string) (*models.Addon, error) {
 	return nil, nil
 }
 
+func (m *MockClient) DeployAddon(req *sdk.DeployAddOnRequest) (*models.AddonDeployment, error) {
+	if m.DeployAddonFunc != nil {
+		return m.DeployAddonFunc(req)
+	}
+	return &models.AddonDeployment{}, nil
+}
+
 func (m *MockClient) GetAddonDeployments(projectID string) ([]models.AddonDeployment, error) {
 	if m.GetAddonDeploymentsFunc != nil {
 		return m.GetAddonDeploymentsFunc(projectID)
@@ -159,11 +236,39 @@ func (m *MockClient) GetAddonDeployments(projectID string) ([]models.AddonDeploy
 	return nil, nil
 }
 
+func (m *MockClient) GetAddonDeployment(deploymentID string) (*models.AddonDeployment, error) {
+	if m.GetAddonDeploymentFunc != nil {
+		return m.GetAddonDeploymentFunc(deploymentID)
+	}
+	return &models.AddonDeployment{}, nil
+}
+
 func (m *MockClient) DeleteAddonDeployment(deploymentID string) error {
 	if m.DeleteAddonDeploymentFunc != nil {
 		return m.DeleteAddonDeploymentFunc(deploymentID)
 	}
 	return nil
+}
+
+func (m *MockClient) ListAddonCategories() ([]sdk.AddOnCategory, error) {
+	if m.ListAddonCategoriesFunc != nil {
+		return m.ListAddonCategoriesFunc()
+	}
+	return nil, nil
+}
+
+func (m *MockClient) GetAddonDeploymentSession(sessionID string) (map[string]interface{}, error) {
+	if m.GetAddonDeploymentSessionFunc != nil {
+		return m.GetAddonDeploymentSessionFunc(sessionID)
+	}
+	return map[string]interface{}{}, nil
+}
+
+func (m *MockClient) ViewAddonDeploymentConfigs(deploymentID string) (map[string]interface{}, error) {
+	if m.ViewAddonDeploymentConfigsFunc != nil {
+		return m.ViewAddonDeploymentConfigsFunc(deploymentID)
+	}
+	return map[string]interface{}{}, nil
 }
 
 func (m *MockClient) GetServers() (*models.ServersResponse, error) {
@@ -178,6 +283,20 @@ func (m *MockClient) GetServer(serverID string) (*models.Server, error) {
 		return m.GetServerFunc(serverID)
 	}
 	return nil, nil
+}
+
+func (m *MockClient) GetServerConnection(serverID string) (map[string]interface{}, error) {
+	if m.GetServerConnectionFunc != nil {
+		return m.GetServerConnectionFunc(serverID)
+	}
+	return map[string]interface{}{}, nil
+}
+
+func (m *MockClient) GetServerCostAllocation(serverID string) (map[string]interface{}, error) {
+	if m.GetServerCostAllocationFunc != nil {
+		return m.GetServerCostAllocationFunc(serverID)
+	}
+	return map[string]interface{}{}, nil
 }
 
 func (m *MockClient) CreateServer(req *models.ServerCreateRequest) (*models.Server, error) {
@@ -234,4 +353,109 @@ func (m *MockClient) GetWorkspaces(ctx context.Context) ([]sdk.Workspace, error)
 		return m.GetWorkspacesFunc(ctx)
 	}
 	return nil, nil
+}
+
+func (m *MockClient) GetWorkspace(ctx context.Context, workspaceID string) (*sdk.Workspace, error) {
+	if m.GetWorkspaceFunc != nil {
+		return m.GetWorkspaceFunc(ctx, workspaceID)
+	}
+	return &sdk.Workspace{}, nil
+}
+
+func (m *MockClient) CreateWorkspace(ctx context.Context, req *sdk.CreateWorkspaceRequest) (*sdk.Workspace, error) {
+	if m.CreateWorkspaceFunc != nil {
+		return m.CreateWorkspaceFunc(ctx, req)
+	}
+	return &sdk.Workspace{}, nil
+}
+
+func (m *MockClient) UpdateWorkspace(ctx context.Context, workspaceID string, req *sdk.UpdateWorkspaceRequest) (*sdk.Workspace, error) {
+	if m.UpdateWorkspaceFunc != nil {
+		return m.UpdateWorkspaceFunc(ctx, workspaceID, req)
+	}
+	return &sdk.Workspace{}, nil
+}
+
+func (m *MockClient) DeleteWorkspace(ctx context.Context, workspaceID string) error {
+	if m.DeleteWorkspaceFunc != nil {
+		return m.DeleteWorkspaceFunc(ctx, workspaceID)
+	}
+	return nil
+}
+
+func (m *MockClient) ListEnvironments(ctx context.Context) ([]sdk.Environment, error) {
+	if m.ListEnvironmentsFunc != nil {
+		return m.ListEnvironmentsFunc(ctx)
+	}
+	return nil, nil
+}
+
+func (m *MockClient) GetEnvironment(ctx context.Context, environmentID string) (*sdk.Environment, error) {
+	if m.GetEnvironmentFunc != nil {
+		return m.GetEnvironmentFunc(ctx, environmentID)
+	}
+	return &sdk.Environment{}, nil
+}
+
+func (m *MockClient) CreateEnvironment(ctx context.Context, req *sdk.CreateEnvironmentRequest) (*sdk.Environment, error) {
+	if m.CreateEnvironmentFunc != nil {
+		return m.CreateEnvironmentFunc(ctx, req)
+	}
+	return &sdk.Environment{}, nil
+}
+
+func (m *MockClient) UpdateEnvironment(ctx context.Context, environmentID string, req *sdk.UpdateEnvironmentRequest) (*sdk.Environment, error) {
+	if m.UpdateEnvironmentFunc != nil {
+		return m.UpdateEnvironmentFunc(ctx, environmentID, req)
+	}
+	return &sdk.Environment{}, nil
+}
+
+func (m *MockClient) DeleteEnvironment(ctx context.Context, environmentID string) error {
+	if m.DeleteEnvironmentFunc != nil {
+		return m.DeleteEnvironmentFunc(ctx, environmentID)
+	}
+	return nil
+}
+
+func (m *MockClient) SetEnvironmentVariables(ctx context.Context, environmentID string, envVars []sdk.EnvVariable) error {
+	if m.SetEnvironmentVariablesFunc != nil {
+		return m.SetEnvironmentVariablesFunc(ctx, environmentID, envVars)
+	}
+	return nil
+}
+
+func (m *MockClient) ListServiceAccountTokens(ctx context.Context) ([]sdk.ServiceAccountToken, error) {
+	if m.ListServiceAccountTokensFunc != nil {
+		return m.ListServiceAccountTokensFunc(ctx)
+	}
+	return nil, nil
+}
+
+func (m *MockClient) GetServiceAccountToken(ctx context.Context, tokenID string) (*sdk.ServiceAccountToken, error) {
+	if m.GetServiceAccountTokenFunc != nil {
+		return m.GetServiceAccountTokenFunc(ctx, tokenID)
+	}
+	return &sdk.ServiceAccountToken{}, nil
+}
+
+func (m *MockClient) CreateServiceAccountToken(ctx context.Context, req *sdk.ServiceAccountTokenRequest) (*sdk.ServiceAccountToken, error) {
+	if m.CreateServiceAccountTokenFunc != nil {
+		return m.CreateServiceAccountTokenFunc(ctx, req)
+	}
+	return &sdk.ServiceAccountToken{}, nil
+}
+
+func (m *MockClient) UpdateServiceAccountToken(ctx context.Context, tokenID string, req *sdk.ServiceAccountTokenUpdateRequest) (*sdk.ServiceAccountToken, error) {
+	if m.UpdateServiceAccountTokenFunc != nil {
+		return m.UpdateServiceAccountTokenFunc(ctx, tokenID, req)
+	}
+	return &sdk.ServiceAccountToken{}, nil
+}
+
+func (m *MockClient) RevokeServiceAccountToken(ctx context.Context, tokenID string) error {
+	if m.RevokeServiceAccountTokenFunc != nil {
+		return m.RevokeServiceAccountTokenFunc(ctx, tokenID)
+	}
+	return nil
 }

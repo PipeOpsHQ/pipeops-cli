@@ -30,4 +30,6 @@ func registerServerSubcommands() {
 	// Add server commands
 	serverCmd.AddCommand(server.GetListCmd())
 	serverCmd.AddCommand(server.GetStatusCmd())
+	serverCmd.AddCommand(server.GetConnectionCmd())
+	serverCmd.AddCommand(server.GetCostCmd())
 }

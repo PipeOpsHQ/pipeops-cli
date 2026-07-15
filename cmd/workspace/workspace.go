@@ -30,6 +30,7 @@ func New() *cobra.Command {
 
 	wm.list()
 	wm.selectWorkspace()
+	wm.crud()
 
 	return workspaceCmd
 }

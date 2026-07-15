@@ -43,7 +43,7 @@ var installCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(installCmd)
-	
+
 	// Copy flags from agent install command
 	// We need to access the flags from agent package, but since we can't easily access the private installCmd there,
 	// we'll manually add the common flags here to ensure they appear in help

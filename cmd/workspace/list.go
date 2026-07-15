@@ -69,7 +69,7 @@ Examples:
 		// We can get the token from the client config or re-read it
 		token := client.GetConfig().OAuth.AccessToken
 		userInfo, err := userInfoService.GetUserInfo(context.Background(), token)
-		
+
 		var currentUserID string
 		if err == nil && userInfo != nil {
 			currentUserID = strconv.Itoa(userInfo.ID)
@@ -92,10 +92,10 @@ Examples:
 			}
 		}
 
-		// If we couldn't determine ownership (currentUserID is empty), treat all as shared/generic list 
+		// If we couldn't determine ownership (currentUserID is empty), treat all as shared/generic list
 		// but since we want to show *something*, let's just dump them if we failed.
 		// However, typically `GetUserInfo` should succeed if `GetWorkspaces` succeeded.
-		
+
 		if currentUserID == "" {
 			// Fallback to old behavior if user info fetch failed
 			printWorkspaceTable(workspaces, cfg, "WORKSPACES", opts)
@@ -103,7 +103,7 @@ Examples:
 			if len(ownedWorkspaces) > 0 {
 				printWorkspaceTable(ownedWorkspaces, cfg, "[ YOUR WORKSPACES ]", opts)
 			}
-			
+
 			if len(sharedWorkspaces) > 0 {
 				if len(ownedWorkspaces) > 0 {
 					fmt.Println() // Add spacing between tables

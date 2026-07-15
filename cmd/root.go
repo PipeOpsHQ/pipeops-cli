@@ -43,10 +43,10 @@ var Conf config.Config
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "pipeops",
-	Short: "PipeOps CLI - Manage cloud-native development and deployment workflows",
-	Long:    `PipeOps CLI is a command-line interface for managing cloud-native development and deployment workflows. Securely authenticate, manage projects and servers, deploy CI/CD pipelines, and monitor infrastructure—all from your terminal.`,
-	Version: Version,
+	Use:           "pipeops",
+	Short:         "PipeOps CLI - Manage cloud-native development and deployment workflows",
+	Long:          `PipeOps CLI is a command-line interface for managing cloud-native development and deployment workflows. Securely authenticate, manage projects and servers, deploy CI/CD pipelines, and monitor infrastructure—all from your terminal.`,
+	Version:       Version,
 	SilenceErrors: true, // We handle errors in main.go
 	SilenceUsage:  true, // Don't show usage on error
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {

@@ -9,8 +9,9 @@ import (
 var proxyManager = proxy.NewManager()
 
 var proxyCmd = &cobra.Command{
-	Use:   "proxy",
-	Short: "Manage local proxy connections to deployed services",
+	Use:    "proxy",
+	Short:  "Manage local proxy connections to deployed services",
+	Hidden: true,
 	Long: `The proxy command allows you to create local port forwards to your deployed
 services, making them accessible on your local machine. This is useful for debugging,
 development, and accessing services that aren't publicly exposed.
@@ -138,20 +139,5 @@ Examples:
 }
 
 func init() {
-	// Add proxy command to root
-	rootCmd.AddCommand(proxyCmd)
-
-	// Add subcommands
-	proxyCmd.AddCommand(proxyStartCmd)
-	proxyCmd.AddCommand(proxyListCmd)
-	proxyCmd.AddCommand(proxyStopCmd)
-	proxyCmd.AddCommand(proxyStopAllCmd)
-	proxyCmd.AddCommand(proxyServicesCmd)
-
-	// Add flags to start command
-	proxyStartCmd.Flags().StringP("project", "p", "", "Project ID")
-	proxyStartCmd.Flags().IntP("port", "", 8080, "Local port for the proxy")
-
-	// Add flags to services command
-	proxyServicesCmd.Flags().StringP("project", "p", "", "Project ID")
+	// Not registered until there is a real SDK-backed implementation.
 }

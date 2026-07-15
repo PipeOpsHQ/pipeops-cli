@@ -2,10 +2,8 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"html"
-	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -13,12 +11,12 @@ import (
 	"time"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
+	sdk "github.com/PipeOpsHQ/pipeops-go-sdk/pipeops"
 )
 
 // PKCEOAuthService handles OAuth2 authentication with PKCE
 type PKCEOAuthService struct {
 	config       *config.Config
-	client       *http.Client
 	callbackPort int
 }
 
@@ -26,7 +24,6 @@ type PKCEOAuthService struct {
 func NewPKCEOAuthService(cfg *config.Config) *PKCEOAuthService {
 	return &PKCEOAuthService{
 		config: cfg,
-		client: &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -126,7 +123,7 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 // handleDirectToken handles a token that was returned directly in the callback
 func (s *PKCEOAuthService) handleDirectToken(token string) error {
 	s.config.OAuth.AccessToken = token
-	s.config.OAuth.RefreshToken = "" // Direct tokens don't have refresh tokens
+	s.config.OAuth.RefreshToken = ""                               // Direct tokens don't have refresh tokens
 	s.config.OAuth.ExpiresAt = time.Now().Add(30 * 24 * time.Hour) // Default 30 day expiry
 
 	fmt.Println("🎉 Authentication successful!")
@@ -242,18 +239,18 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 
 		// Get authorization code
 		code := r.URL.Query().Get("code")
-		
+
 		// Also check for token parameter (some servers return token directly)
 		token := r.URL.Query().Get("token")
 		if token == "" {
 			token = r.URL.Query().Get("access_token")
 		}
-		
+
 		// Debug: log all query parameters
 		if s.config.Settings != nil && s.config.Settings.Debug {
 			fmt.Printf("🔍 Debug: Callback query params: %v\n", config.SanitizeLog(fmt.Sprintf("%v", r.URL.Query())))
 		}
-		
+
 		if code == "" && token == "" {
 			w.WriteHeader(400)
 			noCodePage := `
@@ -333,6 +330,11 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 
 // exchangeCodeForToken exchanges authorization code for access token using PKCE
 func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeVerifier string) error {
+	client, err := s.newSDKClient()
+	if err != nil {
+		return err
+	}
+
 	// Prepare token request with PKCE (no client secret needed for public clients)
 	redirectURI := fmt.Sprintf("http://localhost:%d/callback", s.callbackPort)
 	tokenReq := map[string]string{
@@ -344,38 +346,9 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 		"token_format":  "jwt",        // Request JWT tokens if server supports it
 	}
 
-	jsonData, err := json.Marshal(tokenReq)
-	if err != nil {
-		return fmt.Errorf("failed to marshal token request: %w", err)
-	}
-
-	// Make token request
-	req, err := http.NewRequestWithContext(ctx, "POST", s.config.OAuth.BaseURL+"/oauth/token", strings.NewReader(string(jsonData)))
+	req, err := client.NewRequest(http.MethodPost, "oauth/token", tokenReq)
 	if err != nil {
 		return fmt.Errorf("failed to create token request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("token request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read token response: %w", err)
-	}
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("token exchange failed: %s", string(body))
-	}
-
-	// Debug: log raw response
-	if s.config.Settings != nil && s.config.Settings.Debug {
-		fmt.Printf("🔍 Debug: Token response: %s\n", config.SanitizeLog(string(body)))
 	}
 
 	// Parse token response - new format includes redirect_url
@@ -391,8 +364,8 @@ func (s *PKCEOAuthService) exchangeCodeForToken(ctx context.Context, code, codeV
 		} `json:"data,omitempty"`
 	}
 
-	if err := json.Unmarshal(body, &tokenResp); err != nil {
-		return fmt.Errorf("failed to parse token response: %w", err)
+	if _, err := client.Do(ctx, req, &tokenResp); err != nil {
+		return fmt.Errorf("token exchange failed: %w", err)
 	}
 
 	// Check for token in data wrapper (alternative format)
@@ -437,6 +410,11 @@ func (s *PKCEOAuthService) Refresh(ctx context.Context) error {
 		return fmt.Errorf("no refresh token available")
 	}
 
+	client, err := s.newSDKClient()
+	if err != nil {
+		return err
+	}
+
 	// Prepare refresh request
 	refreshReq := map[string]string{
 		"grant_type":    "refresh_token",
@@ -444,33 +422,9 @@ func (s *PKCEOAuthService) Refresh(ctx context.Context) error {
 		"client_id":     s.config.OAuth.ClientID,
 	}
 
-	jsonData, err := json.Marshal(refreshReq)
-	if err != nil {
-		return fmt.Errorf("failed to marshal refresh request: %w", err)
-	}
-
-	// Make refresh request
-	req, err := http.NewRequestWithContext(ctx, "POST", s.config.OAuth.BaseURL+"/oauth/token", strings.NewReader(string(jsonData)))
+	req, err := client.NewRequest(http.MethodPost, "oauth/token", refreshReq)
 	if err != nil {
 		return fmt.Errorf("failed to create refresh request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("refresh request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read refresh response: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("refresh failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
 	// Parse refresh response
@@ -481,8 +435,8 @@ func (s *PKCEOAuthService) Refresh(ctx context.Context) error {
 		TokenType    string `json:"token_type"`
 	}
 
-	if err := json.Unmarshal(body, &tokenResp); err != nil {
-		return fmt.Errorf("failed to parse refresh response: %w", err)
+	if _, err := client.Do(ctx, req, &tokenResp); err != nil {
+		return fmt.Errorf("refresh failed: %w", err)
 	}
 
 	// Update config
@@ -498,6 +452,22 @@ func (s *PKCEOAuthService) Refresh(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (s *PKCEOAuthService) newSDKClient() (*sdk.Client, error) {
+	baseURL := config.GetAPIURL()
+	if s.config != nil && s.config.OAuth != nil && strings.TrimSpace(s.config.OAuth.BaseURL) != "" {
+		baseURL = s.config.OAuth.BaseURL
+	}
+
+	client, err := sdk.NewClient(baseURL, sdk.WithTimeout(30*time.Second), sdk.WithMaxRetries(3))
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize PipeOps SDK client: %w", err)
+	}
+	if s.config != nil && s.config.OAuth != nil && strings.TrimSpace(s.config.OAuth.AccessToken) != "" {
+		client.SetToken(s.config.OAuth.AccessToken)
+	}
+	return client, nil
 }
 
 // IsAuthenticated checks if user is authenticated and attempts refresh if expired

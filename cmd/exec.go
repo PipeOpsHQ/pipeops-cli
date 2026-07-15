@@ -9,8 +9,9 @@ import (
 var terminalManager = terminal.NewManager()
 
 var execCmd = &cobra.Command{
-	Use:   "exec",
-	Short: "Execute commands in deployed containers",
+	Use:    "exec",
+	Short:  "Execute commands in deployed containers",
+	Hidden: true,
 	Long: `The exec command allows you to execute commands in your deployed containers.
 This is useful for debugging, running maintenance tasks, or exploring your application environment.
 
@@ -51,8 +52,9 @@ Examples:
 }
 
 var shellCmd = &cobra.Command{
-	Use:   "shell [project-id] [container-name]",
-	Short: "Start an interactive shell in a container",
+	Use:    "shell [project-id] [container-name]",
+	Short:  "Start an interactive shell in a container",
+	Hidden: true,
 	Long: `Start an interactive shell session in a container within your project.
 
 This provides direct shell access to containers for debugging, maintenance, or interactive operations.
@@ -76,7 +78,7 @@ Examples:
 
 var execContainersCmd = &cobra.Command{
 
-	Use:   "containers [project-id]",
+	Use: "containers [project-id]",
 
 	Short: "List containers available for exec",
 
@@ -111,26 +113,8 @@ Examples:
 	},
 
 	Args: cobra.MaximumNArgs(1),
-
 }
 
 func init() {
-	// Add exec command to root
-	rootCmd.AddCommand(execCmd)
-
-	// Add shell command to root
-	rootCmd.AddCommand(shellCmd)
-
-	// Add subcommands to exec
-	execCmd.AddCommand(execRunCmd)
-	execCmd.AddCommand(execContainersCmd)
-
-	// Add flags to exec run command
-	execRunCmd.Flags().StringP("user", "u", "", "User to run command as")
-
-	// Add flags to shell command
-	shellCmd.Flags().StringP("user", "u", "", "User to run shell as")
-
-	// Add flags to containers command
-	execContainersCmd.Flags().StringP("project", "p", "", "Project ID")
+	// Not registered until there is a real SDK-backed implementation.
 }
