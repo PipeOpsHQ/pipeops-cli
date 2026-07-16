@@ -978,10 +978,6 @@ func (c *Client) GetAddonDeployment(deploymentID string) (*models.AddonDeploymen
 		return deployment, nil
 	}
 	if err != nil {
-		deployment, fallbackErr := c.findAddonDeployment(deploymentID)
-		if fallbackErr == nil {
-			return deployment, nil
-		}
 		return nil, err
 	}
 	return nil, fallbackErr
@@ -1000,20 +996,6 @@ func (c *Client) findAddonDeployment(deploymentID string) (*models.AddonDeployme
 		}
 	}
 	return nil, fmt.Errorf("addon deployment %q not found in workspace overview", deploymentID)
-}
-
-func (c *Client) findAddonDeployment(deploymentID string) (*models.AddonDeployment, error) {
-	deployments, err := c.GetAddonDeployments()
-	if err != nil {
-		return nil, err
-	}
-	for _, deployment := range deployments {
-		if deployment.ID == deploymentID {
-			deploymentCopy := deployment
-			return &deploymentCopy, nil
-		}
-	}
-	return nil, fmt.Errorf("addon deployment %q not found", deploymentID)
 }
 
 // DeleteAddonDeployment deletes an addon deployment
