@@ -930,10 +930,28 @@ func (c *Client) GetAddonDeployment(deploymentID string) (*models.AddonDeploymen
 	ctx := context.Background()
 	resp, _, err := c.sdkClient.AddOns.GetDeployment(ctx, deploymentID)
 	if err != nil {
+		deployment, fallbackErr := c.findAddonDeployment(deploymentID)
+		if fallbackErr == nil {
+			return deployment, nil
+		}
 		return nil, err
 	}
 	deployment := addonDeploymentFromSDK(resp.Data.Deployment)
 	return &deployment, nil
+}
+
+func (c *Client) findAddonDeployment(deploymentID string) (*models.AddonDeployment, error) {
+	deployments, err := c.GetAddonDeployments()
+	if err != nil {
+		return nil, err
+	}
+	for _, deployment := range deployments {
+		if deployment.ID == deploymentID {
+			deploymentCopy := deployment
+			return &deploymentCopy, nil
+		}
+	}
+	return nil, fmt.Errorf("addon deployment %q not found", deploymentID)
 }
 
 // DeleteAddonDeployment deletes an addon deployment
@@ -1115,6 +1133,9 @@ func (c *Client) GetServerConnection(serverID string) (map[string]interface{}, e
 	if err != nil {
 		return nil, err
 	}
+	if resp == nil || len(resp.Data.Connection) == 0 {
+		return nil, errors.New("no server connection information returned")
+	}
 	return resp.Data.Connection, nil
 }
 
@@ -1215,9 +1236,27 @@ func (c *Client) GetWorkspace(ctx context.Context, workspaceID string) (*sdk.Wor
 
 	resp, _, err := c.sdkClient.Workspaces.Get(ctx, workspaceID)
 	if err != nil {
+		workspace, fallbackErr := c.findWorkspace(ctx, workspaceID)
+		if fallbackErr == nil {
+			return workspace, nil
+		}
 		return nil, err
 	}
 	return &resp.Data.Workspace, nil
+}
+
+func (c *Client) findWorkspace(ctx context.Context, workspaceID string) (*sdk.Workspace, error) {
+	workspaces, err := c.GetWorkspaces(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, workspace := range workspaces {
+		if workspace.UUID == workspaceID || workspace.ID == workspaceID || workspace.Name == workspaceID {
+			workspaceCopy := workspace
+			return &workspaceCopy, nil
+		}
+	}
+	return nil, fmt.Errorf("workspace %q not found", workspaceID)
 }
 
 // CreateWorkspace creates a workspace.
