@@ -32,15 +32,20 @@ Examples:` + `
 		// Calculate time until expiration
 		var timeUntilExpiry time.Duration
 		var expiryStatus string
+		isServiceToken := false
 
 		if cfg.OAuth.AccessToken != "" {
+			isServiceToken = config.IsServiceAccountToken(cfg.OAuth.AccessToken)
+		}
+
+		if cfg.OAuth.AccessToken != "" && !isServiceToken {
 			timeUntilExpiry = time.Until(cfg.OAuth.ExpiresAt)
 
 			if timeUntilExpiry > 24*time.Hour {
 				days := int(timeUntilExpiry.Hours() / 24)
 				expiryStatus = fmt.Sprintf("%d days", days)
 			} else if timeUntilExpiry > time.Hour {
-			hours := int(timeUntilExpiry.Hours())
+				hours := int(timeUntilExpiry.Hours())
 				expiryStatus = fmt.Sprintf("%d hours", hours)
 			} else if timeUntilExpiry > 0 {
 				minutes := int(timeUntilExpiry.Minutes())
@@ -56,9 +61,13 @@ Examples:` + `
 			"api_endpoint":  cfg.OAuth.BaseURL,
 			"client_id":     cfg.OAuth.ClientID,
 			"scopes":        cfg.OAuth.Scopes,
+			"token_type":    "oauth",
 		}
 
-		if cfg.OAuth.AccessToken != "" {
+		if isServiceToken {
+			status["token_type"] = "service_account"
+			status["token_source"] = config.EnvTokenName
+		} else if cfg.OAuth.AccessToken != "" {
 			status["token_expires_at"] = cfg.OAuth.ExpiresAt.Format(time.RFC3339)
 			status["token_expires_in_seconds"] = int(timeUntilExpiry.Seconds())
 			status["expires_in_human"] = expiryStatus
@@ -69,7 +78,12 @@ Examples:` + `
 			utils.PrintJSON(status)
 		} else {
 			if cfg.IsAuthenticated() {
-				if timeUntilExpiry > 24*time.Hour {
+				if isServiceToken {
+					fmt.Printf("✅ Authenticated with service account token (%s)\n", config.EnvTokenName)
+					fmt.Println()
+					fmt.Println("🚀 Automation credentials are active. Try:")
+					fmt.Println("   pipeops project list    # View workspace projects")
+				} else if timeUntilExpiry > 24*time.Hour {
 					fmt.Printf("✅ Authenticated (%s remaining)\n", expiryStatus)
 					fmt.Println()
 					fmt.Println("🚀 You're all set! Try these commands:")
@@ -90,6 +104,7 @@ Examples:` + `
 				fmt.Println()
 				fmt.Println("👋 Welcome to PipeOps! Let's get you started:")
 				fmt.Println("   pipeops login      # Authenticate with your account")
+				fmt.Printf("   export %s=sat_...  # Use a service account token for automation\n", config.EnvTokenName)
 				fmt.Println("   pipeops --help          # Explore available commands")
 			}
 		}

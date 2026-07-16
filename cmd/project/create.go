@@ -1,44 +1,47 @@
 package project
 
 import (
+	"fmt"
+
 	"github.com/PipeOpsHQ/pipeops-cli/utils"
 	"github.com/spf13/cobra"
 )
 
-// createCmd represents the project create command
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Create project (temporarily disabled)",
-	Long: `Project creation is temporarily disabled.
+	Short: "Create a project",
+	Long: `Create a new PipeOps project.
 
-This feature is under development and will be available in a future release.
-
-Available alternatives:
-  - Use the PipeOps web console to create projects
-  - Link existing projects: pipeops link <project-id>
-  - List existing projects: pipeops project list`,
-	Run: func(cmd *cobra.Command, args []string) {
+Examples:
+  pipeops project create --name api --server <server-id> --environment <env-id>
+  pipeops project create --name api --repository owner/repo --branch main --port 8080`,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-
-		if opts.Format == utils.OutputFormatJSON {
-			utils.PrintJSON(map[string]string{
-				"status":  "disabled",
-				"message": "Project creation is temporarily disabled",
-			})
-		} else {
-			utils.PrintWarning("Project creation is temporarily disabled. This feature is under development and will be available in a future release.", opts)
-			utils.PrintInfo("\nAvailable alternatives:", opts)
-			utils.PrintInfo("  - Use the PipeOps web console to create projects: https://app.pipeops.io", opts)
-			utils.PrintInfo("  - Link existing projects: `pipeops link <project-id>`", opts)
-			utils.PrintInfo("  - List existing projects: `pipeops project list`", opts)
-			utils.PrintInfo("  - Deploy addons: `pipeops deploy --addon <addon-id>`", opts)
+		client, err := authenticatedClient(cmd, opts)
+		if err != nil || client == nil {
+			return err
 		}
+
+		req, err := projectCreateRequestFromFlags(cmd)
+		if err != nil {
+			return err
+		}
+		project, err := client.CreateProject(req)
+		if err != nil {
+			return fmt.Errorf("create project: %w", err)
+		}
+
+		if opts.Format != utils.OutputFormatJSON {
+			utils.PrintSuccess("Project created", opts)
+		}
+		printProject(project, opts)
+		return nil
 	},
 	Args: cobra.NoArgs,
 }
 
-// NewCreate initializes and returns the create command
 func (p *projectModel) createProject() *cobra.Command {
+	addProjectCreateFlags(createCmd)
 	p.rootCmd.AddCommand(createCmd)
 	return createCmd
 }

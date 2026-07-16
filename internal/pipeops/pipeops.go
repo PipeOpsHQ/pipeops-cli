@@ -4,46 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
-	"github.com/PipeOpsHQ/pipeops-cli/libs"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
 	sdk "github.com/PipeOpsHQ/pipeops-go-sdk/pipeops"
 	"github.com/manifoldco/promptui"
 )
 
-// sdkClusterGetResponse is a custom struct to unmarshal the response from the GetServer API call.
-// This is needed because the SDK's Get method for servers is buggy and expects a list instead of a single object.
-type sdkClusterGetResponse struct {
-	Success bool   `json:"success,omitempty"`
-	Status  string `json:"status,omitempty"`
-	Message string `json:"message,omitempty"`
-	Data    struct {
-		Cluster sdkClusterListItem `json:"cluster,omitempty"`
-	} `json:"data,omitempty"`
-}
-
-type sdkClusterListItem struct {
-	Cluster struct {
-		UUID          string `json:"uuid,omitempty"`
-		Name          string `json:"name,omitempty"`
-		CloudProvider string `json:"cloudProvider,omitempty"`
-		Region        string `json:"region,omitempty"`
-		Status        string `json:"status,omitempty"`
-	} `json:"Cluster,omitempty"`
-	IsActive bool `json:"IsActive,omitempty"`
-	InUse    bool `json:"InUse,omitempty"`
-}
-
 // Client represents the PipeOps client wrapping the Go SDK
 type Client struct {
-	sdkClient    *sdk.Client
-	config       *config.Config
-	legacyClient libs.HttpClients // Required for exec/shell/containers not in SDK
+	sdkClient *sdk.Client
+	config    *config.Config
 }
 
 // NewClient creates a new PipeOps client
@@ -57,12 +31,9 @@ func NewClient() ClientAPI {
 		sdkClient, _ = sdk.NewClient("")
 	}
 
-	legacyClient := libs.NewHttpClientWithURL(baseURL)
-
 	return &Client{
-		sdkClient:    sdkClient,
-		config:       cfg,
-		legacyClient: legacyClient,
+		sdkClient: sdkClient,
+		config:    cfg,
 	}
 }
 
@@ -87,12 +58,9 @@ func NewClientWithConfig(cfg *config.Config) ClientAPI {
 		sdkClient.SetToken(cfg.OAuth.AccessToken)
 	}
 
-	legacyClient := libs.NewHttpClientWithURL(baseURL)
-
 	return &Client{
-		sdkClient:    sdkClient,
-		config:       cfg,
-		legacyClient: legacyClient,
+		sdkClient: sdkClient,
+		config:    cfg,
 	}
 }
 
@@ -113,7 +81,19 @@ func (c *Client) LoadConfig() error {
 	if cfg.OAuth != nil && strings.TrimSpace(cfg.OAuth.BaseURL) != "" {
 		baseURL = cfg.OAuth.BaseURL
 	}
-	c.legacyClient = libs.NewHttpClientWithURL(baseURL)
+	if c.sdkClient == nil || strings.TrimSpace(baseURL) != "" {
+		sdkClient, err := sdk.NewClient(baseURL,
+			sdk.WithTimeout(30*time.Second),
+			sdk.WithMaxRetries(3),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to initialize PipeOps SDK client: %w", err)
+		}
+		c.sdkClient = sdkClient
+	}
+	if cfg.OAuth != nil && strings.TrimSpace(cfg.OAuth.AccessToken) != "" {
+		c.sdkClient.SetToken(cfg.OAuth.AccessToken)
+	}
 	return nil
 }
 
@@ -196,6 +176,10 @@ func (c *Client) resolveWorkspaceUUID(ctx context.Context) (string, error) {
 		}
 	}
 
+	if !shouldPromptForWorkspace() {
+		return "", errors.New("multiple workspaces found; set PIPEOPS_WORKSPACE_UUID or run 'pipeops workspace select' before using non-interactive commands")
+	}
+
 	// Multiple workspaces exist - prompt user to select
 	fmt.Println("\nYou have multiple workspaces. Please select one:")
 	options := make([]string, len(workspaces))
@@ -218,6 +202,37 @@ func (c *Client) resolveWorkspaceUUID(ctx context.Context) (string, error) {
 	fmt.Printf("✓ Selected workspace: %s\n\n", workspaces[idx].Name)
 
 	return selectedUUID, nil
+}
+
+func shouldPromptForWorkspace() bool {
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		return shouldPromptForWorkspaceWithMode(0, err)
+	}
+	return shouldPromptForWorkspaceWithMode(stat.Mode(), nil)
+}
+
+func shouldPromptForWorkspaceWithMode(stdinMode os.FileMode, statErr error) bool {
+	if envEnabled("PIPEOPS_OUTPUT_JSON") || envEnabled("PIPEOPS_NON_INTERACTIVE") || isCIEnvironment() {
+		return false
+	}
+	if statErr != nil {
+		return false
+	}
+	return stdinMode&os.ModeCharDevice != 0
+}
+
+func envEnabled(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+	case "1", "true", "yes", "y", "on":
+		return true
+	default:
+		return false
+	}
+}
+
+func isCIEnvironment() bool {
+	return envEnabled("CI") || envEnabled("GITHUB_ACTIONS")
 }
 
 // promptSelectWorkspace uses promptui to let user select a workspace
@@ -371,8 +386,17 @@ func (c *Client) CreateProject(req *models.ProjectCreateRequest) (*models.Projec
 
 	ctx := context.Background()
 	createReq := &sdk.CreateProjectRequest{
-		Name:        req.Name,
-		Description: req.Description,
+		Name:          req.Name,
+		Description:   req.Description,
+		ServerID:      req.ServerID,
+		EnvironmentID: req.EnvironmentID,
+		Repository:    req.Repository,
+		Branch:        req.Branch,
+		BuildCommand:  req.BuildCommand,
+		StartCommand:  req.StartCommand,
+		Port:          req.Port,
+		Framework:     req.Framework,
+		EnvVars:       req.EnvVars,
 	}
 
 	resp, _, err := c.sdkClient.Projects.Create(ctx, createReq)
@@ -403,8 +427,11 @@ func (c *Client) UpdateProject(projectID string, req *models.ProjectUpdateReques
 
 	ctx := context.Background()
 	updateReq := &sdk.UpdateProjectRequest{
-		Name:        req.Name,
-		Description: req.Description,
+		Name:         req.Name,
+		Description:  req.Description,
+		BuildCommand: req.BuildCommand,
+		StartCommand: req.StartCommand,
+		Port:         req.Port,
 	}
 
 	resp, _, err := c.sdkClient.Projects.Update(ctx, projectID, updateReq)
@@ -447,6 +474,100 @@ func (c *Client) DeployProject(projectID string) error {
 	ctx := context.Background()
 	_, err := c.sdkClient.Projects.Deploy(ctx, projectID)
 	return err
+}
+
+// RestartProject restarts a project.
+func (c *Client) RestartProject(projectID string) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+
+	ctx := context.Background()
+	_, err := c.sdkClient.Projects.Restart(ctx, projectID)
+	return err
+}
+
+// StopProject stops a project.
+func (c *Client) StopProject(projectID string) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+
+	ctx := context.Background()
+	_, err := c.sdkClient.Projects.Stop(ctx, projectID)
+	return err
+}
+
+// GetProjectEnvVariables retrieves environment variables for a project.
+func (c *Client) GetProjectEnvVariables(projectID string) ([]sdk.EnvVariable, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+
+	ctx := context.Background()
+	resp, _, err := c.sdkClient.Projects.GetEnvVariables(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.EnvVariables, nil
+}
+
+// UpdateProjectEnvVariables updates environment variables for a project.
+func (c *Client) UpdateProjectEnvVariables(projectID string, envVars []sdk.EnvVariable) ([]sdk.EnvVariable, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+
+	ctx := context.Background()
+	resp, _, err := c.sdkClient.Projects.UpdateEnvVariables(ctx, projectID, &sdk.EnvVariablesRequest{EnvVariables: envVars})
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.EnvVariables, nil
+}
+
+// ListProjectDeployments lists deployments for a project.
+func (c *Client) ListProjectDeployments(projectID string, opts *sdk.ProjectDeploymentListOptions) (*sdk.ProjectDeploymentsResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+
+	ctx := context.Background()
+	if opts == nil {
+		opts = &sdk.ProjectDeploymentListOptions{}
+	}
+	if opts.WorkspaceUUID == "" && opts.WorkspaceID == "" {
+		if workspaceUUID, err := c.resolveWorkspaceUUID(ctx); err == nil {
+			opts.WorkspaceUUID = workspaceUUID
+		}
+	}
+	resp, _, err := c.sdkClient.Projects.ListDeployments(ctx, projectID, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// ListProjectDeploymentHistory lists deployment history for a project.
+func (c *Client) ListProjectDeploymentHistory(projectID string, opts *sdk.ProjectDeploymentHistoryOptions) (*sdk.ProjectDeploymentHistoryResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+
+	ctx := context.Background()
+	if opts == nil {
+		opts = &sdk.ProjectDeploymentHistoryOptions{}
+	}
+	if opts.WorkspaceUUID == "" && opts.WorkspaceID == "" {
+		if workspaceUUID, err := c.resolveWorkspaceUUID(ctx); err == nil {
+			opts.WorkspaceUUID = workspaceUUID
+		}
+	}
+	resp, _, err := c.sdkClient.Projects.ListDeploymentHistory(ctx, projectID, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 // GetLogs retrieves project logs
@@ -653,9 +774,7 @@ func (c *Client) GetContainers(projectID string, addonID string) (*models.ListCo
 		return nil, errors.New("not authenticated")
 	}
 
-	// Use legacy client as fallback since SDK doesn't support containers yet
-	token := c.config.OAuth.AccessToken
-	return c.legacyClient.GetContainers(token, projectID, addonID)
+	return nil, errors.New("container listing is not supported by the PipeOps Go SDK")
 }
 
 // StartExec starts an exec session
@@ -664,9 +783,7 @@ func (c *Client) StartExec(req *models.ExecRequest) (*models.ExecResponse, error
 		return nil, errors.New("not authenticated")
 	}
 
-	// Use legacy client as fallback since SDK doesn't support exec yet
-	token := c.config.OAuth.AccessToken
-	return c.legacyClient.StartExec(token, req)
+	return nil, errors.New("container exec is not supported by the PipeOps Go SDK")
 }
 
 // StartShell starts a shell session
@@ -675,9 +792,7 @@ func (c *Client) StartShell(req *models.ShellRequest) (*models.ShellResponse, er
 		return nil, errors.New("not authenticated")
 	}
 
-	// Use legacy client as fallback since SDK doesn't support shell yet
-	token := c.config.OAuth.AccessToken
-	return c.legacyClient.StartShell(token, req)
+	return nil, errors.New("container shell is not supported by the PipeOps Go SDK")
 }
 
 // GetAddons retrieves a list of addons
@@ -750,8 +865,31 @@ func (c *Client) GetAddon(addonID string) (*models.Addon, error) {
 	}, nil
 }
 
-// GetAddonDeployments retrieves a list of addon deployments for the workspace
-func (c *Client) GetAddonDeployments(projectID string) ([]models.AddonDeployment, error) {
+// DeployAddon deploys an addon.
+func (c *Client) DeployAddon(req *sdk.DeployAddOnRequest) (*models.AddonDeployment, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+
+	ctx := context.Background()
+	if req.Workspace == "" {
+		workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
+		if err != nil {
+			return nil, err
+		}
+		req.Workspace = workspaceUUID
+	}
+
+	resp, _, err := c.sdkClient.AddOns.Deploy(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	deployment := addonDeploymentFromSDK(resp.Data.Deployment)
+	return &deployment, nil
+}
+
+// GetAddonDeployments retrieves a list of addon deployments for the workspace.
+func (c *Client) GetAddonDeployments() ([]models.AddonDeployment, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
 	}
@@ -777,19 +915,25 @@ func (c *Client) GetAddonDeployments(projectID string) ([]models.AddonDeployment
 	// Convert SDK response to CLI models
 	deployments := make([]models.AddonDeployment, 0)
 	for _, d := range resp.Data {
-		deployments = append(deployments, models.AddonDeployment{
-			ID:            d.UID,
-			Name:          d.Name,
-			DeploymentURL: d.DeploymentURL,
-			Category:      d.Category,
-			Status:        d.Status,
-			Environment:   d.Environment,
-			Version:       d.Version,
-			CreatedAt:     timestampToTime(d.CreatedAt),
-		})
+		deployments = append(deployments, addonDeploymentFromSDK(d))
 	}
 
 	return deployments, nil
+}
+
+// GetAddonDeployment retrieves a single addon deployment.
+func (c *Client) GetAddonDeployment(deploymentID string) (*models.AddonDeployment, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+
+	ctx := context.Background()
+	resp, _, err := c.sdkClient.AddOns.GetDeployment(ctx, deploymentID)
+	if err != nil {
+		return nil, err
+	}
+	deployment := addonDeploymentFromSDK(resp.Data.Deployment)
+	return &deployment, nil
 }
 
 // DeleteAddonDeployment deletes an addon deployment
@@ -801,6 +945,74 @@ func (c *Client) DeleteAddonDeployment(deploymentID string) error {
 	ctx := context.Background()
 	_, err := c.sdkClient.AddOns.DeleteDeployment(ctx, deploymentID)
 	return err
+}
+
+// ListAddonCategories lists addon categories.
+func (c *Client) ListAddonCategories() ([]sdk.AddOnCategory, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+
+	ctx := context.Background()
+	resp, _, err := c.sdkClient.AddOns.ListCategories(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.Categories, nil
+}
+
+// GetAddonDeploymentSession gets an addon deployment session.
+func (c *Client) GetAddonDeploymentSession(sessionID string) (map[string]interface{}, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+
+	ctx := context.Background()
+	resp, _, err := c.sdkClient.AddOns.GetDeploymentSession(ctx, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.Session, nil
+}
+
+// ViewAddonDeploymentConfigs retrieves addon deployment configs.
+func (c *Client) ViewAddonDeploymentConfigs(deploymentID string) (map[string]interface{}, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+
+	ctx := context.Background()
+	resp, _, err := c.sdkClient.AddOns.ViewDeploymentConfigs(ctx, deploymentID)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.Configs, nil
+}
+
+func addonDeploymentFromSDK(d sdk.AddOnDeployment) models.AddonDeployment {
+	id := d.UID
+	if id == "" {
+		id = d.DeploymentName
+	}
+	name := d.Name
+	if name == "" {
+		name = d.DeploymentName
+	}
+	version := d.Version
+	if version == "" {
+		version = d.CurrentVersion
+	}
+	return models.AddonDeployment{
+		ID:            id,
+		Name:          name,
+		DeploymentURL: d.DeploymentURL,
+		Category:      d.Category,
+		Status:        d.Status,
+		Environment:   d.Environment,
+		Version:       version,
+		CreatedAt:     timestampToTime(d.CreatedAt),
+		UpdatedAt:     timestampToTime(d.UpdatedAt),
+	}
 }
 
 // GetServers retrieves all servers
@@ -862,46 +1074,62 @@ func (c *Client) GetServer(serverID string) (*models.Server, error) {
 		return nil, err
 	}
 
-	// Bypassing the SDK's GetServer method due to a bug where it expects a list of servers instead of a single server.
-	// We are making a direct HTTP call to the API instead.
-	u := fmt.Sprintf("cluster/%s?workspace_uuid=%s", serverID, workspaceUUID)
-	req, err := c.sdkClient.NewRequest(http.MethodGet, u, nil)
+	resp, _, err := c.sdkClient.Servers.Get(ctx, serverID, workspaceUUID)
 	if err != nil {
 		return nil, err
 	}
 
-	rawResp := new(sdkClusterGetResponse)
-	_, err = c.sdkClient.Do(ctx, req, rawResp)
-	if err != nil {
-		return nil, err
+	server := resp.Data.Server
+	id := strings.TrimSpace(server.UUID)
+	if id == "" {
+		id = server.ID
 	}
-
-	if rawResp == nil || rawResp.Data.Cluster.Cluster.UUID == "" {
+	if id == "" {
 		return nil, errors.New("no cluster data returned")
 	}
 
-	cluster := rawResp.Data.Cluster
-	status := cluster.Cluster.Status
-	if status == "" {
-		if cluster.IsActive {
-			status = "active"
-		} else {
-			status = "inactive"
-		}
-	}
-
-	provider := cluster.Cluster.CloudProvider
+	provider := server.Provider
 	if provider == "" {
-		provider = detectProviderFromName(cluster.Cluster.Name)
+		provider = detectProviderFromName(server.Name)
 	}
 
 	return &models.Server{
-		ID:        cluster.Cluster.UUID,
-		Name:      cluster.Cluster.Name,
-		Status:    status,
+		ID:        id,
+		Name:      server.Name,
+		Status:    server.Status,
 		Type:      provider,
-		Region:    cluster.Cluster.Region,
+		Region:    server.Region,
+		CreatedAt: timestampToTime(server.CreatedAt),
+		UpdatedAt: timestampToTime(server.UpdatedAt),
 	}, nil
+}
+
+// GetServerConnection retrieves server connection information.
+func (c *Client) GetServerConnection(serverID string) (map[string]interface{}, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+
+	ctx := context.Background()
+	resp, _, err := c.sdkClient.Servers.GetClusterConnection(ctx, serverID)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.Connection, nil
+}
+
+// GetServerCostAllocation retrieves server cost allocation.
+func (c *Client) GetServerCostAllocation(serverID string) (map[string]interface{}, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+
+	ctx := context.Background()
+	resp, _, err := c.sdkClient.Servers.GetClusterCostAllocation(ctx, serverID)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.Costs, nil
 }
 
 // detectProviderFromName attempts to detect the cloud provider from the server name.
@@ -974,4 +1202,239 @@ func (c *Client) GetWorkspaces(ctx context.Context) ([]sdk.Workspace, error) {
 	}
 
 	return resp.Data.Workspaces, nil
+}
+
+// GetWorkspace retrieves a workspace.
+func (c *Client) GetWorkspace(ctx context.Context, workspaceID string) (*sdk.Workspace, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	resp, _, err := c.sdkClient.Workspaces.Get(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data.Workspace, nil
+}
+
+// CreateWorkspace creates a workspace.
+func (c *Client) CreateWorkspace(ctx context.Context, req *sdk.CreateWorkspaceRequest) (*sdk.Workspace, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	resp, _, err := c.sdkClient.Workspaces.Create(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data.Workspace, nil
+}
+
+// UpdateWorkspace updates a workspace.
+func (c *Client) UpdateWorkspace(ctx context.Context, workspaceID string, req *sdk.UpdateWorkspaceRequest) (*sdk.Workspace, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	resp, _, err := c.sdkClient.Workspaces.Update(ctx, workspaceID, req)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data.Workspace, nil
+}
+
+// DeleteWorkspace deletes a workspace.
+func (c *Client) DeleteWorkspace(ctx context.Context, workspaceID string) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	_, err := c.sdkClient.Workspaces.Delete(ctx, workspaceID)
+	return err
+}
+
+// ListEnvironments lists environments.
+func (c *Client) ListEnvironments(ctx context.Context) ([]sdk.Environment, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	resp, _, err := c.sdkClient.Environments.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.Environments, nil
+}
+
+// GetEnvironment retrieves an environment.
+func (c *Client) GetEnvironment(ctx context.Context, environmentID string) (*sdk.Environment, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	resp, _, err := c.sdkClient.Environments.Get(ctx, environmentID)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data.Environment, nil
+}
+
+// CreateEnvironment creates an environment.
+func (c *Client) CreateEnvironment(ctx context.Context, req *sdk.CreateEnvironmentRequest) (*sdk.Environment, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if req.WorkspaceUUID == "" && req.WorkspaceID == "" {
+		workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
+		if err != nil {
+			return nil, err
+		}
+		req.WorkspaceUUID = workspaceUUID
+	}
+
+	resp, _, err := c.sdkClient.Environments.Create(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data.Environment, nil
+}
+
+// UpdateEnvironment updates an environment.
+func (c *Client) UpdateEnvironment(ctx context.Context, environmentID string, req *sdk.UpdateEnvironmentRequest) (*sdk.Environment, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	resp, _, err := c.sdkClient.Environments.Update(ctx, environmentID, req)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data.Environment, nil
+}
+
+// DeleteEnvironment deletes an environment.
+func (c *Client) DeleteEnvironment(ctx context.Context, environmentID string) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	_, err := c.sdkClient.Environments.Delete(ctx, environmentID)
+	return err
+}
+
+// SetEnvironmentVariables sets environment variables for an environment.
+func (c *Client) SetEnvironmentVariables(ctx context.Context, environmentID string, envVars []sdk.EnvVariable) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	_, err := c.sdkClient.Environments.SetEnvVariables(ctx, environmentID, &sdk.SetEnvironmentVariablesRequest{EnvVariables: envVars})
+	return err
+}
+
+// ListServiceAccountTokens lists service account tokens.
+func (c *Client) ListServiceAccountTokens(ctx context.Context) ([]sdk.ServiceAccountToken, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	resp, _, err := c.sdkClient.ServiceTokens.ListServiceAccountTokens(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.Tokens, nil
+}
+
+// GetServiceAccountToken retrieves a service account token.
+func (c *Client) GetServiceAccountToken(ctx context.Context, tokenID string) (*sdk.ServiceAccountToken, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	resp, _, err := c.sdkClient.ServiceTokens.GetServiceAccountToken(ctx, tokenID)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data.Token, nil
+}
+
+// CreateServiceAccountToken creates a service account token.
+func (c *Client) CreateServiceAccountToken(ctx context.Context, req *sdk.ServiceAccountTokenRequest) (*sdk.ServiceAccountToken, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	resp, _, err := c.sdkClient.ServiceTokens.CreateServiceAccountToken(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data.Token, nil
+}
+
+// UpdateServiceAccountToken updates a service account token.
+func (c *Client) UpdateServiceAccountToken(ctx context.Context, tokenID string, req *sdk.ServiceAccountTokenUpdateRequest) (*sdk.ServiceAccountToken, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	resp, _, err := c.sdkClient.ServiceTokens.UpdateServiceAccountToken(ctx, tokenID, req)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data.Token, nil
+}
+
+// RevokeServiceAccountToken revokes a service account token.
+func (c *Client) RevokeServiceAccountToken(ctx context.Context, tokenID string) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	_, err := c.sdkClient.ServiceTokens.RevokeServiceAccountToken(ctx, tokenID)
+	return err
 }

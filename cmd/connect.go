@@ -8,8 +8,9 @@ import (
 )
 
 var connectCmd = &cobra.Command{
-	Use:   "connect [service-name]",
-	Short: "Connect to a service",
+	Use:    "connect [service-name]",
+	Short:  "Connect to a service",
+	Hidden: true,
 	Long: `Connect to a service in your project.
 
 This command helps you connect to various services like databases, caches, and other infrastructure components.
@@ -74,8 +75,5 @@ func getConnectionCommand(serviceType string) []string {
 }
 
 func init() {
-	rootCmd.AddCommand(connectCmd)
-
-	// Add flags
-	connectCmd.Flags().StringP("project", "p", "", "Project ID")
+	// Not registered until there is a real SDK-backed implementation.
 }

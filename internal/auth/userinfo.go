@@ -2,14 +2,12 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"strings"
+	"strconv"
 	"time"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
+	sdk "github.com/PipeOpsHQ/pipeops-go-sdk/pipeops"
 )
 
 // UserInfo represents the user information returned by the OAuth userinfo endpoint
@@ -67,154 +65,78 @@ func (ui *UserInfo) GetDisplayName() string {
 // UserInfoService handles OAuth userinfo API calls
 type UserInfoService struct {
 	config *config.Config
-	client *http.Client
 }
 
 // NewUserInfoService creates a new userinfo service
 func NewUserInfoService(cfg *config.Config) *UserInfoService {
 	return &UserInfoService{
 		config: cfg,
-		client: &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
 // GetUserInfo fetches user information from the OAuth userinfo endpoint
 func (s *UserInfoService) GetUserInfo(ctx context.Context, accessToken string) (*UserInfo, error) {
-	// First attempt with Bearer token (standard OAuth 2.0)
-	userInfo, err := s.getUserInfoWithBearer(ctx, accessToken)
-	if err == nil {
-		return userInfo, nil
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
-	// If Bearer token fails due to JWT format issues, try alternative approaches
-	if s.isJWTFormatError(err) {
-		// Check if token is actually a JWT that needs different handling
-		if s.isJWT(accessToken) {
-			return s.getUserInfoWithJWT(ctx, accessToken)
-		}
-
-		// For opaque tokens, provide helpful error message
-		return nil, fmt.Errorf("server expects JWT tokens but received opaque token - this is a server configuration issue. Server response: %w", err)
-	}
-
-	return nil, err
-}
-
-// getUserInfoWithBearer makes a standard OAuth 2.0 Bearer token request
-func (s *UserInfoService) getUserInfoWithBearer(ctx context.Context, accessToken string) (*UserInfo, error) {
-	// Create request to userinfo endpoint
-	req, err := http.NewRequestWithContext(ctx, "GET", s.config.OAuth.BaseURL+"/oauth/userinfo", nil)
+	client, err := s.newSDKClient(accessToken)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create userinfo request: %w", err)
+		return nil, err
 	}
 
-	// Set authorization header
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "PipeOps-CLI/1.0")
-
-	// Debug information
-	if s.config.Settings != nil && s.config.Settings.Debug {
-		fmt.Printf("🔍 Debug: Making Bearer token request to %s\n", config.SanitizeLog(req.URL.String()))
-		tokenPreview := accessToken
-		if len(accessToken) > 20 {
-			tokenPreview = accessToken[:20] + "..."
-		}
-		fmt.Printf("🔍 Debug: Token preview: %s\n", tokenPreview)
-		fmt.Printf("🔍 Debug: Token format: %s\n", s.getTokenFormat(accessToken))
-	}
-
-	// Make the request
-	resp, err := s.client.Do(req)
+	profileResp, _, err := client.Users.GetProfile(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("userinfo request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// Read response body for better error messages
-	bodyBytes, readErr := io.ReadAll(resp.Body)
-	var responseBody string
-	if readErr == nil {
-		responseBody = string(bodyBytes)
+		return nil, fmt.Errorf("failed to fetch user profile: %w", err)
 	}
 
-	// Debug response information
-	if s.config.Settings != nil && s.config.Settings.Debug {
-		fmt.Printf("🔍 Debug: Response status: %d\n", resp.StatusCode)
-		fmt.Printf("🔍 Debug: Response headers: %v\n", resp.Header)
-		fmt.Printf("🔍 Debug: Response body: %s\n", config.SanitizeLog(responseBody))
-	}
-
-	// Check response status with detailed error messages
-	if resp.StatusCode == http.StatusUnauthorized {
-		if responseBody != "" {
-			return nil, fmt.Errorf("authentication failed - server response: %s", responseBody)
-		}
-		return nil, fmt.Errorf("authentication expired or invalid - please run 'pipeops auth login'")
-	}
-
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("userinfo endpoint not found - the API might not support this endpoint yet")
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		if responseBody != "" {
-			return nil, fmt.Errorf("userinfo request failed with status %d: %s", resp.StatusCode, responseBody)
-		}
-		return nil, fmt.Errorf("userinfo request failed with status %d", resp.StatusCode)
-	}
-
-	// Parse response
-	var userInfo UserInfo
-	if readErr != nil {
-		return nil, fmt.Errorf("failed to read userinfo response: %w", readErr)
-	}
-
-	if err := json.Unmarshal(bodyBytes, &userInfo); err != nil {
-		return nil, fmt.Errorf("failed to parse userinfo response: %w (response: %s)", err, responseBody)
-	}
-
-	return &userInfo, nil
+	return userFromSDK(profileResp.Data.User), nil
 }
 
-// getUserInfoWithJWT handles JWT-specific authentication
-func (s *UserInfoService) getUserInfoWithJWT(ctx context.Context, jwtToken string) (*UserInfo, error) {
-	// This method can be implemented if needed for JWT-specific handling
-	// For now, it attempts the same Bearer token approach
-	return s.getUserInfoWithBearer(ctx, jwtToken)
-}
-
-// isJWTFormatError checks if the error is related to JWT format issues
-func (s *UserInfoService) isJWTFormatError(err error) bool {
-	errorStr := err.Error()
-	return strings.Contains(errorStr, "invalid number of segments") ||
-		strings.Contains(errorStr, "token contains an invalid") ||
-		strings.Contains(errorStr, "malformed token")
-}
-
-// isJWT checks if a token is in JWT format (has 3 segments)
-func (s *UserInfoService) isJWT(token string) bool {
-	return strings.Count(token, ".") == 2
-}
-
-// getTokenFormat returns a human-readable description of the token format
-func (s *UserInfoService) getTokenFormat(token string) string {
-	segments := strings.Count(token, ".")
-	if segments == 2 {
-		return "JWT (3 segments)"
+func (s *UserInfoService) newSDKClient(accessToken string) (*sdk.Client, error) {
+	baseURL := config.GetAPIURL()
+	if s.config != nil && s.config.OAuth != nil && s.config.OAuth.BaseURL != "" {
+		baseURL = s.config.OAuth.BaseURL
 	}
-	return fmt.Sprintf("Opaque (%d segments)", segments+1)
+	client, err := sdk.NewClient(baseURL, sdk.WithTimeout(30*time.Second), sdk.WithMaxRetries(3))
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize PipeOps SDK client: %w", err)
+	}
+	client.SetToken(accessToken)
+	return client, nil
+}
+
+func userFromSDK(user sdk.User) *UserInfo {
+	id, _ := strconv.Atoi(user.ID)
+	info := &UserInfo{
+		ID:                 id,
+		UUID:               config.SanitizeLog(user.UUID),
+		Email:              config.SanitizeLog(user.Email),
+		Name:               config.SanitizeLog(user.FullName),
+		FirstName:          config.SanitizeLog(user.FirstName),
+		LastName:           config.SanitizeLog(user.LastName),
+		Avatar:             config.SanitizeLog(user.AvatarURL),
+		Verified:           user.EmailVerified,
+		SubscriptionActive: user.IsSubscriptionActive,
+	}
+	if user.CreatedAt != nil {
+		info.CreatedAt = user.CreatedAt.Time
+	}
+	if user.UpdatedAt != nil {
+		info.UpdatedAt = user.UpdatedAt.Time
+	}
+	return info
 }
 
 // FormatUserInfo formats user information for display
 func (ui *UserInfo) FormatUserInfo() string {
 	// Use the best available name for the header
-	displayName := ui.GetDisplayName()
+	displayName := config.SanitizeLog(ui.GetDisplayName())
 	output := fmt.Sprintf("👤 %s", displayName)
 
 	// Add username if different from display name
 	if ui.Username != "" && ui.Username != displayName {
-		output += fmt.Sprintf(" (@%s)", ui.Username)
+		output += fmt.Sprintf(" (@%s)", config.SanitizeLog(ui.Username))
 	}
 	output += "\n"
 
@@ -226,21 +148,21 @@ func (ui *UserInfo) FormatUserInfo() string {
 		} else {
 			verified = " ⚠️"
 		}
-		output += fmt.Sprintf("📧 %s%s\n", ui.Email, verified)
+		output += fmt.Sprintf("📧 %s%s\n", config.SanitizeLog(ui.Email), verified)
 	}
 
 	// User ID and UUID
 	if ui.ID != 0 {
 		output += fmt.Sprintf("🆔 %s", ui.GetIDString())
 		if ui.UUID != "" {
-			output += fmt.Sprintf(" (UUID: %s)", ui.UUID)
+			output += fmt.Sprintf(" (UUID: %s)", config.SanitizeLog(ui.UUID))
 		}
 		output += "\n"
 	}
 
 	// Avatar
 	if ui.Avatar != "" {
-		output += fmt.Sprintf("🖼️  Avatar: %s\n", ui.Avatar)
+		output += fmt.Sprintf("🖼️  Avatar: %s\n", config.SanitizeLog(ui.Avatar))
 	}
 
 	// Subscription status
@@ -261,12 +183,20 @@ func (ui *UserInfo) FormatUserInfo() string {
 
 	// Roles and permissions (if available)
 	if len(ui.Roles) > 0 {
-		output += fmt.Sprintf("🏷️  Roles: %v\n", ui.Roles)
+		output += fmt.Sprintf("🏷️  Roles: %v\n", sanitizeStringSlice(ui.Roles))
 	}
 
 	if len(ui.Permissions) > 0 {
-		output += fmt.Sprintf("🔑 Permissions: %v\n", ui.Permissions)
+		output += fmt.Sprintf("🔑 Permissions: %v\n", sanitizeStringSlice(ui.Permissions))
 	}
 
 	return output
+}
+
+func sanitizeStringSlice(values []string) []string {
+	sanitized := make([]string, len(values))
+	for i, value := range values {
+		sanitized[i] = config.SanitizeLog(value)
+	}
+	return sanitized
 }

@@ -33,7 +33,7 @@ Examples:
 
 		utils.PrintInfo("Fetching addon deployments...", opts)
 
-		deployments, err := client.GetAddonDeployments("")
+		deployments, err := client.GetAddonDeployments()
 		if err != nil {
 			// Check if it's a 500 error (API not fully implemented)
 			if strings.Contains(err.Error(), "500") {

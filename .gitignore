@@ -1,6 +1,6 @@
 # Binaries for programs and plugins
-pipeops
-pipeops-cli
+/pipeops
+/pipeops-cli
 *.exe
 
 # IDE settings
