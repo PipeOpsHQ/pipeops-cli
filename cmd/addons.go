@@ -21,7 +21,7 @@ Examples:
     pipeops addons info <addon-id>
 
   - List addon deployments:
-    pipeops addons deployments --project <project-id>`,
+    pipeops addons deployments`,
 	Aliases: []string{"addon"},
 }
 

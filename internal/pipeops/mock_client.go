@@ -36,7 +36,7 @@ type MockClient struct {
 	GetAddonsFunc                    func() (*models.AddonListResponse, error)
 	GetAddonFunc                     func(addonID string) (*models.Addon, error)
 	DeployAddonFunc                  func(req *sdk.DeployAddOnRequest) (*models.AddonDeployment, error)
-	GetAddonDeploymentsFunc          func(projectID string) ([]models.AddonDeployment, error)
+	GetAddonDeploymentsFunc          func() ([]models.AddonDeployment, error)
 	GetAddonDeploymentFunc           func(deploymentID string) (*models.AddonDeployment, error)
 	DeleteAddonDeploymentFunc        func(deploymentID string) error
 	ListAddonCategoriesFunc          func() ([]sdk.AddOnCategory, error)
@@ -229,9 +229,9 @@ func (m *MockClient) DeployAddon(req *sdk.DeployAddOnRequest) (*models.AddonDepl
 	return &models.AddonDeployment{}, nil
 }
 
-func (m *MockClient) GetAddonDeployments(projectID string) ([]models.AddonDeployment, error) {
+func (m *MockClient) GetAddonDeployments() ([]models.AddonDeployment, error) {
 	if m.GetAddonDeploymentsFunc != nil {
-		return m.GetAddonDeploymentsFunc(projectID)
+		return m.GetAddonDeploymentsFunc()
 	}
 	return nil, nil
 }

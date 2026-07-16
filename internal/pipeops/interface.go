@@ -33,7 +33,7 @@ type ClientAPI interface {
 	GetAddons() (*models.AddonListResponse, error)
 	GetAddon(addonID string) (*models.Addon, error)
 	DeployAddon(req *sdk.DeployAddOnRequest) (*models.AddonDeployment, error)
-	GetAddonDeployments(projectID string) ([]models.AddonDeployment, error)
+	GetAddonDeployments() ([]models.AddonDeployment, error)
 	GetAddonDeployment(deploymentID string) (*models.AddonDeployment, error)
 	DeleteAddonDeployment(deploymentID string) error
 	ListAddonCategories() ([]sdk.AddOnCategory, error)

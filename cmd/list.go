@@ -28,8 +28,8 @@ Examples:
   - List projects in JSON format:
     pipeops list --json
 
-  - List addon deployments for a project:
-    pipeops list --deployments --project proj-123`,
+  - List addon deployments in your workspace:
+    pipeops list --deployments`,
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := utils.GetOutputOptions(cmd)
 		client := pipeops.NewClient()
@@ -48,47 +48,11 @@ Examples:
 		// Parse flags
 		showAddons, _ := cmd.Flags().GetBool("addons")
 		showDeployments, _ := cmd.Flags().GetBool("deployments")
-		projectID, _ := cmd.Flags().GetString("project")
 
 		if showDeployments {
-			// List addon deployments for a project
-			if projectID == "" {
-				// Try to get from linked project
-				projectContext, err := utils.LoadProjectContext()
-				if err == nil && projectContext.ProjectID != "" {
-					projectID = projectContext.ProjectID
-				} else {
-					// Interactive project selection
-					projectsResp, err := client.GetProjects()
-					if err != nil {
-						utils.HandleError(err, "Error fetching projects", opts)
-						return
-					}
+			utils.PrintInfo("Fetching addon deployments for the current workspace...", opts)
 
-					if len(projectsResp.Projects) == 0 {
-						utils.PrintWarning("No projects found", opts)
-						return
-					}
-
-					var options []string
-					for _, p := range projectsResp.Projects {
-						status := utils.GetStatusIcon(p.Status)
-						options = append(options, fmt.Sprintf("%s %s (%s)", status, p.Name, p.ID))
-					}
-
-					idx, _, err := utils.SelectOption("Select a project", options)
-					if err != nil {
-						utils.HandleError(err, "Selection cancelled", opts)
-						return
-					}
-
-					projectID = projectsResp.Projects[idx].ID
-				}
-			}
-
-			utils.PrintInfo(fmt.Sprintf("Fetching addon deployments for project '%s'...", projectID), opts)
-
-			deployments, err := client.GetAddonDeployments(projectID)
+			deployments, err := client.GetAddonDeployments()
 			if err != nil {
 				// Check if it's a 500 error (API not fully implemented)
 				if strings.Contains(err.Error(), "500") {
@@ -103,7 +67,7 @@ Examples:
 				utils.PrintJSON(deployments)
 			} else {
 				if len(deployments) == 0 {
-					utils.PrintWarning("No addon deployments found for this project", opts)
+					utils.PrintWarning("No addon deployments found in this workspace", opts)
 					return
 				}
 
@@ -169,8 +133,8 @@ Examples:
 				// Show helpful tips
 				if !opts.Quiet {
 					fmt.Printf("\n[ TIPS ]\n")
-					fmt.Printf("├─ Deploy addon: pipeops deploy --addon <addon-id> --project <project-id>\n")
-					fmt.Printf("├─ View deployments: pipeops list --deployments --project <project-id>\n")
+					fmt.Printf("├─ Deploy addon: pipeops deploy --addon <addon-id>\n")
+					fmt.Printf("├─ View deployments: pipeops list --deployments\n")
 					fmt.Printf("└─ Get addon info: pipeops status --addon <addon-id>\n")
 				}
 			}
@@ -330,6 +294,5 @@ func init() {
 
 	// Add flags
 	listCmd.Flags().Bool("addons", false, "List available addons instead of projects")
-	listCmd.Flags().Bool("deployments", false, "List addon deployments for a project")
-	listCmd.Flags().StringP("project", "p", "", "Project ID (for listing deployments)")
+	listCmd.Flags().Bool("deployments", false, "List addon deployments in the current workspace")
 }

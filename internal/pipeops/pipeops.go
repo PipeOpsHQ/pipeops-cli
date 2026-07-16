@@ -176,6 +176,10 @@ func (c *Client) resolveWorkspaceUUID(ctx context.Context) (string, error) {
 		}
 	}
 
+	if !shouldPromptForWorkspace() {
+		return "", errors.New("multiple workspaces found; set PIPEOPS_WORKSPACE_UUID or run 'pipeops workspace select' before using non-interactive commands")
+	}
+
 	// Multiple workspaces exist - prompt user to select
 	fmt.Println("\nYou have multiple workspaces. Please select one:")
 	options := make([]string, len(workspaces))
@@ -198,6 +202,37 @@ func (c *Client) resolveWorkspaceUUID(ctx context.Context) (string, error) {
 	fmt.Printf("✓ Selected workspace: %s\n\n", workspaces[idx].Name)
 
 	return selectedUUID, nil
+}
+
+func shouldPromptForWorkspace() bool {
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		return shouldPromptForWorkspaceWithMode(0, err)
+	}
+	return shouldPromptForWorkspaceWithMode(stat.Mode(), nil)
+}
+
+func shouldPromptForWorkspaceWithMode(stdinMode os.FileMode, statErr error) bool {
+	if envEnabled("PIPEOPS_OUTPUT_JSON") || envEnabled("PIPEOPS_NON_INTERACTIVE") || isCIEnvironment() {
+		return false
+	}
+	if statErr != nil {
+		return false
+	}
+	return stdinMode&os.ModeCharDevice != 0
+}
+
+func envEnabled(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+	case "1", "true", "yes", "y", "on":
+		return true
+	default:
+		return false
+	}
+}
+
+func isCIEnvironment() bool {
+	return envEnabled("CI") || envEnabled("GITHUB_ACTIONS")
 }
 
 // promptSelectWorkspace uses promptui to let user select a workspace
@@ -853,8 +888,8 @@ func (c *Client) DeployAddon(req *sdk.DeployAddOnRequest) (*models.AddonDeployme
 	return &deployment, nil
 }
 
-// GetAddonDeployments retrieves a list of addon deployments for the workspace
-func (c *Client) GetAddonDeployments(projectID string) ([]models.AddonDeployment, error) {
+// GetAddonDeployments retrieves a list of addon deployments for the workspace.
+func (c *Client) GetAddonDeployments() ([]models.AddonDeployment, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
 	}

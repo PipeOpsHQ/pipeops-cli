@@ -53,6 +53,7 @@ var rootCmd = &cobra.Command{
 		// Set global JSON output flag
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 		if jsonOutput {
+			_ = os.Setenv("PIPEOPS_OUTPUT_JSON", "true")
 			// Set a global flag that other commands can check
 			cmd.Root().SetContext(context.WithValue(cmd.Root().Context(), "json", true))
 		}
