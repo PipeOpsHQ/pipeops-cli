@@ -237,14 +237,22 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 		// Verify state
 		state := r.URL.Query().Get("state")
 		if !validOAuthState(state, expectedState) {
+			msg := "Invalid security state parameter. Please try authenticating again."
+			if state == "" {
+				msg = "Missing security state on the callback. This usually means the browser opened the CLI callback URL without completing OAuth (e.g. authorization failed for redirect_uri/scope). Close this window and run pipeops login again."
+			}
 			writeOAuthCallbackPage(w, http.StatusBadRequest, oauthCallbackPageData{
 				Title:   "Security Check Failed",
 				Heading: "Security Check Failed",
-				Message: "Invalid security state parameter. Please try authenticating again.",
+				Message: msg,
 				Icon:    "🛡️",
 				Tone:    "warning",
 			})
-			resultChan <- OAuthCallbackResult{Error: fmt.Errorf("invalid state parameter")}
+			if state == "" {
+				resultChan <- OAuthCallbackResult{Error: fmt.Errorf("invalid state parameter: callback missing state (authorization likely failed before redirect — check redirect_uri allowlist and scopes)")}
+			} else {
+				resultChan <- OAuthCallbackResult{Error: fmt.Errorf("invalid state parameter")}
+			}
 			return
 		}
 
