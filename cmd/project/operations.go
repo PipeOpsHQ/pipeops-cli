@@ -8,6 +8,25 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var getCmd = &cobra.Command{
+	Use:   "get <project-id>",
+	Short: "Get project details",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		opts := utils.GetOutputOptions(cmd)
+		client, err := authenticatedClient(cmd, opts)
+		if err != nil || client == nil {
+			return err
+		}
+		project, err := client.GetProject(args[0])
+		if err != nil {
+			return fmt.Errorf("get project: %w", err)
+		}
+		printProject(project, opts)
+		return nil
+	},
+	Args: cobra.ExactArgs(1),
+}
+
 var updateCmd = &cobra.Command{
 	Use:   "update <project-id>",
 	Short: "Update project configuration",
@@ -235,5 +254,5 @@ func registerOperationCommands(root *cobra.Command) {
 	deploymentHistoryCmd.Flags().Int("limit", 20, "Page size")
 
 	envCmd.AddCommand(envGetCmd, envSetCmd)
-	root.AddCommand(updateCmd, deleteCmd, deployCmd, restartCmd, stopCmd, envCmd, deploymentsCmd, deploymentHistoryCmd)
+	root.AddCommand(getCmd, updateCmd, deleteCmd, deployCmd, restartCmd, stopCmd, envCmd, deploymentsCmd, deploymentHistoryCmd)
 }
