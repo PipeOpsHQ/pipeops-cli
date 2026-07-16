@@ -71,6 +71,12 @@ func TestGenerateRandomState(t *testing.T) {
 	if state == "" {
 		t.Error("GenerateRandomState() returned empty string")
 	}
+	if state[len(state)-1] == '=' {
+		t.Error("GenerateRandomState() should use unpadded base64url encoding")
+	}
+	if _, err := base64.RawURLEncoding.DecodeString(state); err != nil {
+		t.Errorf("GenerateRandomState() returned invalid unpadded base64url: %v", err)
+	}
 
 	// Generate multiple states to ensure they're different
 	states := make(map[string]bool)
