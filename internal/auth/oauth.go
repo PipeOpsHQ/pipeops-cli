@@ -217,7 +217,7 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
         <div class="error-box">
             <div class="error-icon">🛡️</div>
             <div class="error-title">Security Error</div>
-            <div class="error-message">Invalid security state. Please try authenticating again.</div>
+            <div class="error-message">Invalid or missing security state. This often means OAuth failed before redirect (redirect_uri/scopes). Close this window and run pipeops login again.</div>
             <button class="close-btn" onclick="window.close()">Close Window</button>
         </div>
     </div>
@@ -229,7 +229,11 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 </body>
 </html>`
 			w.Write([]byte(statePage))
+			if state == "" {
+			resultChan <- OAuthCallbackResult{Error: fmt.Errorf("invalid state parameter: callback missing state (authorization likely failed before redirect — check redirect_uri allowlist and scopes)")}
+			} else {
 			resultChan <- OAuthCallbackResult{Error: fmt.Errorf("invalid state parameter")}
+			}
 			return
 		}
 
