@@ -135,6 +135,11 @@ var envCmd = &cobra.Command{
 var envGetCmd = &cobra.Command{
 	Use:   "get <project-id>",
 	Short: "Get project environment variables",
+	Long: `Get project environment variables.
+
+Values are masked by default so secrets are not printed to the terminal or
+shell history. Pass --reveal to show plaintext values (use only on a trusted
+terminal; prefer --json with --reveal for scripting).`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
 		client, err := authenticatedClient(cmd, opts)
@@ -145,17 +150,45 @@ var envGetCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("get project environment variables: %w", err)
 		}
+		reveal, _ := cmd.Flags().GetBool("reveal")
+		display := maskEnvVariables(envVars, reveal)
 		if opts.Format == utils.OutputFormatJSON {
-			return utils.PrintJSON(envVars)
+			return utils.PrintJSON(display)
 		}
-		rows := make([][]string, 0, len(envVars))
-		for _, envVar := range envVars {
+		rows := make([][]string, 0, len(display))
+		for _, envVar := range display {
 			rows = append(rows, []string{envVar.Key, envVar.Value})
 		}
 		utils.PrintTable([]string{"KEY", "VALUE"}, rows, opts)
 		return nil
 	},
 	Args: cobra.ExactArgs(1),
+}
+
+// maskEnvVariables returns a copy of env vars with values redacted unless reveal is true.
+func maskEnvVariables(envVars []sdk.EnvVariable, reveal bool) []sdk.EnvVariable {
+	if reveal {
+		return envVars
+	}
+	out := make([]sdk.EnvVariable, 0, len(envVars))
+	for _, envVar := range envVars {
+		out = append(out, sdk.EnvVariable{
+			Key:   envVar.Key,
+			Value: maskSecretValue(envVar.Value),
+		})
+	}
+	return out
+}
+
+// maskSecretValue redacts a secret for display while preserving a hint of length.
+func maskSecretValue(value string) string {
+	if value == "" {
+		return ""
+	}
+	if len(value) <= 4 {
+		return "****"
+	}
+	return "****" + value[len(value)-2:]
 }
 
 var envSetCmd = &cobra.Command{
@@ -252,6 +285,7 @@ func registerOperationCommands(root *cobra.Command) {
 	deploymentsCmd.Flags().Int("limit", 20, "Page size")
 	deploymentHistoryCmd.Flags().Int("page", 1, "Page number")
 	deploymentHistoryCmd.Flags().Int("limit", 20, "Page size")
+	envGetCmd.Flags().Bool("reveal", false, "Show plaintext secret values (default: masked)")
 
 	envCmd.AddCommand(envGetCmd, envSetCmd)
 	root.AddCommand(getCmd, updateCmd, deleteCmd, deployCmd, restartCmd, stopCmd, envCmd, deploymentsCmd, deploymentHistoryCmd)
