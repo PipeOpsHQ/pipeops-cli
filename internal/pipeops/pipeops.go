@@ -1464,11 +1464,18 @@ func (c *Client) GetEnvironment(ctx context.Context, environmentID string) (*sdk
 		ctx = context.Background()
 	}
 
-	resp, _, err := c.sdkClient.Environments.Get(ctx, environmentID)
+	environments, err := c.ListEnvironments(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return &resp.Data.Environment, nil
+
+	for _, environment := range environments {
+		if environment.UUID == environmentID || environment.ID == environmentID {
+			env := environment
+			return &env, nil
+		}
+	}
+	return nil, fmt.Errorf("environment %q not found", environmentID)
 }
 
 // CreateEnvironment creates an environment.
@@ -1596,11 +1603,82 @@ func (c *Client) GetServiceAccountToken(ctx context.Context, tokenID string) (*s
 		ctx = context.Background()
 	}
 
-	resp, _, err := c.sdkClient.ServiceTokens.GetServiceAccountToken(ctx, tokenID)
+	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return &resp.Data.Token, nil
+
+	u := fmt.Sprintf("api/v1/service-account-tokens/%s?workspace_uuid=%s",
+		url.PathEscape(tokenID),
+		url.QueryEscape(workspaceUUID),
+	)
+	req, err := c.sdkClient.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	type tokenPayload struct {
+		UUID        string         `json:"uuid"`
+		ID          string         `json:"id"`
+		Name        string         `json:"name"`
+		Description string         `json:"description"`
+		Token       string         `json:"token"`
+		TokenPrefix string         `json:"token_prefix"`
+		WorkspaceID string         `json:"workspace_id"`
+		Permissions []string       `json:"permissions"`
+		Scopes      []string       `json:"scopes"`
+		ExpiresAt   *sdk.Timestamp `json:"expires_at"`
+		CreatedAt   *sdk.Timestamp `json:"created_at"`
+		UpdatedAt   *sdk.Timestamp `json:"updated_at"`
+		LastUsedAt  *sdk.Timestamp `json:"last_used_at"`
+		IsActive    *bool          `json:"is_active"`
+		IsRevoked   bool           `json:"is_revoked"`
+		IsExpired   bool           `json:"is_expired"`
+	}
+
+	var envelope struct {
+		Data struct {
+			Token tokenPayload `json:"token"`
+			tokenPayload
+		} `json:"data"`
+	}
+	if _, err := c.sdkClient.Do(ctx, req, &envelope); err != nil {
+		return nil, err
+	}
+
+	payload := envelope.Data.tokenPayload
+	nested := envelope.Data.Token
+	if payload.UUID == "" && payload.ID == "" && payload.Name == "" &&
+		(nested.UUID != "" || nested.ID != "" || nested.Name != "") {
+		payload = nested
+	}
+	token := sdk.ServiceAccountToken{
+		UUID:        payload.UUID,
+		Name:        payload.Name,
+		Description: payload.Description,
+		Token:       payload.Token,
+		WorkspaceID: payload.WorkspaceID,
+		Permissions: payload.Permissions,
+		ExpiresAt:   payload.ExpiresAt,
+		CreatedAt:   payload.CreatedAt,
+		UpdatedAt:   payload.UpdatedAt,
+		LastUsedAt:  payload.LastUsedAt,
+	}
+	if token.UUID == "" {
+		token.UUID = payload.ID
+	}
+	if len(token.Permissions) == 0 {
+		token.Permissions = payload.Scopes
+	}
+	if token.Token == "" {
+		token.Token = payload.TokenPrefix
+	}
+	if payload.IsActive != nil {
+		token.IsActive = *payload.IsActive
+	} else {
+		token.IsActive = !payload.IsRevoked && !payload.IsExpired
+	}
+	return &token, nil
 }
 
 // CreateServiceAccountToken creates a service account token.
