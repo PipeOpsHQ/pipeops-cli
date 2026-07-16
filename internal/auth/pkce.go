@@ -48,5 +48,5 @@ func GenerateRandomState() (string, error) {
 	if _, err := rand.Read(b); err != nil {
 		return "", fmt.Errorf("failed to generate random state: %w", err)
 	}
-	return base64.URLEncoding.EncodeToString(b), nil
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }

@@ -3,6 +3,7 @@ package auth
 import (
 	"bytes"
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"html/template"
 	"net"
@@ -235,7 +236,7 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 
 		// Verify state
 		state := r.URL.Query().Get("state")
-		if state != expectedState {
+		if !validOAuthState(state, expectedState) {
 			writeOAuthCallbackPage(w, http.StatusBadRequest, oauthCallbackPageData{
 				Title:   "Security Check Failed",
 				Heading: "Security Check Failed",
@@ -296,6 +297,19 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 		}
 	}()
 	return server, nil
+}
+
+func validOAuthState(received, expected string) bool {
+	if expected == "" || received == "" {
+		return false
+	}
+	if subtle.ConstantTimeCompare([]byte(received), []byte(expected)) == 1 {
+		return true
+	}
+
+	receivedWithoutPadding := strings.TrimRight(received, "=")
+	expectedWithoutPadding := strings.TrimRight(expected, "=")
+	return subtle.ConstantTimeCompare([]byte(receivedWithoutPadding), []byte(expectedWithoutPadding)) == 1
 }
 
 // exchangeCodeForToken exchanges authorization code for access token using PKCE
