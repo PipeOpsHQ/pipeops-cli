@@ -121,6 +121,15 @@ func TestGetAPIURL(t *testing.T) {
 	}
 }
 
+func TestSanitizeLog(t *testing.T) {
+	input := "first line\r\nsecond\tline\x00\x7f"
+	want := "first linesecondline"
+
+	if got := SanitizeLog(input); got != want {
+		t.Errorf("SanitizeLog() = %q, want %q", got, want)
+	}
+}
+
 func TestSaveAndLoad(t *testing.T) {
 	// Create temporary directory for testing
 	tempDir := t.TempDir()

@@ -1,9 +1,10 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"html"
+	"html/template"
 	"net"
 	"net/http"
 	"net/url"
@@ -32,6 +33,55 @@ type OAuthCallbackResult struct {
 	Code  string
 	Token string // Direct token if server returns it
 	Error error
+}
+
+var oauthCallbackPageTemplate = template.Must(template.New("oauth-callback-page").Parse(`<!DOCTYPE html>
+<html>
+<head>
+    <title>PipeOps - {{.Title}}</title>
+    <style>
+        :root { --bg: #0F172A; --card: #1E293B; --text: #F8FAFC; --subtext: #94A3B8; --accent: #6366F1; --error: #EF4444; --warning: #F59E0B; --success: #10B981; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .card { background: var(--card); padding: 2.5rem; border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); width: 90%; max-width: 400px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .icon { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 1.5rem; }
+        .icon.error { background: rgba(239,68,68,0.1); color: var(--error); }
+        .icon.warning { background: rgba(245,158,11,0.1); color: var(--warning); }
+        .icon.success { background: rgba(16,185,129,0.1); color: var(--success); }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 600; }
+        p { color: var(--subtext); line-height: 1.5; margin-bottom: 2rem; }
+        .btn { display: block; width: 100%; padding: 0.75rem; background: transparent; color: var(--text); border: 1px solid #334155; border-radius: 0.5rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 1rem; }
+        .btn.success { background: var(--accent); color: white; border: none; }
+        .btn:hover { opacity: 0.9; background: rgba(255,255,255,0.05); border-color: #475569; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon {{.Tone}}">{{.Icon}}</div>
+        <h1>{{.Heading}}</h1>
+        <p>{{.Message}}</p>
+        <button class="btn {{.Tone}}" onclick="window.close()">Close Window</button>
+    </div>
+    {{if .AutoClose}}<script>setTimeout(() => window.close(), 3000);</script>{{end}}
+</body>
+</html>`))
+
+type oauthCallbackPageData struct {
+	Title     string
+	Heading   string
+	Message   string
+	Icon      string
+	Tone      string
+	AutoClose bool
+}
+
+func writeOAuthCallbackPage(w http.ResponseWriter, status int, data oauthCallbackPageData) {
+	var body bytes.Buffer
+	if err := oauthCallbackPageTemplate.Execute(&body, data); err != nil {
+		http.Error(w, "authentication callback failed", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(status)
+	_, _ = w.Write(body.Bytes())
 }
 
 // Login performs OAuth2 authentication with PKCE
@@ -172,67 +222,27 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 		// Check for errors
 		if errParam := r.URL.Query().Get("error"); errParam != "" {
 			errDesc := r.URL.Query().Get("error_description")
-			w.WriteHeader(400)
-			errorPage := `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>PipeOps - Authentication Failed</title>
-    <style>
-        :root { --bg: #0F172A; --card: #1E293B; --text: #F8FAFC; --subtext: #94A3B8; --error: #EF4444; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .card { background: var(--card); padding: 2.5rem; border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); width: 90%; max-width: 400px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
-        .icon { width: 64px; height: 64px; background: rgba(239,68,68,0.1); color: var(--error); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 1.5rem; }
-        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 600; }
-        p { color: var(--subtext); line-height: 1.5; margin-bottom: 2rem; }
-        .btn { display: block; width: 100%; padding: 0.75rem; background: transparent; border: 1px solid #334155; color: var(--text); border-radius: 0.5rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 1rem; }
-        .btn:hover { background: rgba(255,255,255,0.05); border-color: #475569; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <div class="icon">✕</div>
-        <h1>Authentication Failed</h1>
-        <p>` + html.EscapeString(errDesc) + `</p>
-        <button class="btn" onclick="window.close()">Close Window</button>
-    </div>
-</body>
-</html>`
-			w.Write([]byte(errorPage))
-			resultChan <- OAuthCallbackResult{Error: fmt.Errorf("authorization error: %s - %s", errParam, errDesc)}
+			writeOAuthCallbackPage(w, http.StatusBadRequest, oauthCallbackPageData{
+				Title:   "Authentication Failed",
+				Heading: "Authentication Failed",
+				Message: errDesc,
+				Icon:    "✕",
+				Tone:    "error",
+			})
+			resultChan <- OAuthCallbackResult{Error: fmt.Errorf("authorization error: %s - %s", config.SanitizeLog(errParam), config.SanitizeLog(errDesc))}
 			return
 		}
 
 		// Verify state
 		state := r.URL.Query().Get("state")
 		if state != expectedState {
-			w.WriteHeader(400)
-			statePage := `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>PipeOps - Security Check Failed</title>
-    <style>
-        :root { --bg: #0F172A; --card: #1E293B; --text: #F8FAFC; --subtext: #94A3B8; --warning: #F59E0B; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .card { background: var(--card); padding: 2.5rem; border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); width: 90%; max-width: 400px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
-        .icon { width: 64px; height: 64px; background: rgba(245,158,11,0.1); color: var(--warning); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 1.5rem; }
-        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 600; }
-        p { color: var(--subtext); line-height: 1.5; margin-bottom: 2rem; }
-        .btn { display: block; width: 100%; padding: 0.75rem; background: transparent; border: 1px solid #334155; color: var(--text); border-radius: 0.5rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 1rem; }
-        .btn:hover { background: rgba(255,255,255,0.05); border-color: #475569; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <div class="icon">🛡️</div>
-        <h1>Security Check Failed</h1>
-        <p>Invalid security state parameter. Please try authenticating again.</p>
-        <button class="btn" onclick="window.close()">Close Window</button>
-    </div>
-</body>
-</html>`
-			w.Write([]byte(statePage))
+			writeOAuthCallbackPage(w, http.StatusBadRequest, oauthCallbackPageData{
+				Title:   "Security Check Failed",
+				Heading: "Security Check Failed",
+				Message: "Invalid security state parameter. Please try authenticating again.",
+				Icon:    "🛡️",
+				Tone:    "warning",
+			})
 			resultChan <- OAuthCallbackResult{Error: fmt.Errorf("invalid state parameter")}
 			return
 		}
@@ -252,66 +262,26 @@ func (s *PKCEOAuthService) startCallbackServer(resultChan chan<- OAuthCallbackRe
 		}
 
 		if code == "" && token == "" {
-			w.WriteHeader(400)
-			noCodePage := `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>PipeOps - Authorization Failed</title>
-    <style>
-        :root { --bg: #0F172A; --card: #1E293B; --text: #F8FAFC; --subtext: #94A3B8; --warning: #F59E0B; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .card { background: var(--card); padding: 2.5rem; border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); width: 90%; max-width: 400px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
-        .icon { width: 64px; height: 64px; background: rgba(245,158,11,0.1); color: var(--warning); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 1.5rem; }
-        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 600; }
-        p { color: var(--subtext); line-height: 1.5; margin-bottom: 2rem; }
-        .btn { display: block; width: 100%; padding: 0.75rem; background: transparent; border: 1px solid #334155; color: var(--text); border-radius: 0.5rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 1rem; }
-        .btn:hover { background: rgba(255,255,255,0.05); border-color: #475569; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <div class="icon">🔍</div>
-        <h1>Authorization Failed</h1>
-        <p>The authorization code was not received. Please try authenticating again.</p>
-        <button class="btn" onclick="window.close()">Close Window</button>
-    </div>
-</body>
-</html>`
-			w.Write([]byte(noCodePage))
+			writeOAuthCallbackPage(w, http.StatusBadRequest, oauthCallbackPageData{
+				Title:   "Authorization Failed",
+				Heading: "Authorization Failed",
+				Message: "The authorization code was not received. Please try authenticating again.",
+				Icon:    "🔍",
+				Tone:    "warning",
+			})
 			resultChan <- OAuthCallbackResult{Error: fmt.Errorf("no authorization code received")}
 			return
 		}
 
 		// Success response
-		w.WriteHeader(200)
-		successPage := `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>PipeOps - Authenticated</title>
-    <style>
-        :root { --bg: #0F172A; --card: #1E293B; --text: #F8FAFC; --subtext: #94A3B8; --accent: #6366F1; --success: #10B981; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .card { background: var(--card); padding: 2.5rem; border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); width: 90%; max-width: 400px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
-        .icon { width: 64px; height: 64px; background: rgba(16,185,129,0.1); color: var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 1.5rem; }
-        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 600; }
-        p { color: var(--subtext); line-height: 1.5; margin-bottom: 2rem; }
-        .btn { display: block; width: 100%; padding: 0.75rem; background: var(--accent); color: white; border: none; border-radius: 0.5rem; font-weight: 500; cursor: pointer; transition: opacity 0.2s; font-size: 1rem; }
-        .btn:hover { opacity: 0.9; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <div class="icon">✓</div>
-        <h1>Authenticated</h1>
-        <p>You have successfully signed in to PipeOps CLI. You can now close this window and return to your terminal.</p>
-        <button class="btn" onclick="window.close()">Close Window</button>
-    </div>
-    <script>setTimeout(() => window.close(), 3000);</script>
-</body>
-</html>`
-		w.Write([]byte(successPage))
+		writeOAuthCallbackPage(w, http.StatusOK, oauthCallbackPageData{
+			Title:     "Authenticated",
+			Heading:   "Authenticated",
+			Message:   "You have successfully signed in to PipeOps CLI. You can now close this window and return to your terminal.",
+			Icon:      "✓",
+			Tone:      "success",
+			AutoClose: true,
+		})
 		resultChan <- OAuthCallbackResult{Code: code, Token: token}
 	})
 

@@ -123,11 +123,14 @@ func DefaultConfig() *Config {
 	}
 }
 
-// SanitizeLog removes newlines and other control characters to prevent log injection
+// SanitizeLog removes control characters to prevent log injection.
 func SanitizeLog(s string) string {
-	s = strings.ReplaceAll(s, "\n", "")
-	s = strings.ReplaceAll(s, "\r", "")
-	return s
+	return strings.Map(func(r rune) rune {
+		if r < 0x20 || r == 0x7f {
+			return -1
+		}
+		return r
+	}, s)
 }
 
 // Load reads configuration from disk

@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
 	"github.com/gorilla/websocket"
 	"golang.org/x/term"
@@ -95,7 +96,7 @@ func (m *Manager) GetSession(sessionID string) (*Session, bool) {
 func (m *Manager) CloseSession(sessionID string) error {
 	session, exists := m.sessions[sessionID]
 	if !exists {
-		return fmt.Errorf("session %s not found", sessionID)
+		return fmt.Errorf("session %s not found", config.SanitizeLog(sessionID))
 	}
 
 	session.Close()
@@ -171,7 +172,7 @@ func (s *Session) handleWebSocket(ctx context.Context) {
 				if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
 					return
 				}
-				fmt.Printf("\n❌ WebSocket error: %v\n", err)
+				fmt.Printf("\n❌ WebSocket error: %s\n", config.SanitizeLog(err.Error()))
 				return
 			}
 
@@ -247,8 +248,15 @@ func (s *Session) handleStderr(data string) {
 // handleExit handles exit messages from WebSocket
 func (s *Session) handleExit(exitCode int) {
 	if s.isInteractive {
-		fmt.Printf("\n✅ Session ended with exit code: %d\n", exitCode)
+		fmt.Printf("\n✅ Session ended with exit code: %d\n", normalizeExitCode(exitCode))
 	}
+}
+
+func normalizeExitCode(exitCode int) int {
+	if exitCode < 0 || exitCode > 255 {
+		return 1
+	}
+	return exitCode
 }
 
 // SendCommand sends a command to the session

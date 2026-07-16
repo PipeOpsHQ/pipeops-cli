@@ -110,12 +110,12 @@ func userFromSDK(user sdk.User) *UserInfo {
 	id, _ := strconv.Atoi(user.ID)
 	info := &UserInfo{
 		ID:                 id,
-		UUID:               user.UUID,
-		Email:              user.Email,
-		Name:               user.FullName,
-		FirstName:          user.FirstName,
-		LastName:           user.LastName,
-		Avatar:             user.AvatarURL,
+		UUID:               config.SanitizeLog(user.UUID),
+		Email:              config.SanitizeLog(user.Email),
+		Name:               config.SanitizeLog(user.FullName),
+		FirstName:          config.SanitizeLog(user.FirstName),
+		LastName:           config.SanitizeLog(user.LastName),
+		Avatar:             config.SanitizeLog(user.AvatarURL),
 		Verified:           user.EmailVerified,
 		SubscriptionActive: user.IsSubscriptionActive,
 	}
@@ -131,12 +131,12 @@ func userFromSDK(user sdk.User) *UserInfo {
 // FormatUserInfo formats user information for display
 func (ui *UserInfo) FormatUserInfo() string {
 	// Use the best available name for the header
-	displayName := ui.GetDisplayName()
+	displayName := config.SanitizeLog(ui.GetDisplayName())
 	output := fmt.Sprintf("👤 %s", displayName)
 
 	// Add username if different from display name
 	if ui.Username != "" && ui.Username != displayName {
-		output += fmt.Sprintf(" (@%s)", ui.Username)
+		output += fmt.Sprintf(" (@%s)", config.SanitizeLog(ui.Username))
 	}
 	output += "\n"
 
@@ -148,21 +148,21 @@ func (ui *UserInfo) FormatUserInfo() string {
 		} else {
 			verified = " ⚠️"
 		}
-		output += fmt.Sprintf("📧 %s%s\n", ui.Email, verified)
+		output += fmt.Sprintf("📧 %s%s\n", config.SanitizeLog(ui.Email), verified)
 	}
 
 	// User ID and UUID
 	if ui.ID != 0 {
 		output += fmt.Sprintf("🆔 %s", ui.GetIDString())
 		if ui.UUID != "" {
-			output += fmt.Sprintf(" (UUID: %s)", ui.UUID)
+			output += fmt.Sprintf(" (UUID: %s)", config.SanitizeLog(ui.UUID))
 		}
 		output += "\n"
 	}
 
 	// Avatar
 	if ui.Avatar != "" {
-		output += fmt.Sprintf("🖼️  Avatar: %s\n", ui.Avatar)
+		output += fmt.Sprintf("🖼️  Avatar: %s\n", config.SanitizeLog(ui.Avatar))
 	}
 
 	// Subscription status
@@ -183,12 +183,20 @@ func (ui *UserInfo) FormatUserInfo() string {
 
 	// Roles and permissions (if available)
 	if len(ui.Roles) > 0 {
-		output += fmt.Sprintf("🏷️  Roles: %v\n", ui.Roles)
+		output += fmt.Sprintf("🏷️  Roles: %v\n", sanitizeStringSlice(ui.Roles))
 	}
 
 	if len(ui.Permissions) > 0 {
-		output += fmt.Sprintf("🔑 Permissions: %v\n", ui.Permissions)
+		output += fmt.Sprintf("🔑 Permissions: %v\n", sanitizeStringSlice(ui.Permissions))
 	}
 
 	return output
+}
+
+func sanitizeStringSlice(values []string) []string {
+	sanitized := make([]string, len(values))
+	for i, value := range values {
+		sanitized[i] = config.SanitizeLog(value)
+	}
+	return sanitized
 }
