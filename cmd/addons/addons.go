@@ -14,14 +14,15 @@ Addons are pre-built services like databases, caches, and message queues
 that can be deployed alongside your projects.
 
 Examples:
-  - List all available addons:
-    pipeops addons ls
+  - List all deployable addons:
+    pipeops addons
+    pipeops addons available
 
   - View addon details:
     pipeops addons info <addon-id>
 
-  - List addon deployments:
-    pipeops addons deployments`,
+  - List deployed addons:
+    pipeops addons list`,
 }
 
 func init() {
