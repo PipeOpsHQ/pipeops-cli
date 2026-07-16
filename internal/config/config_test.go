@@ -233,6 +233,12 @@ func TestIsAuthenticated(t *testing.T) {
 			want:        false,
 		},
 		{
+			name:        "service account token without oauth expiry",
+			accessToken: "sat_test_service_account_token",
+			expiresAt:   time.Time{},
+			want:        true,
+		},
+		{
 			name:        "no token",
 			accessToken: "",
 			expiresAt:   time.Now().Add(1 * time.Hour),
@@ -254,6 +260,27 @@ func TestIsAuthenticated(t *testing.T) {
 				t.Errorf("IsAuthenticated() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestLoadUsesPipeOpsTokenEnvironmentOverride(t *testing.T) {
+	tempDir := t.TempDir()
+	t.Setenv("HOME", tempDir)
+	t.Setenv(EnvTokenName, "sat_env_token")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if got := cfg.OAuth.AccessToken; got != "sat_env_token" {
+		t.Fatalf("AccessToken = %q, want env token", got)
+	}
+	if !cfg.OAuth.ExpiresAt.IsZero() {
+		t.Fatalf("ExpiresAt = %v, want zero for service token override", cfg.OAuth.ExpiresAt)
+	}
+	if !cfg.IsAuthenticated() {
+		t.Fatal("service account token from PIPEOPS_TOKEN should authenticate")
 	}
 }
 

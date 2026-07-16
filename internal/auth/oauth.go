@@ -442,7 +442,10 @@ func (s *PKCEOAuthService) newSDKClient() (*sdk.Client, error) {
 
 // IsAuthenticated checks if user is authenticated and attempts refresh if expired
 func (s *PKCEOAuthService) IsAuthenticated() bool {
-	if s.config.OAuth.AccessToken != "" && time.Now().Before(s.config.OAuth.ExpiresAt.Add(-5*time.Minute)) {
+	if s.config == nil || s.config.OAuth == nil {
+		return false
+	}
+	if s.config.IsAuthenticated() {
 		return true
 	}
 

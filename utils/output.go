@@ -213,7 +213,7 @@ func GetStatusIcon(status string) string {
 // RequireAuth checks if user is authenticated and prints error if not
 func RequireAuth(client interface{ IsAuthenticated() bool }, opts OutputOptions) bool {
 	if !client.IsAuthenticated() {
-		PrintError("You are not logged in. Please run 'pipeops auth login' first.", opts)
+		PrintError("You are not authenticated. Run 'pipeops auth login' or set PIPEOPS_TOKEN.", opts)
 		return false
 	}
 	return true

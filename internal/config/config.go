@@ -12,6 +12,7 @@ import (
 const (
 	ConfigFileName = ".pipeops.json"
 	ConfigDirName  = ".pipeops"
+	EnvTokenName   = "PIPEOPS_TOKEN"
 )
 
 // Build-time configuration variables (set during compilation)
@@ -107,11 +108,13 @@ func GetDefaultScopes() []string {
 
 // DefaultConfig returns a new config with default values
 func DefaultConfig() *Config {
+	envToken := strings.TrimSpace(os.Getenv(EnvTokenName))
 	return &Config{
 		OAuth: &OAuthConfig{
 			ClientID:     GetClientID(),
 			BaseURL:      GetAPIURL(),
 			DashboardURL: GetDashboardURL(),
+			AccessToken:  envToken,
 			Scopes:       GetDefaultScopes(),
 		},
 		Settings: &Settings{
@@ -175,6 +178,11 @@ func Load() (*Config, error) {
 	if clientID := os.Getenv("PIPEOPS_CLIENT_ID"); clientID != "" {
 		cfg.OAuth.ClientID = clientID
 	}
+	if token := strings.TrimSpace(os.Getenv(EnvTokenName)); token != "" {
+		cfg.OAuth.AccessToken = token
+		cfg.OAuth.RefreshToken = ""
+		cfg.OAuth.ExpiresAt = time.Time{}
+	}
 	if debug := os.Getenv("PIPEOPS_DEBUG"); debug == "true" {
 		cfg.Settings.Debug = true
 	}
@@ -223,9 +231,21 @@ func (c *Config) IsAuthenticated() bool {
 	if c.OAuth == nil || c.OAuth.AccessToken == "" {
 		return false
 	}
+	if IsServiceAccountToken(c.OAuth.AccessToken) {
+		return true
+	}
+	if c.OAuth.ExpiresAt.IsZero() {
+		return false
+	}
 
 	// Check if token is expired (with 5 minute buffer)
 	return time.Now().Before(c.OAuth.ExpiresAt.Add(-5 * time.Minute))
+}
+
+// IsServiceAccountToken reports whether token has the platform service-account
+// token shape used by PipeOps automation credentials.
+func IsServiceAccountToken(token string) bool {
+	return strings.HasPrefix(strings.TrimSpace(token), "sat_")
 }
 
 // IsAuthenticatedWithServer validates authentication with the server
