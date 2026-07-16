@@ -159,7 +159,7 @@ docker run --rm -it \
 docker service create \
   --secret source=pipeops-token,target=/run/secrets/pipeops-token \
   ghcr.io/pipeopshq/pipeops-cli:latest \
-  sh -c "export PIPEOPS_TOKEN=\$(cat /run/secrets/pipeops-token) && pipeops auth status"
+  sh -c "export PIPEOPS_TOKEN=\$(cat /run/secrets/pipeops-token) && pipeops status"
 ```
 
 ### Network Security
@@ -245,7 +245,7 @@ docker logs -f container-name
 ```bash
 # Add health check
 docker run --rm -it \
-  --health-cmd="pipeops auth status" \
+  --health-cmd="pipeops status" \
   --health-interval=30s \
   --health-timeout=10s \
   --health-retries=3 \

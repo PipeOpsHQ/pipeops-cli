@@ -56,11 +56,11 @@ Get started with PipeOps CLI in a few steps:
 
 2.  Log in:
 
-        pipeops auth login
+        pipeops login
 
 3.  Check authentication status:
 
-        pipeops auth status
+        pipeops status
 
 4.  List projects:
 
@@ -69,7 +69,7 @@ Get started with PipeOps CLI in a few steps:
 5.  Get help:
 
         pipeops --help
-        pipeops auth --help
+        pipeops login --help
         pipeops project --help
 
 ## What's New

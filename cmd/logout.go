@@ -38,7 +38,7 @@ Examples:
 				utils.PrintJSON(result)
 			} else {
 				fmt.Println("[OK] You're already logged out")
-				fmt.Println(">> When ready to return: pipeops auth login")
+				fmt.Println(">> When ready to return: pipeops login")
 			}
 			return
 		}
@@ -69,7 +69,7 @@ Examples:
 			utils.PrintJSON(result)
 		} else {
 			fmt.Println("[OK] Successfully logged out!")
-			fmt.Println(">> To log back in: pipeops auth login")
+			fmt.Println(">> To log back in: pipeops login")
 		}
 	},
 	Args: cobra.NoArgs,

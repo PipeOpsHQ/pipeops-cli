@@ -14,40 +14,40 @@ pipeops <command> <subcommand> [flags] [arguments]
 
 Manage authentication and user details.
 
-### `pipeops auth login`
+### `pipeops login`
 
 Authenticate with PipeOps using OAuth.
 
 ```bash
 # Interactive login
-pipeops auth login
+pipeops login
 
 # Login with specific provider
-pipeops auth login --provider github
+pipeops login --provider github
 ```
 
-### `pipeops auth logout`
+### `pipeops logout`
 
 Log out from PipeOps.
 
 ```bash
-pipeops auth logout
+pipeops logout
 ```
 
-### `pipeops auth status`
+### `pipeops status`
 
 Check authentication status and user information.
 
 ```bash
-pipeops auth status
+pipeops status
 ```
 
-### `pipeops auth me`
+### `pipeops me`
 
 Display current user information.
 
 ```bash
-pipeops auth me
+pipeops me
 ```
 
 ## Project Commands
@@ -183,7 +183,7 @@ Install PipeOps agent and Kubernetes cluster.
 
 ```bash
 # Install with token (requires authentication first)
-pipeops auth login
+pipeops login
 pipeops agent install
 
 # Install with service account token
@@ -285,7 +285,7 @@ All commands support these global flags:
 
 | Flag | Description | Example |
 |------|-------------|---------|
-| `--help, -h` | Show help for command | `pipeops auth --help` |
+| `--help, -h` | Show help for command | `pipeops login --help` |
 | `--version, -v` | Show version information | `pipeops --version` |
 | `--json` | Output in JSON format | `pipeops project list --json` |
 | `--verbose` | Enable verbose output | `pipeops status --verbose` |
@@ -298,7 +298,7 @@ All commands support these global flags:
 
 ```bash
 # Morning routine
-pipeops auth status
+pipeops status
 pipeops project list
 pipeops server list
 
@@ -346,7 +346,7 @@ For detailed help on any command:
 pipeops --help
 
 # Command-specific help
-pipeops auth --help
+pipeops login --help
 pipeops project create --help
 
 # Subcommand help

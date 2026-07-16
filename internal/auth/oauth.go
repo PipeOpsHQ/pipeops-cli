@@ -163,7 +163,7 @@ func (s *PKCEOAuthService) Login(ctx context.Context) error {
 	case <-time.After(10 * time.Minute):
 		fmt.Print("\r                                                                \r") // Clear line
 		fmt.Println("⏰ Authentication timed out after 10 minutes")
-		fmt.Println("   No problem! Just run 'pipeops auth login' again when ready")
+		fmt.Println("   No problem! Just run 'pipeops login' again when ready")
 		return fmt.Errorf("authentication timeout")
 	case <-ctx.Done():
 		fmt.Print("\r                                                                \r") // Clear line

@@ -5,7 +5,7 @@
 echo "🎉 PipeOps CLI installed successfully!"
 echo ""
 echo "📚 Getting Started:"
-echo "  1. Authenticate: pipeops auth login"
+echo "  1. Authenticate: pipeops login"
 echo "  2. List projects: pipeops project list"
 echo "  3. Get help: pipeops --help"
 echo ""

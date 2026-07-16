@@ -335,7 +335,7 @@ pipeops config check
 pipeops config test-connection
 
 # Test authentication
-pipeops auth status
+pipeops status
 ```
 
 ## Configuration Examples
@@ -528,13 +528,13 @@ source ~/.bashrc  # or ~/.zshrc
 echo $PIPEOPS_TOKEN
 
 # Test authentication
-pipeops auth status
+pipeops status
 
 # Clear auth cache
-pipeops auth clear-cache
+pipeops logout --force
 
 # Re-authenticate
-pipeops auth login
+pipeops login
 ```
 
 #### Performance Issues
