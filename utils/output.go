@@ -213,7 +213,7 @@ func GetStatusIcon(status string) string {
 // RequireAuth checks if user is authenticated and prints error if not
 func RequireAuth(client interface{ IsAuthenticated() bool }, opts OutputOptions) bool {
 	if !client.IsAuthenticated() {
-		PrintError("You are not authenticated. Run 'pipeops auth login' or set PIPEOPS_TOKEN.", opts)
+		PrintError("You are not authenticated. Run 'pipeops login' or set PIPEOPS_TOKEN.", opts)
 		return false
 	}
 	return true
@@ -230,25 +230,25 @@ func HandleAuthError(err error, opts OutputOptions) bool {
 
 	// Check for token expired
 	if strings.Contains(errorStr, "expired") || strings.Contains(errorStr, "expiration") {
-		PrintError("Your session has expired. Please run 'pipeops auth login' to authenticate again.", opts)
+		PrintError("Your session has expired. Please run 'pipeops login' to authenticate again.", opts)
 		return false
 	}
 
 	// Check for token revoked
 	if strings.Contains(errorStr, "revoked") || strings.Contains(errorStr, "invalidated") {
-		PrintError("Your session has been revoked. Please run 'pipeops auth login' to authenticate again.", opts)
+		PrintError("Your session has been revoked. Please run 'pipeops login' to authenticate again.", opts)
 		return false
 	}
 
 	// Check for invalid token
 	if strings.Contains(errorStr, "invalid") || strings.Contains(errorStr, "malformed") {
-		PrintError("Your authentication token is invalid. Please run 'pipeops auth login' to authenticate again.", opts)
+		PrintError("Your authentication token is invalid. Please run 'pipeops login' to authenticate again.", opts)
 		return false
 	}
 
 	// Check for refresh failed
 	if strings.Contains(errorStr, "refresh") && strings.Contains(errorStr, "failed") {
-		PrintError("Failed to refresh your session. Please run 'pipeops auth login' to authenticate again.", opts)
+		PrintError("Failed to refresh your session. Please run 'pipeops login' to authenticate again.", opts)
 		return false
 	}
 
@@ -257,7 +257,7 @@ func HandleAuthError(err error, opts OutputOptions) bool {
 		strings.Contains(errorStr, "unauthorized") ||
 		strings.Contains(errorStr, "401") ||
 		strings.Contains(errorStr, "invalid token") {
-		PrintError("Authentication failed. Please run 'pipeops auth login' to authenticate again.", opts)
+		PrintError("Authentication failed. Please run 'pipeops login' to authenticate again.", opts)
 		return false
 	}
 

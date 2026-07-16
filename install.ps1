@@ -234,7 +234,7 @@ function Write-Completion {
     Write-Host ""
     Write-Host "Getting Started:" -ForegroundColor $Colors.Blue
     Write-Host "  1. Authenticate with PipeOps:"
-    Write-Host "     $BinaryName auth login"
+    Write-Host "     $BinaryName login"
     Write-Host ""
     Write-Host "  2. List your projects:"
     Write-Host "     $BinaryName project list"

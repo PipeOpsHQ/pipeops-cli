@@ -232,7 +232,7 @@ print_completion() {
     echo ""
     echo -e "${CYAN}Getting Started:${NC}"
     echo "  1. Authenticate with PipeOps:"
-    echo "     ${BINARY_NAME} auth login"
+    echo "     ${BINARY_NAME} login"
     echo ""
     echo "  2. List your projects:"
     echo "     ${BINARY_NAME} project list"

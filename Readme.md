@@ -102,11 +102,11 @@ For more options and troubleshooting, see our [Installation Guide](docs/getting-
 
 1. **Log in to your PipeOps account**
 
-       pipeops auth login
+       pipeops login
 
 2. **Verify authentication status**
 
-       pipeops auth status
+       pipeops status
 
 3. **List your projects**
 
@@ -115,7 +115,7 @@ For more options and troubleshooting, see our [Installation Guide](docs/getting-
 4. **Get help for any command**
 
        pipeops --help
-       pipeops auth --help
+       pipeops login --help
        pipeops project --help
 
 ---
@@ -124,7 +124,7 @@ For more options and troubleshooting, see our [Installation Guide](docs/getting-
 
 | Command           | Description                            | Examples                                           |
 | ----------------- | -------------------------------------- | -------------------------------------------------- |
-| `pipeops auth`    | Manage authentication and user details | `pipeops auth login`, `pipeops auth status`        |
+| `pipeops login`   | Authenticate with PipeOps              | `pipeops login`, `pipeops status`        |
 | `pipeops project` | Manage, list, and deploy projects      | `pipeops project list`, `pipeops project create`   |
 | `pipeops deploy`  | Manage and deploy CI/CD pipelines      | `pipeops deploy pipeline`, `pipeops deploy status` |
 | `pipeops server`  | Manage server-related operations       | `pipeops server list`                              |

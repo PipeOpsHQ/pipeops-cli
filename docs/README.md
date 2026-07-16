@@ -81,7 +81,7 @@ mkdocs serve
 
 ```bash
 # Always include the command prompt
-pipeops auth login
+pipeops login
 
 # Show expected output
  Successfully authenticated as user@example.com

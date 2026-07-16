@@ -48,7 +48,7 @@ Examples:
 
 		// Check if user is authenticated
 		if !client.IsAuthenticated() {
-			fmt.Println("❌ You are not logged in. Please run 'pipeops auth login' first.")
+			fmt.Println("❌ You are not logged in. Please run 'pipeops login' first.")
 			return
 		}
 
