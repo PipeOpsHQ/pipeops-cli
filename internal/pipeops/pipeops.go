@@ -2,8 +2,11 @@ package pipeops
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -499,17 +502,49 @@ func (c *Client) StopProject(projectID string) error {
 }
 
 // GetProjectEnvVariables retrieves environment variables for a project.
+// API returns data as a bare array of {Key,Value}; the SDK expects
+// data.env_variables and also pins the wrong workspace via firstWorkspaceUUID.
 func (c *Client) GetProjectEnvVariables(projectID string) ([]sdk.EnvVariable, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
 	}
 
 	ctx := context.Background()
-	resp, _, err := c.sdkClient.Projects.GetEnvVariables(ctx, projectID)
+	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return resp.Data.EnvVariables, nil
+
+	u := fmt.Sprintf("project/settings/env/%s?workspace_uuid=%s",
+		url.PathEscape(projectID), url.QueryEscape(workspaceUUID))
+	req, err := c.sdkClient.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Accept either array or object-shaped data.
+	var raw struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if _, err := c.sdkClient.Do(ctx, req, &raw); err != nil {
+		return nil, err
+	}
+	if len(raw.Data) == 0 || string(raw.Data) == "null" {
+		return []sdk.EnvVariable{}, nil
+	}
+
+	var asArray []sdk.EnvVariable
+	if err := json.Unmarshal(raw.Data, &asArray); err == nil {
+		return asArray, nil
+	}
+
+	var wrapped struct {
+		EnvVariables []sdk.EnvVariable `json:"env_variables"`
+	}
+	if err := json.Unmarshal(raw.Data, &wrapped); err != nil {
+		return nil, fmt.Errorf("decode project env variables: %w", err)
+	}
+	return wrapped.EnvVariables, nil
 }
 
 // UpdateProjectEnvVariables updates environment variables for a project.
@@ -922,6 +957,8 @@ func (c *Client) GetAddonDeployments() ([]models.AddonDeployment, error) {
 }
 
 // GetAddonDeployment retrieves a single addon deployment.
+// There is no dedicated GET /addons/deployments/:id route; fall back to the
+// workspace overview list and match by UID/name.
 func (c *Client) GetAddonDeployment(deploymentID string) (*models.AddonDeployment, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
@@ -929,6 +966,17 @@ func (c *Client) GetAddonDeployment(deploymentID string) (*models.AddonDeploymen
 
 	ctx := context.Background()
 	resp, _, err := c.sdkClient.AddOns.GetDeployment(ctx, deploymentID)
+	if err == nil && resp != nil {
+		deployment := addonDeploymentFromSDK(resp.Data.Deployment)
+		if deployment.ID != "" || deployment.Name != "" {
+			return &deployment, nil
+		}
+	}
+
+	deployment, fallbackErr := c.findAddonDeployment(deploymentID)
+	if fallbackErr == nil {
+		return deployment, nil
+	}
 	if err != nil {
 		deployment, fallbackErr := c.findAddonDeployment(deploymentID)
 		if fallbackErr == nil {
@@ -936,8 +984,22 @@ func (c *Client) GetAddonDeployment(deploymentID string) (*models.AddonDeploymen
 		}
 		return nil, err
 	}
-	deployment := addonDeploymentFromSDK(resp.Data.Deployment)
-	return &deployment, nil
+	return nil, fallbackErr
+}
+
+func (c *Client) findAddonDeployment(deploymentID string) (*models.AddonDeployment, error) {
+	deployments, err := c.GetAddonDeployments()
+	if err != nil {
+		return nil, err
+	}
+	want := strings.TrimSpace(deploymentID)
+	for i := range deployments {
+		d := deployments[i]
+		if d.ID == want || d.Name == want {
+			return &d, nil
+		}
+	}
+	return nil, fmt.Errorf("addon deployment %q not found in workspace overview", deploymentID)
 }
 
 func (c *Client) findAddonDeployment(deploymentID string) (*models.AddonDeployment, error) {
@@ -1123,34 +1185,90 @@ func (c *Client) GetServer(serverID string) (*models.Server, error) {
 }
 
 // GetServerConnection retrieves server connection information.
+// API returns connection fields flat under data (not data.connection).
 func (c *Client) GetServerConnection(serverID string) (map[string]interface{}, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
 	}
 
 	ctx := context.Background()
-	resp, _, err := c.sdkClient.Servers.GetClusterConnection(ctx, serverID)
+	u := fmt.Sprintf("api/v1/clusters/%s/connection", url.PathEscape(serverID))
+	req, err := c.sdkClient.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err
 	}
-	if resp == nil || len(resp.Data.Connection) == 0 {
-		return nil, errors.New("no server connection information returned")
+
+	var envelope struct {
+		Success bool                   `json:"success"`
+		Message string                 `json:"message"`
+		Data    map[string]interface{} `json:"data"`
 	}
-	return resp.Data.Connection, nil
+	if _, err := c.sdkClient.Do(ctx, req, &envelope); err != nil {
+		return nil, err
+	}
+	if envelope.Data == nil {
+		return map[string]interface{}{}, nil
+	}
+	// Prefer nested "connection" if present for forward-compat.
+	if nested, ok := envelope.Data["connection"].(map[string]interface{}); ok && nested != nil {
+		return nested, nil
+	}
+	return envelope.Data, nil
 }
 
 // GetServerCostAllocation retrieves server cost allocation.
+// Cost endpoints require workspace_uuid in the query string.
 func (c *Client) GetServerCostAllocation(serverID string) (map[string]interface{}, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
 	}
 
 	ctx := context.Background()
-	resp, _, err := c.sdkClient.Servers.GetClusterCostAllocation(ctx, serverID)
+	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return resp.Data.Costs, nil
+
+	u := fmt.Sprintf("cluster/%s/cost/allocation/compute?workspace_uuid=%s",
+		url.PathEscape(serverID), url.QueryEscape(workspaceUUID))
+	req, err := c.sdkClient.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var envelope struct {
+		Success bool                   `json:"success"`
+		Message string                 `json:"message"`
+		Data    map[string]interface{} `json:"data"`
+	}
+	if _, err := c.sdkClient.Do(ctx, req, &envelope); err != nil {
+		// OpenCost may not have aggregate data for every cluster; surface as
+		// structured availability instead of a hard CLI failure.
+		msg := err.Error()
+		if strings.Contains(msg, "invalid aggregate") ||
+			strings.Contains(msg, "cluster data not available") {
+			if i := strings.LastIndex(msg, ": "); i >= 0 {
+				msg = strings.TrimSpace(msg[i+2:])
+			}
+			return map[string]interface{}{
+				"cluster_id": serverID,
+				"available":  false,
+				"message":    msg,
+			}, nil
+		}
+		return nil, err
+	}
+	if envelope.Data == nil {
+		return map[string]interface{}{
+			"cluster_id": serverID,
+			"available":  false,
+			"message":    envelope.Message,
+		}, nil
+	}
+	if costs, ok := envelope.Data["costs"].(map[string]interface{}); ok && costs != nil {
+		return costs, nil
+	}
+	return envelope.Data, nil
 }
 
 // detectProviderFromName attempts to detect the cloud provider from the server name.
@@ -1304,7 +1422,9 @@ func (c *Client) DeleteWorkspace(ctx context.Context, workspaceID string) error 
 	return err
 }
 
-// ListEnvironments lists environments.
+// ListEnvironments lists environments for the selected (or only) workspace.
+// The SDK picks the first workspace from GET /workspace, which is often not the
+// CLI default and yields 403 HTML error pages for team/shared workspaces.
 func (c *Client) ListEnvironments(ctx context.Context) ([]sdk.Environment, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
@@ -1313,11 +1433,26 @@ func (c *Client) ListEnvironments(ctx context.Context) ([]sdk.Environment, error
 		ctx = context.Background()
 	}
 
-	resp, _, err := c.sdkClient.Environments.List(ctx)
+	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return resp.Data.Environments, nil
+
+	u := "environment/fetch?workspace_uuid=" + url.QueryEscape(workspaceUUID)
+	req, err := c.sdkClient.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var envelope struct {
+		Data struct {
+			Environments []sdk.Environment `json:"environments"`
+		} `json:"data"`
+	}
+	if _, err := c.sdkClient.Do(ctx, req, &envelope); err != nil {
+		return nil, err
+	}
+	return envelope.Data.Environments, nil
 }
 
 // GetEnvironment retrieves an environment.
@@ -1401,7 +1536,9 @@ func (c *Client) SetEnvironmentVariables(ctx context.Context, environmentID stri
 	return err
 }
 
-// ListServiceAccountTokens lists service account tokens.
+// ListServiceAccountTokens lists service account tokens for the selected workspace.
+// The API requires workspace_uuid (integrations scope) and returns fields that
+// do not match the SDK list type (id/scopes vs uuid/permissions).
 func (c *Client) ListServiceAccountTokens(ctx context.Context) ([]sdk.ServiceAccountToken, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
@@ -1410,11 +1547,44 @@ func (c *Client) ListServiceAccountTokens(ctx context.Context) ([]sdk.ServiceAcc
 		ctx = context.Background()
 	}
 
-	resp, _, err := c.sdkClient.ServiceTokens.ListServiceAccountTokens(ctx)
+	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return resp.Data.Tokens, nil
+
+	u := "api/v1/service-account-tokens?workspace_uuid=" + url.QueryEscape(workspaceUUID)
+	req, err := c.sdkClient.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var envelope struct {
+		Data struct {
+			Tokens []struct {
+				ID          string   `json:"id"`
+				Name        string   `json:"name"`
+				Scopes      []string `json:"scopes"`
+				IsRevoked   bool     `json:"is_revoked"`
+				IsExpired   bool     `json:"is_expired"`
+				TokenPrefix string   `json:"token_prefix"`
+			} `json:"tokens"`
+		} `json:"data"`
+	}
+	if _, err := c.sdkClient.Do(ctx, req, &envelope); err != nil {
+		return nil, err
+	}
+
+	out := make([]sdk.ServiceAccountToken, 0, len(envelope.Data.Tokens))
+	for _, t := range envelope.Data.Tokens {
+		out = append(out, sdk.ServiceAccountToken{
+			UUID:        t.ID,
+			Name:        t.Name,
+			Permissions: t.Scopes,
+			IsActive:    !t.IsRevoked && !t.IsExpired,
+			Token:       t.TokenPrefix,
+		})
+	}
+	return out, nil
 }
 
 // GetServiceAccountToken retrieves a service account token.
@@ -1434,6 +1604,7 @@ func (c *Client) GetServiceAccountToken(ctx context.Context, tokenID string) (*s
 }
 
 // CreateServiceAccountToken creates a service account token.
+// API requires workspace_uuid in the JSON body (not present on the SDK request type).
 func (c *Client) CreateServiceAccountToken(ctx context.Context, req *sdk.ServiceAccountTokenRequest) (*sdk.ServiceAccountToken, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
@@ -1441,12 +1612,64 @@ func (c *Client) CreateServiceAccountToken(ctx context.Context, req *sdk.Service
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	if req == nil {
+		return nil, errors.New("token request is required")
+	}
 
-	resp, _, err := c.sdkClient.ServiceTokens.CreateServiceAccountToken(ctx, req)
+	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return &resp.Data.Token, nil
+
+	body := map[string]interface{}{
+		"name":           req.Name,
+		"workspace_uuid": workspaceUUID,
+		"scopes":         req.Permissions,
+	}
+	if req.Description != "" {
+		body["metadata"] = map[string]string{"description": req.Description}
+	}
+	if req.ExpiresAt != "" {
+		body["expires_at"] = req.ExpiresAt
+	}
+
+	httpReq, err := c.sdkClient.NewRequest(http.MethodPost, "api/v1/service-account-tokens", body)
+	if err != nil {
+		return nil, err
+	}
+
+	var envelope struct {
+		Data struct {
+			Token     string   `json:"token"`
+			TokenUUID string   `json:"token_uuid"`
+			UUID      string   `json:"uuid"`
+			ID        string   `json:"id"`
+			Name      string   `json:"name"`
+			Scopes    []string `json:"scopes"`
+		} `json:"data"`
+	}
+	if _, err := c.sdkClient.Do(ctx, httpReq, &envelope); err != nil {
+		return nil, err
+	}
+
+	id := envelope.Data.TokenUUID
+	if id == "" {
+		id = envelope.Data.UUID
+	}
+	if id == "" {
+		id = envelope.Data.ID
+	}
+	name := envelope.Data.Name
+	if name == "" {
+		name = req.Name
+	}
+	return &sdk.ServiceAccountToken{
+		UUID:        id,
+		Name:        name,
+		Token:       envelope.Data.Token,
+		Permissions: envelope.Data.Scopes,
+		IsActive:    true,
+	}, nil
 }
 
 // UpdateServiceAccountToken updates a service account token.
