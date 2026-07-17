@@ -107,7 +107,7 @@ pipeops --version
 pipeops --help
 
 # Check authentication status
-pipeops auth status
+pipeops status
 ```
 
 ## Updating
@@ -198,7 +198,7 @@ After updating, verify the new version:
 pipeops --version
 
 # Verify functionality
-pipeops auth status
+pipeops status
 pipeops --help
 ```
 

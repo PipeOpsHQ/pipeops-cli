@@ -45,7 +45,7 @@ Available Commands:
 Authenticate with your PipeOps account:
 
 ```bash
-pipeops auth login
+pipeops login
 ```
 
 This will:
@@ -66,7 +66,7 @@ This will:
 Check your authentication status:
 
 ```bash
-pipeops auth status
+pipeops status
 ```
 
 You should see your user information and authentication status.
@@ -133,7 +133,7 @@ pipeops status
 
 ```bash
 # Morning routine - check status
-pipeops auth status
+pipeops status
 pipeops project list
 pipeops server list
 

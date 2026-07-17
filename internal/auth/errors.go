@@ -146,18 +146,18 @@ func GetUserFriendlyMessage(err error) string {
 
 	// Provide user-friendly messages based on error type
 	if IsTokenExpired(err) {
-		return "Your session has expired. Please run 'pipeops auth login' to authenticate again."
+		return "Your session has expired. Please run 'pipeops login' to authenticate again."
 	}
 	if IsTokenRevoked(err) {
-		return "Your session has been revoked. Please run 'pipeops auth login' to authenticate again."
+		return "Your session has been revoked. Please run 'pipeops login' to authenticate again."
 	}
 	if IsTokenInvalid(err) {
-		return "Your authentication token is invalid. Please run 'pipeops auth login' to authenticate again."
+		return "Your authentication token is invalid. Please run 'pipeops login' to authenticate again."
 	}
 	if IsRefreshFailed(err) {
-		return "Failed to refresh your session. Please run 'pipeops auth login' to authenticate again."
+		return "Failed to refresh your session. Please run 'pipeops login' to authenticate again."
 	}
 
 	// Default message
-	return "Authentication failed. Please run 'pipeops auth login' to authenticate again."
+	return "Authentication failed. Please run 'pipeops login' to authenticate again."
 }

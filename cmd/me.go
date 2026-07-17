@@ -77,7 +77,7 @@ Examples:
 				fmt.Println("This might help:")
 				fmt.Println("   • Check your internet connection")
 				fmt.Println("   • Try: pipeops login")
-				fmt.Println("   • For debugging: pipeops auth debug")
+				fmt.Println("   • For debugging: pipeops status --json")
 				showTokenInfo(cfg, authService, opts)
 			}
 			return

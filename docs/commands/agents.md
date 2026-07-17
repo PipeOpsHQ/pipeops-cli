@@ -240,7 +240,7 @@ kubectl logs deployment/pipeops-agent -n pipeops-system
 
 ```bash
 # Check token validity
-pipeops auth status
+pipeops status
 
 # Verify network connectivity
 curl -I https://api.pipeops.io
