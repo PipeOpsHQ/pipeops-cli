@@ -45,7 +45,7 @@ var Conf config.Config
 var rootCmd = &cobra.Command{
 	Use:           "pipeops",
 	Short:         "PipeOps CLI - Manage cloud-native development and deployment workflows",
-	Long:          `PipeOps CLI is a command-line interface for managing cloud-native development and deployment workflows. Securely authenticate, manage projects and servers, deploy CI/CD pipelines, and monitor infrastructure—all from your terminal.`,
+	Long:          `PipeOps CLI is a command-line interface for managing cloud-native development and deployment workflows. Securely authenticate, manage projects and servers, deploy CI/CD pipelines, monitor infrastructure, and connect AI assistants through PipeOps MCP—all from your terminal.`,
 	Version:       Version,
 	SilenceErrors: true, // We handle errors in main.go
 	SilenceUsage:  true, // Don't show usage on error
@@ -187,7 +187,7 @@ func checkForUpdatesBackground(ctx context.Context, cmd *cobra.Command) error {
 // shouldSkipUpdateCheck determines if update checking should be skipped
 func shouldSkipUpdateCheck(cmd *cobra.Command) bool {
 	// Skip for certain commands
-	if cmd.Name() == "update" || cmd.Name() == "version" || cmd.Name() == "help" {
+	if cmd.Name() == "update" || cmd.Name() == "version" || cmd.Name() == "help" || cmd.Name() == "mcp" {
 		return true
 	}
 
