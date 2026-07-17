@@ -34,6 +34,7 @@ func printProject(project *models.Project, opts utils.OutputOptions) {
 		{"ID", project.ID},
 		{"Name", project.Name},
 		{"Status", project.Status},
+		{"URL", project.URL},
 		{"Description", project.Description},
 		{"Created", utils.FormatDate(project.CreatedAt)},
 	}

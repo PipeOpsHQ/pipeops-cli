@@ -373,12 +373,40 @@ func (c *Client) GetProject(projectID string) (*models.Project, error) {
 		id = resp.Data.Project.ID.String()
 	}
 
+	// Controller computes cluster-type-aware projectURL on overview; fetch
+	// may also expose public_url once the SDK maps it.
+	publicURL, _ := c.fetchProjectOverviewURL(ctx, projectID, workspaceUUID)
+
 	return &models.Project{
 		ID:          id,
 		Name:        resp.Data.Project.Name,
 		Description: resp.Data.Project.Description,
 		Status:      resp.Data.Project.Status,
+		URL:         publicURL,
 	}, nil
+}
+
+// fetchProjectOverviewURL reads projectURL from GET project/overview/:id
+// (cluster-type-aware URL from the controller).
+func (c *Client) fetchProjectOverviewURL(ctx context.Context, projectID, workspaceUUID string) (string, error) {
+	u := fmt.Sprintf("project/overview/%s", url.PathEscape(projectID))
+	if workspaceUUID != "" {
+		u = u + "?workspace_uuid=" + url.QueryEscape(workspaceUUID)
+	}
+	req, err := c.sdkClient.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return "", err
+	}
+	var envelope struct {
+		Success bool `json:"success"`
+		Data    struct {
+			ProjectURL string `json:"projectURL"`
+		} `json:"data"`
+	}
+	if _, err := c.sdkClient.Do(ctx, req, &envelope); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(envelope.Data.ProjectURL), nil
 }
 
 // CreateProject creates a new project
