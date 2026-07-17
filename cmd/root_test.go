@@ -61,6 +61,11 @@ func TestShouldSkipUpdateCheck(t *testing.T) {
 			want:    true,
 		},
 		{
+			name:    "skip for mcp command",
+			cmdName: "mcp",
+			want:    true,
+		},
+		{
 			name:    "skip in CI environment",
 			cmdName: "project",
 			envVars: map[string]string{"CI": "true"},
