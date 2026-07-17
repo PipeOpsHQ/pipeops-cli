@@ -8,9 +8,11 @@ type Project struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description,omitempty"`
 	Status      string    `json:"status"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	UserID      string    `json:"user_id"`
+	// URL is the public app URL (agent-managed, PKS LB, or NonPks domain).
+	URL       string    `json:"url,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	UserID    string    `json:"user_id"`
 }
 
 // ProjectsResponse represents the response from the projects API
