@@ -66,6 +66,15 @@ type MockClient struct {
 	CreateServiceAccountTokenFunc    func(ctx context.Context, req *sdk.ServiceAccountTokenRequest) (*sdk.ServiceAccountToken, error)
 	UpdateServiceAccountTokenFunc    func(ctx context.Context, tokenID string, req *sdk.ServiceAccountTokenUpdateRequest) (*sdk.ServiceAccountToken, error)
 	RevokeServiceAccountTokenFunc    func(ctx context.Context, tokenID string) error
+	ListVolumesFunc                  func(ctx context.Context, opts *sdk.VolumeListOptions) (*sdk.VolumeListResponse, error)
+	GetVolumeFunc                    func(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.Volume, error)
+	RemountVolumeFunc                func(ctx context.Context, volumeUUID string, body *sdk.RemountVolumeRequest, opts *sdk.VolumeListOptions) (*sdk.RemountVolumeResponse, error)
+	DeleteVolumeFunc                 func(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) error
+	StartVolumeExportFunc            func(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.VolumeExportResponse, error)
+	GetVolumeExportFunc              func(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.VolumeExportResponse, error)
+	ListAddonBackupsFunc             func(ctx context.Context, deploymentUID string) (*sdk.AddonBackupListResponse, error)
+	StartAddonBackupExportFunc       func(ctx context.Context, deploymentUID string, body *sdk.AddonBackupExportRequest) (*sdk.AddonBackupExportResponse, error)
+	GetAddonBackupExportFunc         func(ctx context.Context, deploymentUID, exportID string) (*sdk.AddonBackupExportResponse, error)
 }
 
 func (m *MockClient) IsAuthenticated() bool {
@@ -458,4 +467,67 @@ func (m *MockClient) RevokeServiceAccountToken(ctx context.Context, tokenID stri
 		return m.RevokeServiceAccountTokenFunc(ctx, tokenID)
 	}
 	return nil
+}
+
+func (m *MockClient) ListVolumes(ctx context.Context, opts *sdk.VolumeListOptions) (*sdk.VolumeListResponse, error) {
+	if m.ListVolumesFunc != nil {
+		return m.ListVolumesFunc(ctx, opts)
+	}
+	return &sdk.VolumeListResponse{}, nil
+}
+
+func (m *MockClient) GetVolume(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.Volume, error) {
+	if m.GetVolumeFunc != nil {
+		return m.GetVolumeFunc(ctx, volumeUUID, opts)
+	}
+	return &sdk.Volume{}, nil
+}
+
+func (m *MockClient) RemountVolume(ctx context.Context, volumeUUID string, body *sdk.RemountVolumeRequest, opts *sdk.VolumeListOptions) (*sdk.RemountVolumeResponse, error) {
+	if m.RemountVolumeFunc != nil {
+		return m.RemountVolumeFunc(ctx, volumeUUID, body, opts)
+	}
+	return &sdk.RemountVolumeResponse{}, nil
+}
+
+func (m *MockClient) DeleteVolume(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) error {
+	if m.DeleteVolumeFunc != nil {
+		return m.DeleteVolumeFunc(ctx, volumeUUID, opts)
+	}
+	return nil
+}
+
+func (m *MockClient) StartVolumeExport(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.VolumeExportResponse, error) {
+	if m.StartVolumeExportFunc != nil {
+		return m.StartVolumeExportFunc(ctx, volumeUUID, opts)
+	}
+	return &sdk.VolumeExportResponse{}, nil
+}
+
+func (m *MockClient) GetVolumeExport(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.VolumeExportResponse, error) {
+	if m.GetVolumeExportFunc != nil {
+		return m.GetVolumeExportFunc(ctx, volumeUUID, opts)
+	}
+	return &sdk.VolumeExportResponse{}, nil
+}
+
+func (m *MockClient) ListAddonBackups(ctx context.Context, deploymentUID string) (*sdk.AddonBackupListResponse, error) {
+	if m.ListAddonBackupsFunc != nil {
+		return m.ListAddonBackupsFunc(ctx, deploymentUID)
+	}
+	return &sdk.AddonBackupListResponse{}, nil
+}
+
+func (m *MockClient) StartAddonBackupExport(ctx context.Context, deploymentUID string, body *sdk.AddonBackupExportRequest) (*sdk.AddonBackupExportResponse, error) {
+	if m.StartAddonBackupExportFunc != nil {
+		return m.StartAddonBackupExportFunc(ctx, deploymentUID, body)
+	}
+	return &sdk.AddonBackupExportResponse{}, nil
+}
+
+func (m *MockClient) GetAddonBackupExport(ctx context.Context, deploymentUID, exportID string) (*sdk.AddonBackupExportResponse, error) {
+	if m.GetAddonBackupExportFunc != nil {
+		return m.GetAddonBackupExportFunc(ctx, deploymentUID, exportID)
+	}
+	return &sdk.AddonBackupExportResponse{}, nil
 }

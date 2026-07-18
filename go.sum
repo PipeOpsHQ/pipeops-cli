@@ -7,6 +7,8 @@ cloud.google.com/go/longrunning v0.5.5/go.mod h1:WV2LAxD8/rg5Z1cNW6FJ/ZpX4E4VnDn
 cloud.google.com/go/storage v1.35.1/go.mod h1:M6M/3V/D3KpzMTJyPOR/HU6n2Si5QdaXYEsng2xgOs8=
 github.com/PipeOpsHQ/pipeops-go-sdk v0.12.4 h1:9zpw2Dh4pgQvTHJ7TeycsLAGVi03wEtOcUEFJQnu1Ms=
 github.com/PipeOpsHQ/pipeops-go-sdk v0.12.4/go.mod h1:06tq3WBPqAYhzmRErIlN6GMFN+jxDinMUDThl5DrM7E=
+github.com/PipeOpsHQ/pipeops-go-sdk v0.12.11-0.20260718133319-f111f6e21ac6 h1:QMySyEHcLf/fRtO1G8SiobdiJHsOPtpHjkh4qcEkTiM=
+github.com/PipeOpsHQ/pipeops-go-sdk v0.12.11-0.20260718133319-f111f6e21ac6/go.mod h1:06tq3WBPqAYhzmRErIlN6GMFN+jxDinMUDThl5DrM7E=
 github.com/armon/go-metrics v0.4.1/go.mod h1:E6amYzXo6aW1tqzoZGT755KkbgrJsSdpwZ+3JqfkOG4=
 github.com/briandowns/spinner v1.23.2 h1:Zc6ecUnI+YzLmJniCfDNaMbW0Wid1d5+qcTq4L2FW8w=
 github.com/briandowns/spinner v1.23.2/go.mod h1:LaZeM4wm2Ywy6vO571mvhQNRcWfRUnXOs0RcKV0wYKM=
