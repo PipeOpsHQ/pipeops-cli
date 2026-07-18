@@ -41,66 +41,110 @@ func printProject(project *models.Project, opts utils.OutputOptions) {
 	utils.PrintTable([]string{"ATTRIBUTE", "VALUE"}, rows, opts)
 }
 
-func parseEnvPairs(pairs []string) ([]sdk.EnvVariable, map[string]interface{}, error) {
-	envVars := make([]sdk.EnvVariable, 0, len(pairs))
-	envMap := make(map[string]interface{}, len(pairs))
+func parseEnvPairs(pairs []string) ([]models.ProjectEnvVar, error) {
+	envVars := make([]models.ProjectEnvVar, 0, len(pairs))
 	for _, pair := range pairs {
 		key, value, ok := strings.Cut(pair, "=")
 		key = strings.TrimSpace(key)
 		if !ok || key == "" {
-			return nil, nil, fmt.Errorf("invalid env var %q; expected KEY=value", pair)
+			return nil, fmt.Errorf("invalid env var %q; expected KEY=value", pair)
 		}
-		envVars = append(envVars, sdk.EnvVariable{Key: key, Value: value})
-		envMap[key] = value
+		envVars = append(envVars, models.ProjectEnvVar{Key: key, Value: value})
 	}
-	return envVars, envMap, nil
+	return envVars, nil
+}
+
+// ProjectCreateRequestFromFlags builds a ProjectCreateRequest from create flags.
+// Exported so the top-level `pipeops create` alias can reuse the same mapping.
+func ProjectCreateRequestFromFlags(cmd *cobra.Command) (*models.ProjectCreateRequest, error) {
+	return projectCreateRequestFromFlags(cmd)
 }
 
 func projectCreateRequestFromFlags(cmd *cobra.Command) (*models.ProjectCreateRequest, error) {
 	name, _ := cmd.Flags().GetString("name")
 	description, _ := cmd.Flags().GetString("description")
 	serverID, _ := cmd.Flags().GetString("server")
+	clusterID, _ := cmd.Flags().GetString("cluster")
 	environmentID, _ := cmd.Flags().GetString("environment")
+	environmentName, _ := cmd.Flags().GetString("environment-name")
 	repository, _ := cmd.Flags().GetString("repository")
 	branch, _ := cmd.Flags().GetString("branch")
+	source, _ := cmd.Flags().GetString("source")
+	username, _ := cmd.Flags().GetString("username")
 	buildCommand, _ := cmd.Flags().GetString("build-command")
 	startCommand, _ := cmd.Flags().GetString("start-command")
+	buildMethod, _ := cmd.Flags().GetString("build-method")
 	framework, _ := cmd.Flags().GetString("framework")
+	language, _ := cmd.Flags().GetString("language")
 	port, _ := cmd.Flags().GetInt("port")
 	envPairs, _ := cmd.Flags().GetStringArray("env")
+	workspace, _ := cmd.Flags().GetString("workspace")
+	commitURL, _ := cmd.Flags().GetString("commit-url")
+	commitSha, _ := cmd.Flags().GetString("commit-sha")
+	worker, _ := cmd.Flags().GetBool("worker")
 
-	_, envMap, err := parseEnvPairs(envPairs)
+	envVars, err := parseEnvPairs(envPairs)
 	if err != nil {
 		return nil, err
 	}
 
+	clusterUUID := strings.TrimSpace(serverID)
+	if clusterUUID == "" {
+		clusterUUID = strings.TrimSpace(clusterID)
+	}
+
 	return &models.ProjectCreateRequest{
-		Name:          name,
-		Description:   description,
-		ServerID:      serverID,
-		EnvironmentID: environmentID,
-		Repository:    repository,
-		Branch:        branch,
-		BuildCommand:  buildCommand,
-		StartCommand:  startCommand,
-		Port:          port,
-		Framework:     framework,
-		EnvVars:       envMap,
+		Name:               name,
+		Description:        description,
+		ClusterUUID:        clusterUUID,
+		EnvironmentUUID:    environmentID,
+		Environment:        environmentName,
+		Repository:         repository,
+		Branch:             branch,
+		Source:             source,
+		Username:           username,
+		BuildCommand:       buildCommand,
+		StartCommand:       startCommand,
+		BuildMethod:        buildMethod,
+		Port:               port,
+		Framework:          framework,
+		RepositoryLanguage: language,
+		EnvVariables:       envVars,
+		WorkspaceUUID:      workspace,
+		CommitURL:          commitURL,
+		CommitSha:          commitSha,
+		Worker:             worker,
 	}, nil
+}
+
+// AddProjectCreateFlags registers shared create flags on a command.
+// Exported for the top-level `pipeops create` alias.
+func AddProjectCreateFlags(cmd *cobra.Command) {
+	addProjectCreateFlags(cmd)
 }
 
 func addProjectCreateFlags(cmd *cobra.Command) {
 	cmd.Flags().String("name", "", "Project name")
-	cmd.Flags().String("description", "", "Project description")
-	cmd.Flags().String("server", "", "Server/cluster UUID")
+	cmd.Flags().String("description", "", "Project description (CLI-only; not sent on create)")
+	cmd.Flags().String("server", "", "Server/cluster UUID (alias for --cluster)")
+	cmd.Flags().String("cluster", "", "Cluster UUID (alias for --server)")
 	cmd.Flags().String("environment", "", "Environment UUID")
-	cmd.Flags().String("repository", "", "Repository URL or identifier")
+	cmd.Flags().String("environment-name", "development", "Environment name/slug (e.g. development)")
+	cmd.Flags().String("repository", "", "Repository URL or owner/repo")
 	cmd.Flags().String("branch", "", "Repository branch")
+	cmd.Flags().String("source", "github", "Source provider: github, gitlab, bitbucket, or image")
+	cmd.Flags().String("username", "", "Repository owner/username (defaults from --repository)")
 	cmd.Flags().String("build-command", "", "Build command")
-	cmd.Flags().String("start-command", "", "Start command")
-	cmd.Flags().Int("port", 0, "Application port")
+	cmd.Flags().String("start-command", "", "Start/run command")
+	cmd.Flags().String("build-method", "", "Build method (default: nodejs; use dockerfile for Docker builds)")
+	cmd.Flags().Int("port", 0, "Application port (default 3000 for web projects)")
 	cmd.Flags().String("framework", "", "Framework name")
+	cmd.Flags().String("language", "", "Repository language (maps to repositoryLanguage)")
 	cmd.Flags().StringArray("env", nil, "Environment variable in KEY=value form; repeatable")
+	cmd.Flags().String("workspace", "", "Workspace UUID (defaults to configured workspace)")
+	cmd.Flags().String("commit-url", "", "Commit URL")
+	cmd.Flags().String("commit-sha", "", "Commit SHA")
+	cmd.Flags().Bool("worker", false, "Create as a worker project (no network port)")
 	_ = cmd.MarkFlagRequired("name")
 }
 

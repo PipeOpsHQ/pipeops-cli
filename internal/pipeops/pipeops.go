@@ -409,25 +409,23 @@ func (c *Client) fetchProjectOverviewURL(ctx context.Context, projectID, workspa
 	return strings.TrimSpace(envelope.Data.ProjectURL), nil
 }
 
-// CreateProject creates a new project
+// CreateProject creates a new project via POST /project/create.
 func (c *Client) CreateProject(req *models.ProjectCreateRequest) (*models.Project, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
 	}
+	if req == nil {
+		return nil, errors.New("create project request cannot be nil")
+	}
 
 	ctx := context.Background()
-	createReq := &sdk.CreateProjectRequest{
-		Name:          req.Name,
-		Description:   req.Description,
-		ServerID:      req.ServerID,
-		EnvironmentID: req.EnvironmentID,
-		Repository:    req.Repository,
-		Branch:        req.Branch,
-		BuildCommand:  req.BuildCommand,
-		StartCommand:  req.StartCommand,
-		Port:          req.Port,
-		Framework:     req.Framework,
-		EnvVars:       req.EnvVars,
+	createReq := BuildSDKCreateProjectRequest(req)
+
+	// Prefer explicit request workspace, then config/env, then let the SDK fill.
+	if strings.TrimSpace(createReq.WorkspaceUUID) == "" {
+		if ws := c.getWorkspaceUUID(); ws != "" {
+			createReq.WorkspaceUUID = ws
+		}
 	}
 
 	resp, _, err := c.sdkClient.Projects.Create(ctx, createReq)
@@ -443,11 +441,194 @@ func (c *Client) CreateProject(req *models.ProjectCreateRequest) (*models.Projec
 	return &models.Project{
 		ID:          id,
 		Name:        resp.Data.Project.Name,
-		Description: resp.Data.Project.Description,
+		Description: coalesceNonEmpty(resp.Data.Project.Description, req.Description),
 		Status:      resp.Data.Project.Status,
 		CreatedAt:   timestampToTime(resp.Data.Project.CreatedAt),
 		UpdatedAt:   timestampToTime(resp.Data.Project.UpdatedAt),
 	}, nil
+}
+
+// BuildSDKCreateProjectRequest maps a CLI ProjectCreateRequest onto the
+// control-plane CreateProjectRequest contract used by the Go SDK.
+//
+// Defaults applied when fields are empty:
+//   - Source: "github"
+//   - Environment: "development"
+//   - BuildMethod: "nodejs" (or "dockerfile" when language/framework suggests it)
+//   - Username: parsed from Repository when possible
+//   - Port: 3000 for non-worker web projects
+//   - EnvVariables: empty slice (never nil)
+//   - JobDetails.Enable / JobDetails.Suspended: false
+//   - Worker projects: buildSettings.worker=true and empty networkSettings
+func BuildSDKCreateProjectRequest(req *models.ProjectCreateRequest) *sdk.CreateProjectRequest {
+	if req == nil {
+		req = &models.ProjectCreateRequest{}
+	}
+
+	falseVal := false
+	source := strings.TrimSpace(req.Source)
+	if source == "" {
+		source = "github"
+	}
+	environment := strings.TrimSpace(req.Environment)
+	if environment == "" {
+		environment = "development"
+	}
+	username := strings.TrimSpace(req.Username)
+	if username == "" {
+		username = usernameFromRepository(req.Repository)
+	}
+	language := strings.TrimSpace(req.RepositoryLanguage)
+	if language == "" {
+		language = strings.TrimSpace(req.Framework)
+	}
+	buildMethod := strings.TrimSpace(req.BuildMethod)
+	if buildMethod == "" {
+		buildMethod = defaultBuildMethod(language, req.Framework)
+	}
+
+	worker := req.Worker
+	buildSettings := sdk.CreateProjectBuildSettings{
+		Type:         "user",
+		BuildMethod:  buildMethod,
+		BuildCommand: req.BuildCommand,
+		RunCommand:   req.StartCommand,
+		Worker:       &worker,
+	}
+
+	var networkSettings []sdk.CreateProjectNetworkSetting
+	if !worker {
+		port := req.Port
+		if port <= 0 {
+			port = 3000
+		}
+		networkSettings = []sdk.CreateProjectNetworkSetting{
+			{Port: int32(port), Protocol: "HTTP"},
+		}
+	}
+
+	envVariables := buildCreateEnvVariables(req)
+
+	return &sdk.CreateProjectRequest{
+		Name:               strings.TrimSpace(req.Name),
+		Username:           username,
+		Source:             source,
+		Repository:         strings.TrimSpace(req.Repository),
+		CommitURL:          strings.TrimSpace(req.CommitURL),
+		CommitSha:          strings.TrimSpace(req.CommitSha),
+		RepositoryLanguage: language,
+		Framework:          strings.TrimSpace(req.Framework),
+		Branch:             strings.TrimSpace(req.Branch),
+		EnvironmentUUID:    strings.TrimSpace(req.EnvironmentUUID),
+		Environment:        environment,
+		ClusterUUID:        strings.TrimSpace(req.ClusterUUID),
+		EnvVariables:       envVariables,
+		BuildSettings:      buildSettings,
+		NetworkSettings:    networkSettings,
+		JobDetails: sdk.CreateProjectJobDetails{
+			Enable:    &falseVal,
+			Suspended: &falseVal,
+		},
+		WorkspaceUUID: strings.TrimSpace(req.WorkspaceUUID),
+	}
+}
+
+func buildCreateEnvVariables(req *models.ProjectCreateRequest) []sdk.CreateProjectEnvVar {
+	if req == nil {
+		return []sdk.CreateProjectEnvVar{}
+	}
+	if len(req.EnvVariables) > 0 {
+		out := make([]sdk.CreateProjectEnvVar, 0, len(req.EnvVariables))
+		for _, ev := range req.EnvVariables {
+			key := strings.TrimSpace(ev.Key)
+			if key == "" {
+				continue
+			}
+			out = append(out, sdk.CreateProjectEnvVar{Key: key, Value: ev.Value})
+		}
+		return out
+	}
+	if len(req.EnvVars) == 0 {
+		return []sdk.CreateProjectEnvVar{}
+	}
+	out := make([]sdk.CreateProjectEnvVar, 0, len(req.EnvVars))
+	for key, value := range req.EnvVars {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			continue
+		}
+		out = append(out, sdk.CreateProjectEnvVar{
+			Key:   key,
+			Value: fmt.Sprint(value),
+		})
+	}
+	return out
+}
+
+func defaultBuildMethod(language, framework string) string {
+	combined := strings.ToLower(strings.TrimSpace(language + " " + framework))
+	switch {
+	case strings.Contains(combined, "docker"):
+		return "dockerfile"
+	default:
+		return "nodejs"
+	}
+}
+
+// usernameFromRepository extracts the org/user segment from common repo forms:
+//
+//	owner/repo
+//	https://github.com/owner/repo(.git)
+//	git@github.com:owner/repo.git
+func usernameFromRepository(repository string) string {
+	repo := strings.TrimSpace(repository)
+	if repo == "" {
+		return ""
+	}
+	repo = strings.TrimSuffix(repo, ".git")
+
+	if strings.Contains(repo, "://") {
+		// https://host/owner/repo[/...]
+		if u, err := url.Parse(repo); err == nil {
+			parts := strings.Split(strings.Trim(u.Path, "/"), "/")
+			if len(parts) > 0 && parts[0] != "" {
+				return parts[0]
+			}
+		}
+	}
+
+	// git@host:owner/repo
+	if at := strings.Index(repo, "@"); at >= 0 {
+		if colon := strings.Index(repo[at:], ":"); colon >= 0 {
+			path := repo[at+colon+1:]
+			parts := strings.Split(path, "/")
+			if len(parts) > 0 && parts[0] != "" {
+				return parts[0]
+			}
+		}
+	}
+
+	// owner/repo
+	if parts := strings.Split(repo, "/"); len(parts) >= 2 {
+		owner := strings.TrimSpace(parts[0])
+		if owner != "" && !strings.Contains(owner, ".") {
+			return owner
+		}
+		// host/owner/repo without scheme
+		if len(parts) >= 3 && strings.TrimSpace(parts[1]) != "" {
+			return strings.TrimSpace(parts[1])
+		}
+	}
+	return ""
+}
+
+func coalesceNonEmpty(values ...string) string {
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // UpdateProject updates a project

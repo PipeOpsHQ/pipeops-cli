@@ -13,8 +13,9 @@ var createCmd = &cobra.Command{
 	Long: `Create a new PipeOps project.
 
 Examples:
-  pipeops project create --name api --server <server-id> --environment <env-id>
-  pipeops project create --name api --repository owner/repo --branch main --port 8080`,
+  pipeops project create --name api --server <cluster-uuid> --environment <env-uuid>
+  pipeops project create --name api --repository owner/repo --branch main --port 8080
+  pipeops project create --name worker --worker --build-method nodejs --start-command "node worker.js"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
 		client, err := authenticatedClient(cmd, opts)
