@@ -1788,3 +1788,158 @@ func (c *Client) RevokeServiceAccountToken(ctx context.Context, tokenID string) 
 	_, err := c.sdkClient.ServiceTokens.RevokeServiceAccountToken(ctx, tokenID)
 	return err
 }
+
+// volumeOptsWithWorkspace fills workspace_uuid from config when not already set.
+func (c *Client) volumeOptsWithWorkspace(ctx context.Context, opts *sdk.VolumeListOptions) (*sdk.VolumeListOptions, error) {
+	if opts == nil {
+		opts = &sdk.VolumeListOptions{}
+	}
+	if opts.WorkspaceUUID != "" || opts.Workspace != "" {
+		return opts, nil
+	}
+	ws, err := c.resolveWorkspaceUUID(ctx)
+	if err != nil {
+		// Fall back to SDK auto-resolution when workspace cannot be resolved locally.
+		return opts, nil
+	}
+	opts.WorkspaceUUID = ws
+	return opts, nil
+}
+
+// ListVolumes lists workspace volumes.
+func (c *Client) ListVolumes(ctx context.Context, opts *sdk.VolumeListOptions) (*sdk.VolumeListResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.volumeOptsWithWorkspace(ctx, opts)
+	resp, _, err := c.sdkClient.Volumes.List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetVolume returns a single volume by UUID.
+func (c *Client) GetVolume(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.Volume, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.volumeOptsWithWorkspace(ctx, opts)
+	resp, _, err := c.sdkClient.Volumes.Get(ctx, volumeUUID, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
+}
+
+// RemountVolume remounts an unattached volume onto a project or addon.
+func (c *Client) RemountVolume(ctx context.Context, volumeUUID string, body *sdk.RemountVolumeRequest, opts *sdk.VolumeListOptions) (*sdk.RemountVolumeResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.volumeOptsWithWorkspace(ctx, opts)
+	resp, _, err := c.sdkClient.Volumes.Remount(ctx, volumeUUID, body, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// DeleteVolume permanently deletes a volume.
+func (c *Client) DeleteVolume(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.volumeOptsWithWorkspace(ctx, opts)
+	_, err := c.sdkClient.Volumes.Delete(ctx, volumeUUID, opts)
+	return err
+}
+
+// StartVolumeExport starts an async volume export.
+func (c *Client) StartVolumeExport(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.VolumeExportResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.volumeOptsWithWorkspace(ctx, opts)
+	resp, _, err := c.sdkClient.Volumes.StartExport(ctx, volumeUUID, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetVolumeExport polls volume export status.
+func (c *Client) GetVolumeExport(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.VolumeExportResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.volumeOptsWithWorkspace(ctx, opts)
+	resp, _, err := c.sdkClient.Volumes.GetExport(ctx, volumeUUID, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// ListAddonBackups lists backup snapshots for an addon deployment.
+func (c *Client) ListAddonBackups(ctx context.Context, deploymentUID string) (*sdk.AddonBackupListResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	resp, _, err := c.sdkClient.AddOns.ListAddonBackups(ctx, deploymentUID)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// StartAddonBackupExport starts an async addon backup export.
+func (c *Client) StartAddonBackupExport(ctx context.Context, deploymentUID string, body *sdk.AddonBackupExportRequest) (*sdk.AddonBackupExportResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	resp, _, err := c.sdkClient.AddOns.StartAddonBackupExport(ctx, deploymentUID, body)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetAddonBackupExport polls addon backup export status.
+func (c *Client) GetAddonBackupExport(ctx context.Context, deploymentUID, exportID string) (*sdk.AddonBackupExportResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	resp, _, err := c.sdkClient.AddOns.GetAddonBackupExport(ctx, deploymentUID, exportID)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
