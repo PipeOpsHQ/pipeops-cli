@@ -200,9 +200,13 @@ var envSetCmd = &cobra.Command{
 		if err != nil || client == nil {
 			return err
 		}
-		envVars, _, err := parseEnvPairs(args[1:])
+		parsed, err := parseEnvPairs(args[1:])
 		if err != nil {
 			return err
+		}
+		envVars := make([]sdk.EnvVariable, 0, len(parsed))
+		for _, ev := range parsed {
+			envVars = append(envVars, sdk.EnvVariable{Key: ev.Key, Value: ev.Value})
 		}
 		updated, err := client.UpdateProjectEnvVariables(args[0], envVars)
 		if err != nil {
