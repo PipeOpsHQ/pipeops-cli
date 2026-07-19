@@ -757,13 +757,20 @@ func (c *Client) GetProjectEnvVariables(projectID string) ([]sdk.EnvVariable, er
 }
 
 // UpdateProjectEnvVariables updates environment variables for a project.
-func (c *Client) UpdateProjectEnvVariables(projectID string, envVars []sdk.EnvVariable) ([]sdk.EnvVariable, error) {
+// merge=true posts ?merge=true so client keys overlay existing vars (prefer-client).
+// merge=false full-replaces the env set (dashboard-style).
+func (c *Client) UpdateProjectEnvVariables(projectID string, envVars []sdk.EnvVariable, merge bool) ([]sdk.EnvVariable, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
 	}
 
 	ctx := context.Background()
-	resp, _, err := c.sdkClient.Projects.UpdateEnvVariables(ctx, projectID, &sdk.EnvVariablesRequest{EnvVariables: envVars})
+	workspaceUUID, _ := c.resolveWorkspaceUUID(ctx)
+	resp, _, err := c.sdkClient.Projects.UpdateEnvVariables(ctx, projectID, &sdk.EnvVariablesRequest{
+		EnvVariables:  envVars,
+		Merge:         merge,
+		WorkspaceUUID: workspaceUUID,
+	})
 	if err != nil {
 		return nil, err
 	}

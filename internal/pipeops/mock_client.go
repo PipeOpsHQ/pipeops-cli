@@ -23,7 +23,7 @@ type MockClient struct {
 	RestartProjectFunc               func(projectID string) error
 	StopProjectFunc                  func(projectID string) error
 	GetProjectEnvVariablesFunc       func(projectID string) ([]sdk.EnvVariable, error)
-	UpdateProjectEnvVariablesFunc    func(projectID string, envVars []sdk.EnvVariable) ([]sdk.EnvVariable, error)
+	UpdateProjectEnvVariablesFunc    func(projectID string, envVars []sdk.EnvVariable, merge bool) ([]sdk.EnvVariable, error)
 	ListProjectDeploymentsFunc       func(projectID string, opts *sdk.ProjectDeploymentListOptions) (*sdk.ProjectDeploymentsResponse, error)
 	ListProjectDeploymentHistoryFunc func(projectID string, opts *sdk.ProjectDeploymentHistoryOptions) (*sdk.ProjectDeploymentHistoryResponse, error)
 	GetLogsFunc                      func(req *models.LogsRequest) (*models.LogsResponse, error)
@@ -171,9 +171,9 @@ func (m *MockClient) GetProjectEnvVariables(projectID string) ([]sdk.EnvVariable
 	return nil, nil
 }
 
-func (m *MockClient) UpdateProjectEnvVariables(projectID string, envVars []sdk.EnvVariable) ([]sdk.EnvVariable, error) {
+func (m *MockClient) UpdateProjectEnvVariables(projectID string, envVars []sdk.EnvVariable, merge bool) ([]sdk.EnvVariable, error) {
 	if m.UpdateProjectEnvVariablesFunc != nil {
-		return m.UpdateProjectEnvVariablesFunc(projectID, envVars)
+		return m.UpdateProjectEnvVariablesFunc(projectID, envVars, merge)
 	}
 	return envVars, nil
 }

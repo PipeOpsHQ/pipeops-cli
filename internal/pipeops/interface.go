@@ -20,7 +20,9 @@ type ClientAPI interface {
 	RestartProject(projectID string) error
 	StopProject(projectID string) error
 	GetProjectEnvVariables(projectID string) ([]sdk.EnvVariable, error)
-	UpdateProjectEnvVariables(projectID string, envVars []sdk.EnvVariable) ([]sdk.EnvVariable, error)
+	// UpdateProjectEnvVariables replaces or merges project env vars.
+	// When merge is true, keys overlay existing envs without wiping others.
+	UpdateProjectEnvVariables(projectID string, envVars []sdk.EnvVariable, merge bool) ([]sdk.EnvVariable, error)
 	ListProjectDeployments(projectID string, opts *sdk.ProjectDeploymentListOptions) (*sdk.ProjectDeploymentsResponse, error)
 	ListProjectDeploymentHistory(projectID string, opts *sdk.ProjectDeploymentHistoryOptions) (*sdk.ProjectDeploymentHistoryResponse, error)
 	GetLogs(req *models.LogsRequest) (*models.LogsResponse, error)
