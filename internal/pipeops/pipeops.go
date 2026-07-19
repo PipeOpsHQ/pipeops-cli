@@ -2124,3 +2124,442 @@ func (c *Client) GetAddonBackupExport(ctx context.Context, deploymentUID, export
 	}
 	return resp, nil
 }
+
+func (c *Client) ListGitOps(ctx context.Context, opts *sdk.GitOpsListOptions) (*sdk.GitOpsListResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	resp, _, err := c.sdkClient.GitOps.List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetGitOps returns a GitOps application by UUID.
+
+func (c *Client) GetGitOps(ctx context.Context, uuid string) (*sdk.GitOpsConfig, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	resp, _, err := c.sdkClient.GitOps.Get(ctx, uuid)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
+}
+
+// CreateGitOps creates a GitOps application configuration.
+
+func (c *Client) CreateGitOps(ctx context.Context, body *sdk.CreateGitOpsConfigRequest) (*sdk.GitOpsConfig, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	resp, _, err := c.sdkClient.GitOps.Create(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
+}
+
+// UpdateGitOps updates a GitOps application configuration.
+
+func (c *Client) UpdateGitOps(ctx context.Context, uuid string, body *sdk.UpdateGitOpsConfigRequest) (*sdk.GitOpsConfig, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	resp, _, err := c.sdkClient.GitOps.Update(ctx, uuid, body)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
+}
+
+// DeleteGitOps deletes a GitOps application configuration.
+
+func (c *Client) DeleteGitOps(ctx context.Context, uuid string) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	_, err := c.sdkClient.GitOps.Delete(ctx, uuid)
+	return err
+}
+
+// TriggerGitOpsSync triggers a manual sync.
+
+func (c *Client) TriggerGitOpsSync(ctx context.Context, uuid string, body *sdk.TriggerGitOpsSyncRequest) (*sdk.GitOpsSyncTriggerResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	resp, _, err := c.sdkClient.GitOps.TriggerSync(ctx, uuid, body)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetGitOpsSyncStatus returns sync/health status.
+
+func (c *Client) GetGitOpsSyncStatus(ctx context.Context, uuid string) (*sdk.GitOpsSyncStatusResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	resp, _, err := c.sdkClient.GitOps.GetSyncStatus(ctx, uuid)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetGitOpsDiff returns the git vs live diff.
+
+func (c *Client) GetGitOpsDiff(ctx context.Context, uuid string) (*sdk.GitOpsDiffResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	resp, _, err := c.sdkClient.GitOps.GetDiff(ctx, uuid)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetGitOpsHistory returns paginated sync history.
+
+func (c *Client) GetGitOpsHistory(ctx context.Context, uuid string, opts *sdk.GitOpsListOptions) (*sdk.GitOpsSyncHistoryResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	resp, _, err := c.sdkClient.GitOps.GetHistory(ctx, uuid, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// --- Project Groups ---
+
+
+func (c *Client) projectGroupWorkspaceOpts(ctx context.Context, opts *sdk.ProjectGroupWorkspaceOptions) *sdk.ProjectGroupWorkspaceOptions {
+	if opts == nil {
+		opts = &sdk.ProjectGroupWorkspaceOptions{}
+	}
+	if opts.WorkspaceUUID != "" || opts.Workspace != "" {
+		return opts
+	}
+	if ws, err := c.resolveWorkspaceUUID(ctx); err == nil {
+		opts.WorkspaceUUID = ws
+	}
+	return opts
+}
+
+
+func (c *Client) projectGroupListOpts(ctx context.Context, opts *sdk.ProjectGroupListOptions) *sdk.ProjectGroupListOptions {
+	if opts == nil {
+		opts = &sdk.ProjectGroupListOptions{}
+	}
+	if opts.WorkspaceUUID != "" || opts.Workspace != "" {
+		return opts
+	}
+	if ws, err := c.resolveWorkspaceUUID(ctx); err == nil {
+		opts.WorkspaceUUID = ws
+	}
+	return opts
+}
+
+// ListProjectGroups lists project groups for a workspace.
+
+func (c *Client) ListProjectGroups(ctx context.Context, opts *sdk.ProjectGroupListOptions) (*sdk.ProjectGroupListResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts = c.projectGroupListOpts(ctx, opts)
+	resp, _, err := c.sdkClient.ProjectGroups.List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetProjectGroup returns a project group by UUID.
+
+func (c *Client) GetProjectGroup(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroup, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts = c.projectGroupWorkspaceOpts(ctx, opts)
+	resp, _, err := c.sdkClient.ProjectGroups.Get(ctx, uuid, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
+}
+
+// CreateProjectGroup creates an empty project group.
+
+func (c *Client) CreateProjectGroup(ctx context.Context, body *sdk.CreateProjectGroupRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroup, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts = c.projectGroupWorkspaceOpts(ctx, opts)
+	resp, _, err := c.sdkClient.ProjectGroups.Create(ctx, body, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
+}
+
+// UpdateProjectGroup patches project group metadata.
+
+func (c *Client) UpdateProjectGroup(ctx context.Context, uuid string, body *sdk.UpdateProjectGroupRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroup, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts = c.projectGroupWorkspaceOpts(ctx, opts)
+	resp, _, err := c.sdkClient.ProjectGroups.Update(ctx, uuid, body, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
+}
+
+// DeleteProjectGroup deletes a project group.
+
+func (c *Client) DeleteProjectGroup(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts = c.projectGroupWorkspaceOpts(ctx, opts)
+	_, err := c.sdkClient.ProjectGroups.Delete(ctx, uuid, opts)
+	return err
+}
+
+// AttachProjectGroupMember attaches a project or addon to a group.
+
+func (c *Client) AttachProjectGroupMember(ctx context.Context, uuid string, body *sdk.AttachProjectGroupMemberRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupAttachResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts = c.projectGroupWorkspaceOpts(ctx, opts)
+	resp, _, err := c.sdkClient.ProjectGroups.AttachMember(ctx, uuid, body, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// DetachProjectGroupMember detaches a member from a group.
+
+func (c *Client) DetachProjectGroupMember(ctx context.Context, uuid, memberType, memberUUID string, opts *sdk.ProjectGroupDetachOptions) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if opts == nil {
+		opts = &sdk.ProjectGroupDetachOptions{}
+	}
+	if opts.WorkspaceUUID == "" && opts.Workspace == "" {
+		if ws, err := c.resolveWorkspaceUUID(ctx); err == nil {
+			opts.WorkspaceUUID = ws
+		}
+	}
+	_, err := c.sdkClient.ProjectGroups.DetachMember(ctx, uuid, memberType, memberUUID, opts)
+	return err
+}
+
+// GetProjectGroupTopology returns the plane topology for a group.
+
+func (c *Client) GetProjectGroupTopology(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupTopologyResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts = c.projectGroupWorkspaceOpts(ctx, opts)
+	resp, _, err := c.sdkClient.ProjectGroups.GetTopology(ctx, uuid, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetProjectGroupSharedEnv returns group-level shared environment variables.
+
+func (c *Client) GetProjectGroupSharedEnv(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupSharedEnvResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts = c.projectGroupWorkspaceOpts(ctx, opts)
+	resp, _, err := c.sdkClient.ProjectGroups.GetSharedEnv(ctx, uuid, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// PutProjectGroupSharedEnv replaces the group shared env set.
+
+func (c *Client) PutProjectGroupSharedEnv(ctx context.Context, uuid string, body *sdk.UpsertProjectGroupSharedEnvRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupSharedEnvResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts = c.projectGroupWorkspaceOpts(ctx, opts)
+	resp, _, err := c.sdkClient.ProjectGroups.PutSharedEnv(ctx, uuid, body, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// InjectProjectGroupSharedEnv pushes stored group shared env into members.
+
+func (c *Client) InjectProjectGroupSharedEnv(ctx context.Context, uuid string, body *sdk.InjectProjectGroupSharedEnvRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupInjectSharedEnvResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts = c.projectGroupWorkspaceOpts(ctx, opts)
+	resp, _, err := c.sdkClient.ProjectGroups.InjectSharedEnv(ctx, uuid, body, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// ConnectProjectGroupServices wires provider connection envs into a consumer.
+
+func (c *Client) ConnectProjectGroupServices(ctx context.Context, uuid string, body *sdk.ConnectProjectGroupServicesRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupConnectResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts = c.projectGroupWorkspaceOpts(ctx, opts)
+	resp, _, err := c.sdkClient.ProjectGroups.ConnectServices(ctx, uuid, body, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// RedeployProjectGroupApps queues redeploys for application members.
+
+func (c *Client) RedeployProjectGroupApps(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupRedeployAppsResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts = c.projectGroupWorkspaceOpts(ctx, opts)
+	resp, _, err := c.sdkClient.ProjectGroups.RedeployApps(ctx, uuid, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// ResolveProjectGroupMember maps a service id to its group.
+
+func (c *Client) ResolveProjectGroupMember(ctx context.Context, opts *sdk.ProjectGroupResolveOptions) (*sdk.ProjectGroupResolveResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if opts == nil {
+		opts = &sdk.ProjectGroupResolveOptions{}
+	}
+	if opts.WorkspaceUUID == "" && opts.Workspace == "" {
+		if ws, err := c.resolveWorkspaceUUID(ctx); err == nil {
+			opts.WorkspaceUUID = ws
+		}
+	}
+	resp, _, err := c.sdkClient.ProjectGroups.ResolveMember(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// ListProjectGroupCandidates lists attachable projects/addons.
+
+func (c *Client) ListProjectGroupCandidates(ctx context.Context, opts *sdk.ProjectGroupCandidatesOptions) (*sdk.ProjectGroupCandidatesResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if opts == nil {
+		opts = &sdk.ProjectGroupCandidatesOptions{}
+	}
+	if opts.WorkspaceUUID == "" && opts.Workspace == "" {
+		if ws, err := c.resolveWorkspaceUUID(ctx); err == nil {
+			opts.WorkspaceUUID = ws
+		}
+	}
+	resp, _, err := c.sdkClient.ProjectGroups.ListCandidates(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
