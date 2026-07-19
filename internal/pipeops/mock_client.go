@@ -75,6 +75,30 @@ type MockClient struct {
 	ListAddonBackupsFunc             func(ctx context.Context, deploymentUID string) (*sdk.AddonBackupListResponse, error)
 	StartAddonBackupExportFunc       func(ctx context.Context, deploymentUID string, body *sdk.AddonBackupExportRequest) (*sdk.AddonBackupExportResponse, error)
 	GetAddonBackupExportFunc         func(ctx context.Context, deploymentUID, exportID string) (*sdk.AddonBackupExportResponse, error)
+	ListGitOpsFunc          func(ctx context.Context, opts *sdk.GitOpsListOptions) (*sdk.GitOpsListResponse, error)
+	GetGitOpsFunc           func(ctx context.Context, uuid string) (*sdk.GitOpsConfig, error)
+	CreateGitOpsFunc        func(ctx context.Context, body *sdk.CreateGitOpsConfigRequest) (*sdk.GitOpsConfig, error)
+	UpdateGitOpsFunc        func(ctx context.Context, uuid string, body *sdk.UpdateGitOpsConfigRequest) (*sdk.GitOpsConfig, error)
+	DeleteGitOpsFunc        func(ctx context.Context, uuid string) error
+	TriggerGitOpsSyncFunc   func(ctx context.Context, uuid string, body *sdk.TriggerGitOpsSyncRequest) (*sdk.GitOpsSyncTriggerResponse, error)
+	GetGitOpsSyncStatusFunc func(ctx context.Context, uuid string) (*sdk.GitOpsSyncStatusResponse, error)
+	GetGitOpsDiffFunc       func(ctx context.Context, uuid string) (*sdk.GitOpsDiffResponse, error)
+	GetGitOpsHistoryFunc    func(ctx context.Context, uuid string, opts *sdk.GitOpsListOptions) (*sdk.GitOpsSyncHistoryResponse, error)
+	ListProjectGroupsFunc           func(ctx context.Context, opts *sdk.ProjectGroupListOptions) (*sdk.ProjectGroupListResponse, error)
+	GetProjectGroupFunc             func(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroup, error)
+	CreateProjectGroupFunc          func(ctx context.Context, body *sdk.CreateProjectGroupRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroup, error)
+	UpdateProjectGroupFunc          func(ctx context.Context, uuid string, body *sdk.UpdateProjectGroupRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroup, error)
+	DeleteProjectGroupFunc          func(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) error
+	AttachProjectGroupMemberFunc    func(ctx context.Context, uuid string, body *sdk.AttachProjectGroupMemberRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupAttachResponse, error)
+	DetachProjectGroupMemberFunc    func(ctx context.Context, uuid, memberType, memberUUID string, opts *sdk.ProjectGroupDetachOptions) error
+	GetProjectGroupTopologyFunc     func(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupTopologyResponse, error)
+	GetProjectGroupSharedEnvFunc    func(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupSharedEnvResponse, error)
+	PutProjectGroupSharedEnvFunc    func(ctx context.Context, uuid string, body *sdk.UpsertProjectGroupSharedEnvRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupSharedEnvResponse, error)
+	InjectProjectGroupSharedEnvFunc func(ctx context.Context, uuid string, body *sdk.InjectProjectGroupSharedEnvRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupInjectSharedEnvResponse, error)
+	ConnectProjectGroupServicesFunc func(ctx context.Context, uuid string, body *sdk.ConnectProjectGroupServicesRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupConnectResponse, error)
+	RedeployProjectGroupAppsFunc    func(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupRedeployAppsResponse, error)
+	ResolveProjectGroupMemberFunc   func(ctx context.Context, opts *sdk.ProjectGroupResolveOptions) (*sdk.ProjectGroupResolveResponse, error)
+	ListProjectGroupCandidatesFunc  func(ctx context.Context, opts *sdk.ProjectGroupCandidatesOptions) (*sdk.ProjectGroupCandidatesResponse, error)
 }
 
 func (m *MockClient) IsAuthenticated() bool {
@@ -530,4 +554,195 @@ func (m *MockClient) GetAddonBackupExport(ctx context.Context, deploymentUID, ex
 		return m.GetAddonBackupExportFunc(ctx, deploymentUID, exportID)
 	}
 	return &sdk.AddonBackupExportResponse{}, nil
+}
+
+func (m *MockClient) ListGitOps(ctx context.Context, opts *sdk.GitOpsListOptions) (*sdk.GitOpsListResponse, error) {
+	if m.ListGitOpsFunc != nil {
+		return m.ListGitOpsFunc(ctx, opts)
+	}
+	return &sdk.GitOpsListResponse{}, nil
+}
+
+
+func (m *MockClient) GetGitOps(ctx context.Context, uuid string) (*sdk.GitOpsConfig, error) {
+	if m.GetGitOpsFunc != nil {
+		return m.GetGitOpsFunc(ctx, uuid)
+	}
+	return &sdk.GitOpsConfig{}, nil
+}
+
+
+func (m *MockClient) CreateGitOps(ctx context.Context, body *sdk.CreateGitOpsConfigRequest) (*sdk.GitOpsConfig, error) {
+	if m.CreateGitOpsFunc != nil {
+		return m.CreateGitOpsFunc(ctx, body)
+	}
+	return &sdk.GitOpsConfig{}, nil
+}
+
+
+func (m *MockClient) UpdateGitOps(ctx context.Context, uuid string, body *sdk.UpdateGitOpsConfigRequest) (*sdk.GitOpsConfig, error) {
+	if m.UpdateGitOpsFunc != nil {
+		return m.UpdateGitOpsFunc(ctx, uuid, body)
+	}
+	return &sdk.GitOpsConfig{}, nil
+}
+
+
+func (m *MockClient) DeleteGitOps(ctx context.Context, uuid string) error {
+	if m.DeleteGitOpsFunc != nil {
+		return m.DeleteGitOpsFunc(ctx, uuid)
+	}
+	return nil
+}
+
+
+func (m *MockClient) TriggerGitOpsSync(ctx context.Context, uuid string, body *sdk.TriggerGitOpsSyncRequest) (*sdk.GitOpsSyncTriggerResponse, error) {
+	if m.TriggerGitOpsSyncFunc != nil {
+		return m.TriggerGitOpsSyncFunc(ctx, uuid, body)
+	}
+	return &sdk.GitOpsSyncTriggerResponse{}, nil
+}
+
+
+func (m *MockClient) GetGitOpsSyncStatus(ctx context.Context, uuid string) (*sdk.GitOpsSyncStatusResponse, error) {
+	if m.GetGitOpsSyncStatusFunc != nil {
+		return m.GetGitOpsSyncStatusFunc(ctx, uuid)
+	}
+	return &sdk.GitOpsSyncStatusResponse{}, nil
+}
+
+
+func (m *MockClient) GetGitOpsDiff(ctx context.Context, uuid string) (*sdk.GitOpsDiffResponse, error) {
+	if m.GetGitOpsDiffFunc != nil {
+		return m.GetGitOpsDiffFunc(ctx, uuid)
+	}
+	return &sdk.GitOpsDiffResponse{}, nil
+}
+
+
+func (m *MockClient) GetGitOpsHistory(ctx context.Context, uuid string, opts *sdk.GitOpsListOptions) (*sdk.GitOpsSyncHistoryResponse, error) {
+	if m.GetGitOpsHistoryFunc != nil {
+		return m.GetGitOpsHistoryFunc(ctx, uuid, opts)
+	}
+	return &sdk.GitOpsSyncHistoryResponse{}, nil
+}
+
+
+func (m *MockClient) ListProjectGroups(ctx context.Context, opts *sdk.ProjectGroupListOptions) (*sdk.ProjectGroupListResponse, error) {
+	if m.ListProjectGroupsFunc != nil {
+		return m.ListProjectGroupsFunc(ctx, opts)
+	}
+	return &sdk.ProjectGroupListResponse{}, nil
+}
+
+
+func (m *MockClient) GetProjectGroup(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroup, error) {
+	if m.GetProjectGroupFunc != nil {
+		return m.GetProjectGroupFunc(ctx, uuid, opts)
+	}
+	return &sdk.ProjectGroup{}, nil
+}
+
+
+func (m *MockClient) CreateProjectGroup(ctx context.Context, body *sdk.CreateProjectGroupRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroup, error) {
+	if m.CreateProjectGroupFunc != nil {
+		return m.CreateProjectGroupFunc(ctx, body, opts)
+	}
+	return &sdk.ProjectGroup{}, nil
+}
+
+
+func (m *MockClient) UpdateProjectGroup(ctx context.Context, uuid string, body *sdk.UpdateProjectGroupRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroup, error) {
+	if m.UpdateProjectGroupFunc != nil {
+		return m.UpdateProjectGroupFunc(ctx, uuid, body, opts)
+	}
+	return &sdk.ProjectGroup{}, nil
+}
+
+
+func (m *MockClient) DeleteProjectGroup(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) error {
+	if m.DeleteProjectGroupFunc != nil {
+		return m.DeleteProjectGroupFunc(ctx, uuid, opts)
+	}
+	return nil
+}
+
+
+func (m *MockClient) AttachProjectGroupMember(ctx context.Context, uuid string, body *sdk.AttachProjectGroupMemberRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupAttachResponse, error) {
+	if m.AttachProjectGroupMemberFunc != nil {
+		return m.AttachProjectGroupMemberFunc(ctx, uuid, body, opts)
+	}
+	return &sdk.ProjectGroupAttachResponse{}, nil
+}
+
+
+func (m *MockClient) DetachProjectGroupMember(ctx context.Context, uuid, memberType, memberUUID string, opts *sdk.ProjectGroupDetachOptions) error {
+	if m.DetachProjectGroupMemberFunc != nil {
+		return m.DetachProjectGroupMemberFunc(ctx, uuid, memberType, memberUUID, opts)
+	}
+	return nil
+}
+
+
+func (m *MockClient) GetProjectGroupTopology(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupTopologyResponse, error) {
+	if m.GetProjectGroupTopologyFunc != nil {
+		return m.GetProjectGroupTopologyFunc(ctx, uuid, opts)
+	}
+	return &sdk.ProjectGroupTopologyResponse{}, nil
+}
+
+
+func (m *MockClient) GetProjectGroupSharedEnv(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupSharedEnvResponse, error) {
+	if m.GetProjectGroupSharedEnvFunc != nil {
+		return m.GetProjectGroupSharedEnvFunc(ctx, uuid, opts)
+	}
+	return &sdk.ProjectGroupSharedEnvResponse{}, nil
+}
+
+
+func (m *MockClient) PutProjectGroupSharedEnv(ctx context.Context, uuid string, body *sdk.UpsertProjectGroupSharedEnvRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupSharedEnvResponse, error) {
+	if m.PutProjectGroupSharedEnvFunc != nil {
+		return m.PutProjectGroupSharedEnvFunc(ctx, uuid, body, opts)
+	}
+	return &sdk.ProjectGroupSharedEnvResponse{}, nil
+}
+
+
+func (m *MockClient) InjectProjectGroupSharedEnv(ctx context.Context, uuid string, body *sdk.InjectProjectGroupSharedEnvRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupInjectSharedEnvResponse, error) {
+	if m.InjectProjectGroupSharedEnvFunc != nil {
+		return m.InjectProjectGroupSharedEnvFunc(ctx, uuid, body, opts)
+	}
+	return &sdk.ProjectGroupInjectSharedEnvResponse{}, nil
+}
+
+
+func (m *MockClient) ConnectProjectGroupServices(ctx context.Context, uuid string, body *sdk.ConnectProjectGroupServicesRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupConnectResponse, error) {
+	if m.ConnectProjectGroupServicesFunc != nil {
+		return m.ConnectProjectGroupServicesFunc(ctx, uuid, body, opts)
+	}
+	return &sdk.ProjectGroupConnectResponse{}, nil
+}
+
+
+func (m *MockClient) RedeployProjectGroupApps(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupRedeployAppsResponse, error) {
+	if m.RedeployProjectGroupAppsFunc != nil {
+		return m.RedeployProjectGroupAppsFunc(ctx, uuid, opts)
+	}
+	return &sdk.ProjectGroupRedeployAppsResponse{}, nil
+}
+
+
+func (m *MockClient) ResolveProjectGroupMember(ctx context.Context, opts *sdk.ProjectGroupResolveOptions) (*sdk.ProjectGroupResolveResponse, error) {
+	if m.ResolveProjectGroupMemberFunc != nil {
+		return m.ResolveProjectGroupMemberFunc(ctx, opts)
+	}
+	return &sdk.ProjectGroupResolveResponse{}, nil
+}
+
+
+func (m *MockClient) ListProjectGroupCandidates(ctx context.Context, opts *sdk.ProjectGroupCandidatesOptions) (*sdk.ProjectGroupCandidatesResponse, error) {
+	if m.ListProjectGroupCandidatesFunc != nil {
+		return m.ListProjectGroupCandidatesFunc(ctx, opts)
+	}
+	return &sdk.ProjectGroupCandidatesResponse{}, nil
 }

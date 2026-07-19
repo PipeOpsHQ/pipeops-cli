@@ -72,6 +72,34 @@ type ClientAPI interface {
 	ListAddonBackups(ctx context.Context, deploymentUID string) (*sdk.AddonBackupListResponse, error)
 	StartAddonBackupExport(ctx context.Context, deploymentUID string, body *sdk.AddonBackupExportRequest) (*sdk.AddonBackupExportResponse, error)
 	GetAddonBackupExport(ctx context.Context, deploymentUID, exportID string) (*sdk.AddonBackupExportResponse, error)
+	// GitOps
+	ListGitOps(ctx context.Context, opts *sdk.GitOpsListOptions) (*sdk.GitOpsListResponse, error)
+	GetGitOps(ctx context.Context, uuid string) (*sdk.GitOpsConfig, error)
+	CreateGitOps(ctx context.Context, body *sdk.CreateGitOpsConfigRequest) (*sdk.GitOpsConfig, error)
+	UpdateGitOps(ctx context.Context, uuid string, body *sdk.UpdateGitOpsConfigRequest) (*sdk.GitOpsConfig, error)
+	DeleteGitOps(ctx context.Context, uuid string) error
+	TriggerGitOpsSync(ctx context.Context, uuid string, body *sdk.TriggerGitOpsSyncRequest) (*sdk.GitOpsSyncTriggerResponse, error)
+	GetGitOpsSyncStatus(ctx context.Context, uuid string) (*sdk.GitOpsSyncStatusResponse, error)
+	GetGitOpsDiff(ctx context.Context, uuid string) (*sdk.GitOpsDiffResponse, error)
+	GetGitOpsHistory(ctx context.Context, uuid string, opts *sdk.GitOpsListOptions) (*sdk.GitOpsSyncHistoryResponse, error)
+
+	// Project Groups
+	ListProjectGroups(ctx context.Context, opts *sdk.ProjectGroupListOptions) (*sdk.ProjectGroupListResponse, error)
+	GetProjectGroup(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroup, error)
+	CreateProjectGroup(ctx context.Context, body *sdk.CreateProjectGroupRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroup, error)
+	UpdateProjectGroup(ctx context.Context, uuid string, body *sdk.UpdateProjectGroupRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroup, error)
+	DeleteProjectGroup(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) error
+	AttachProjectGroupMember(ctx context.Context, uuid string, body *sdk.AttachProjectGroupMemberRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupAttachResponse, error)
+	DetachProjectGroupMember(ctx context.Context, uuid, memberType, memberUUID string, opts *sdk.ProjectGroupDetachOptions) error
+	GetProjectGroupTopology(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupTopologyResponse, error)
+	GetProjectGroupSharedEnv(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupSharedEnvResponse, error)
+	PutProjectGroupSharedEnv(ctx context.Context, uuid string, body *sdk.UpsertProjectGroupSharedEnvRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupSharedEnvResponse, error)
+	InjectProjectGroupSharedEnv(ctx context.Context, uuid string, body *sdk.InjectProjectGroupSharedEnvRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupInjectSharedEnvResponse, error)
+	ConnectProjectGroupServices(ctx context.Context, uuid string, body *sdk.ConnectProjectGroupServicesRequest, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupConnectResponse, error)
+	RedeployProjectGroupApps(ctx context.Context, uuid string, opts *sdk.ProjectGroupWorkspaceOptions) (*sdk.ProjectGroupRedeployAppsResponse, error)
+	ResolveProjectGroupMember(ctx context.Context, opts *sdk.ProjectGroupResolveOptions) (*sdk.ProjectGroupResolveResponse, error)
+	ListProjectGroupCandidates(ctx context.Context, opts *sdk.ProjectGroupCandidatesOptions) (*sdk.ProjectGroupCandidatesResponse, error)
+
 	LoadConfig() error
 	SaveConfig() error
 	GetConfig() *config.Config
