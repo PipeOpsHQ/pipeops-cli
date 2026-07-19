@@ -194,6 +194,11 @@ func maskSecretValue(value string) string {
 var envSetCmd = &cobra.Command{
 	Use:   "set <project-id> KEY=value [KEY=value...]",
 	Short: "Set project environment variables",
+	Long: `Set project environment variables.
+
+By default keys are merged into existing envs (prefer-client: client values win,
+other keys kept). Pass --replace for a full replace of the entire env set
+(dashboard-style). PORT is injected server-side from network settings when missing.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
 		client, err := authenticatedClient(cmd, opts)
@@ -208,14 +213,24 @@ var envSetCmd = &cobra.Command{
 		for _, ev := range parsed {
 			envVars = append(envVars, sdk.EnvVariable{Key: ev.Key, Value: ev.Value})
 		}
-		updated, err := client.UpdateProjectEnvVariables(args[0], envVars)
+		// Prefer-client default: merge=true. --replace forces full replace.
+		replace, _ := cmd.Flags().GetBool("replace")
+		merge := !replace
+		if flag := cmd.Flags().Lookup("merge"); flag != nil && flag.Changed {
+			merge, _ = cmd.Flags().GetBool("merge")
+		}
+		updated, err := client.UpdateProjectEnvVariables(args[0], envVars, merge)
 		if err != nil {
 			return fmt.Errorf("set project environment variables: %w", err)
 		}
 		if opts.Format == utils.OutputFormatJSON {
 			return utils.PrintJSON(updated)
 		}
-		utils.PrintSuccess("Project environment variables updated", opts)
+		if merge {
+			utils.PrintSuccess("Project environment variables merged", opts)
+		} else {
+			utils.PrintSuccess("Project environment variables replaced", opts)
+		}
 		return nil
 	},
 	Args: cobra.MinimumNArgs(2),
@@ -290,6 +305,8 @@ func registerOperationCommands(root *cobra.Command) {
 	deploymentHistoryCmd.Flags().Int("page", 1, "Page number")
 	deploymentHistoryCmd.Flags().Int("limit", 20, "Page size")
 	envGetCmd.Flags().Bool("reveal", false, "Show plaintext secret values (default: masked)")
+	envSetCmd.Flags().Bool("merge", true, "Merge keys into existing envs (default true; prefer-client)")
+	envSetCmd.Flags().Bool("replace", false, "Full-replace entire env set instead of merging")
 
 	envCmd.AddCommand(envGetCmd, envSetCmd)
 	root.AddCommand(getCmd, updateCmd, deleteCmd, deployCmd, restartCmd, stopCmd, envCmd, deploymentsCmd, deploymentHistoryCmd)
