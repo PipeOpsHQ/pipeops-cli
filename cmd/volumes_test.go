@@ -51,12 +51,3 @@ func TestVolumesCommandsRegistered(t *testing.T) {
 		t.Error("volumes command not registered on root")
 	}
 }
-
-func TestDisplayOr(t *testing.T) {
-	if got := displayOr("a", "b"); got != "a" {
-		t.Errorf("displayOr primary = %q", got)
-	}
-	if got := displayOr("", "b"); got != "b" {
-		t.Errorf("displayOr fallback = %q", got)
-	}
-}

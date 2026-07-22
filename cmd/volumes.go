@@ -255,13 +255,6 @@ func printVolumeExport(resp *sdk.VolumeExportResponse, opts utils.OutputOptions,
 	return nil
 }
 
-func displayOr(primary, fallback string) string {
-	if strings.TrimSpace(primary) != "" {
-		return primary
-	}
-	return fallback
-}
-
 func init() {
 	workspaceFlag := "Workspace UUID (or set PIPEOPS_WORKSPACE_UUID / pipeops workspace select)"
 
