@@ -513,7 +513,8 @@ func BuildSDKCreateProjectRequest(req *models.ProjectCreateRequest) *sdk.CreateP
 		Name:               strings.TrimSpace(req.Name),
 		Username:           username,
 		Source:             source,
-		Repository:         strings.TrimSpace(req.Repository),
+		// Expand short owner/repo to full HTTPS clone URL (runner clones as-is).
+		Repository:         sdk.CanonicalizeRepository(strings.TrimSpace(req.Repository), source),
 		CommitURL:          strings.TrimSpace(req.CommitURL),
 		CommitSha:          strings.TrimSpace(req.CommitSha),
 		RepositoryLanguage: language,
