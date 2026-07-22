@@ -158,3 +158,21 @@ func TestUsernameFromRepository(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildSDKCreateProjectRequest_ShortRepoExpands(t *testing.T) {
+	got := BuildSDKCreateProjectRequest(&models.ProjectCreateRequest{
+		Name:            "sample",
+		ClusterUUID:     "c1",
+		EnvironmentUUID: "e1",
+		Repository:      "9trocode/pipeops-sample-app",
+		Branch:          "main",
+		Source:          "github",
+		Username:        "9trocode",
+		WorkspaceUUID:   "ws",
+		Port:            3000,
+	})
+	want := "https://github.com/9trocode/pipeops-sample-app"
+	if got.Repository != want {
+		t.Fatalf("Repository = %q, want %q", got.Repository, want)
+	}
+}
