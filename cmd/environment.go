@@ -23,7 +23,7 @@ var environmentListCmd = &cobra.Command{
 	Short: "List environments",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -49,7 +49,7 @@ var environmentGetCmd = &cobra.Command{
 	Short: "Get environment details",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -67,7 +67,7 @@ var environmentCreateCmd = &cobra.Command{
 	Short: "Create an environment",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -101,7 +101,7 @@ var environmentUpdateCmd = &cobra.Command{
 	Short: "Update an environment",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -127,7 +127,7 @@ var environmentDeleteCmd = &cobra.Command{
 		if !force {
 			return fmt.Errorf("--force is required to delete an environment")
 		}
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -153,7 +153,7 @@ var environmentVarsSetCmd = &cobra.Command{
 	Short: "Set environment variables",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -173,7 +173,7 @@ var environmentVarsSetCmd = &cobra.Command{
 	Args: cobra.MinimumNArgs(2),
 }
 
-func rootClient(opts utils.OutputOptions) (pipeops.ClientAPI, error) {
+func rootClient(cmd *cobra.Command, opts utils.OutputOptions) (pipeops.ClientAPI, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, fmt.Errorf("load configuration: %w", err)
@@ -181,6 +181,13 @@ func rootClient(opts utils.OutputOptions) (pipeops.ClientAPI, error) {
 	client := pipeops.NewClientWithConfigFunc(cfg)
 	if !utils.RequireAuth(client, opts) {
 		return nil, nil
+	}
+	if cmd != nil {
+		if flag := cmd.Flags().Lookup("workspace"); flag != nil {
+			if ws := flag.Value.String(); ws != "" {
+				client.SetWorkspaceOverride(ws)
+			}
+		}
 	}
 	return client, nil
 }
@@ -227,6 +234,8 @@ func sdkTime(ts *sdk.Timestamp) string {
 }
 
 func init() {
+	environmentListCmd.Flags().String("workspace", "", "Workspace UUID (or set PIPEOPS_WORKSPACE_UUID / pipeops workspace select)")
+	environmentGetCmd.Flags().String("workspace", "", "Workspace UUID (or set PIPEOPS_WORKSPACE_UUID / pipeops workspace select)")
 	environmentCreateCmd.Flags().String("name", "", "Environment name")
 	environmentCreateCmd.Flags().String("workspace", "", "Workspace UUID")
 	environmentCreateCmd.Flags().String("cluster", "", "Cluster UUID")

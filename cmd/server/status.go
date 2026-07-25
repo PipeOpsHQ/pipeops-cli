@@ -10,7 +10,7 @@ import (
 )
 
 func GetStatusCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "status [server-id]",
 		Aliases: []string{"show"},
 		Short:   "Get the status of a server",
@@ -18,7 +18,8 @@ func GetStatusCmd() *cobra.Command {
 
 Examples:
   pipeops server status <server-id>
-  pipeops server show <server-id>`,
+  pipeops server show <server-id>
+  pipeops server status <server-id> --workspace <workspace-uuid>`,
 		Run: func(cmd *cobra.Command, args []string) {
 			opts := utils.GetOutputOptions(cmd)
 
@@ -38,6 +39,9 @@ Examples:
 
 			if !utils.RequireAuth(client, opts) {
 				return
+			}
+			if ws, _ := cmd.Flags().GetString("workspace"); ws != "" {
+				client.SetWorkspaceOverride(ws)
 			}
 
 			utils.PrintInfo(fmt.Sprintf("Fetching status for server %s...", serverID), opts)
@@ -75,4 +79,6 @@ Examples:
 		},
 		Args: cobra.ExactArgs(1),
 	}
+	cmd.Flags().String("workspace", "", "Workspace UUID (or set PIPEOPS_WORKSPACE_UUID / pipeops workspace select)")
+	return cmd
 }

@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const workspaceFlagHelp = "Workspace UUID (or set PIPEOPS_WORKSPACE_UUID / pipeops workspace select)"
+
 func authenticatedClient(cmd *cobra.Command, opts utils.OutputOptions) (pipeops.ClientAPI, error) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -22,7 +24,19 @@ func authenticatedClient(cmd *cobra.Command, opts utils.OutputOptions) (pipeops.
 	if !utils.RequireAuth(client, opts) {
 		return nil, nil
 	}
+	applyWorkspaceFlag(cmd, client)
 	return client, nil
+}
+
+func applyWorkspaceFlag(cmd *cobra.Command, client pipeops.ClientAPI) {
+	if cmd == nil || client == nil {
+		return
+	}
+	if flag := cmd.Flags().Lookup("workspace"); flag != nil {
+		if ws := strings.TrimSpace(flag.Value.String()); ws != "" {
+			client.SetWorkspaceOverride(ws)
+		}
+	}
 }
 
 func printProject(project *models.Project, opts utils.OutputOptions) {

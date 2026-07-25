@@ -11,6 +11,9 @@ import (
 // ClientAPI defines the interface for PipeOps API operations
 type ClientAPI interface {
 	IsAuthenticated() bool
+	// SetWorkspaceOverride scopes workspace-aware calls for this client
+	// (CLI --workspace flag). Empty clears the override.
+	SetWorkspaceOverride(workspaceUUID string)
 	GetProjects() (*models.ProjectsResponse, error)
 	GetProject(projectID string) (*models.Project, error)
 	CreateProject(req *models.ProjectCreateRequest) (*models.Project, error)

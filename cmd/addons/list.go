@@ -113,6 +113,9 @@ func runAddonDeployments(cmd *cobra.Command, args []string) {
 	if !utils.RequireAuth(client, opts) {
 		return
 	}
+	if ws, _ := cmd.Flags().GetString("workspace"); ws != "" {
+		client.SetWorkspaceOverride(ws)
+	}
 
 	utils.PrintInfo("Fetching deployed addons...", opts)
 
@@ -162,5 +165,6 @@ func runAddonDeployments(cmd *cobra.Command, args []string) {
 }
 
 func init() {
+	listCmd.Flags().String("workspace", "", "Workspace UUID (or set PIPEOPS_WORKSPACE_UUID / pipeops workspace select)")
 	AddonsCmd.AddCommand(listCmd, availableCmd)
 }

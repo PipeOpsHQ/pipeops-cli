@@ -307,6 +307,9 @@ func registerOperationCommands(root *cobra.Command) {
 	envGetCmd.Flags().Bool("reveal", false, "Show plaintext secret values (default: masked)")
 	envSetCmd.Flags().Bool("merge", true, "Merge keys into existing envs (default true; prefer-client)")
 	envSetCmd.Flags().Bool("replace", false, "Full-replace entire env set instead of merging")
+	for _, c := range []*cobra.Command{getCmd, updateCmd, deleteCmd, deployCmd, restartCmd, stopCmd, deploymentsCmd, deploymentHistoryCmd, envGetCmd, envSetCmd} {
+		c.Flags().String("workspace", "", workspaceFlagHelp)
+	}
 
 	envCmd.AddCommand(envGetCmd, envSetCmd)
 	root.AddCommand(getCmd, updateCmd, deleteCmd, deployCmd, restartCmd, stopCmd, envCmd, deploymentsCmd, deploymentHistoryCmd)

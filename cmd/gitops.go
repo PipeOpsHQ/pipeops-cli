@@ -35,7 +35,7 @@ var gitopsListCmd = &cobra.Command{
 	Short:   "List GitOps applications",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -45,6 +45,9 @@ var gitopsListCmd = &cobra.Command{
 		}
 		if limit, _ := cmd.Flags().GetInt("limit"); limit > 0 {
 			listOpts.Limit = limit
+		}
+		if workspace, _ := cmd.Flags().GetString("workspace"); workspace != "" {
+			listOpts.WorkspaceUUID = workspace
 		}
 		resp, err := client.ListGitOps(context.Background(), listOpts)
 		if err != nil {
@@ -83,7 +86,7 @@ var gitopsGetCmd = &cobra.Command{
 	Short: "Get GitOps application details",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -101,7 +104,7 @@ var gitopsCreateCmd = &cobra.Command{
 	Short: "Create a GitOps application",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -148,7 +151,7 @@ var gitopsUpdateCmd = &cobra.Command{
 	Short: "Update a GitOps application",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -186,7 +189,7 @@ var gitopsDeleteCmd = &cobra.Command{
 		if !yes {
 			return fmt.Errorf("--yes is required to delete a GitOps application")
 		}
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -207,7 +210,7 @@ var gitopsSyncCmd = &cobra.Command{
 	Short: "Trigger a GitOps sync",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -244,7 +247,7 @@ var gitopsStatusCmd = &cobra.Command{
 	Short: "Get GitOps sync status",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -277,7 +280,7 @@ var gitopsDiffCmd = &cobra.Command{
 	Short: "Show GitOps diff (git vs live)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -306,7 +309,7 @@ var gitopsHistoryCmd = &cobra.Command{
 	Short: "Show GitOps sync history",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -428,6 +431,7 @@ func optionalUintFlag(cmd *cobra.Command, name string) (*uint, error) {
 func init() {
 	gitopsListCmd.Flags().Int("page", 0, "Page number")
 	gitopsListCmd.Flags().Int("limit", 0, "Page size")
+	gitopsListCmd.Flags().String("workspace", "", "Workspace UUID (or set PIPEOPS_WORKSPACE_UUID / pipeops workspace select)")
 
 	gitopsCreateCmd.Flags().String("name", "", "Application name")
 	gitopsCreateCmd.Flags().String("repo-url", "", "Git repository URL")
