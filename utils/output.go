@@ -228,9 +228,14 @@ func HandleAuthError(err error, opts OutputOptions) bool {
 	// Check for specific authentication error types
 	errorStr := err.Error()
 
-	// Check for token expired
-	if strings.Contains(errorStr, "expired") || strings.Contains(errorStr, "expiration") {
-		PrintError("Your session has expired. Please run 'pipeops login' to authenticate again.", opts)
+	// Check for token expired / server-side session end (HTTP 419 Page Expired).
+	// Controller maps ended user sessions to 419 even when JWT exp is still valid.
+	if strings.Contains(errorStr, "expired") ||
+		strings.Contains(errorStr, "expiration") ||
+		strings.Contains(errorStr, " 419 ") ||
+		strings.HasSuffix(errorStr, ": 419") ||
+		strings.Contains(errorStr, "session has ended") {
+		PrintError("Your session has expired or was revoked (HTTP 419). Please run 'pipeops login' to authenticate again.", opts)
 		return false
 	}
 
