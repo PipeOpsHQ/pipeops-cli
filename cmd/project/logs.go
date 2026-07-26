@@ -51,6 +51,9 @@ Examples:
 			fmt.Println("❌ You are not logged in. Please run 'pipeops login' first.")
 			return
 		}
+		if ws, _ := cmd.Flags().GetString("workspace"); ws != "" {
+			client.SetWorkspaceOverride(ws)
+		}
 
 		var projectID string
 		if len(args) == 1 {
@@ -208,6 +211,7 @@ func init() {
 	logsCmd.Flags().String("limit", "", "Maximum number of logs to retrieve")
 	logsCmd.Flags().IntP("tail", "t", 100, "Number of recent log lines to show")
 	logsCmd.Flags().BoolP("follow", "f", false, "Stream logs in real-time")
+	logsCmd.Flags().String("workspace", "", workspaceFlagHelp)
 }
 
 // printLogEntry formats and prints a log entry

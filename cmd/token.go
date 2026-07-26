@@ -21,7 +21,7 @@ var tokenListCmd = &cobra.Command{
 	Short: "List service account tokens",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -47,7 +47,7 @@ var tokenGetCmd = &cobra.Command{
 	Short: "Get service account token details",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -65,7 +65,7 @@ var tokenCreateCmd = &cobra.Command{
 	Short: "Create a service account token",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -95,7 +95,7 @@ var tokenUpdateCmd = &cobra.Command{
 	Short: "Update a service account token",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -133,7 +133,7 @@ var tokenRevokeCmd = &cobra.Command{
 		if !force {
 			return fmt.Errorf("--force is required to revoke a service account token")
 		}
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -200,6 +200,9 @@ func init() {
 	tokenUpdateCmd.Flags().String("active", "", "Set token active state true/false")
 	tokenRevokeCmd.Flags().Bool("force", false, "Confirm token revocation")
 
+	tokenListCmd.Flags().String("workspace", "", "Workspace UUID (or set PIPEOPS_WORKSPACE_UUID / pipeops workspace select)")
+	tokenGetCmd.Flags().String("workspace", "", "Workspace UUID (or set PIPEOPS_WORKSPACE_UUID / pipeops workspace select)")
+	tokenCreateCmd.Flags().String("workspace", "", "Workspace UUID (or set PIPEOPS_WORKSPACE_UUID / pipeops workspace select)")
 	tokenCmd.AddCommand(tokenListCmd, tokenGetCmd, tokenCreateCmd, tokenUpdateCmd, tokenRevokeCmd)
 	rootCmd.AddCommand(tokenCmd)
 }

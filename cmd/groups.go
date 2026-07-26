@@ -67,7 +67,7 @@ var groupsListCmd = &cobra.Command{
 	Short:   "List project groups",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -107,7 +107,7 @@ var groupsGetCmd = &cobra.Command{
 	Short: "Get project group details",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -125,7 +125,7 @@ var groupsCreateCmd = &cobra.Command{
 	Short: "Create a project group",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -154,7 +154,7 @@ var groupsUpdateCmd = &cobra.Command{
 	Short: "Update a project group",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -192,7 +192,7 @@ var groupsDeleteCmd = &cobra.Command{
 		if !yes {
 			return fmt.Errorf("--yes is required to delete a project group")
 		}
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -213,7 +213,7 @@ var groupsTopologyCmd = &cobra.Command{
 	Short: "Show project group topology",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -268,7 +268,7 @@ var groupsMembersAttachCmd = &cobra.Command{
 	Short: "Attach a project or addon to a group",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -313,7 +313,7 @@ var groupsMembersDetachCmd = &cobra.Command{
 	Short: "Detach a project or addon from a group",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -357,7 +357,7 @@ var groupsEnvGetCmd = &cobra.Command{
 	Short: "Get shared environment variables",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -394,7 +394,7 @@ JSON file may be either:
   or a plain object map: {"KEY":"VAL",...}`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -423,7 +423,7 @@ var groupsEnvInjectCmd = &cobra.Command{
 	Short: "Inject shared environment variables into members",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -474,7 +474,7 @@ var groupsConnectCmd = &cobra.Command{
 	Short: "Connect provider addon envs into a consumer project",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -539,7 +539,7 @@ var groupsRedeployCmd = &cobra.Command{
 	Short: "Redeploy application members in a project group",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -568,7 +568,7 @@ var groupsResolveCmd = &cobra.Command{
 	Short: "Resolve which group a member belongs to",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -606,7 +606,7 @@ var groupsCandidatesCmd = &cobra.Command{
 	Short: "List attachable projects and addons",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}

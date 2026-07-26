@@ -44,7 +44,7 @@ var volumesListCmd = &cobra.Command{
 	Short:   "List workspace volumes",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -91,7 +91,7 @@ var volumesGetCmd = &cobra.Command{
 	Short: "Get volume details",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -109,7 +109,7 @@ var volumesRemountCmd = &cobra.Command{
 	Short: "Remount an unattached volume onto a project or addon",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -152,7 +152,7 @@ var volumesDeleteCmd = &cobra.Command{
 		if !yes {
 			return fmt.Errorf("--yes is required to delete a volume")
 		}
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -173,7 +173,7 @@ var volumesExportCmd = &cobra.Command{
 	Short: "Start an async volume export",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}
@@ -191,7 +191,7 @@ var volumesExportStatusCmd = &cobra.Command{
 	Short: "Get volume export status",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := utils.GetOutputOptions(cmd)
-		client, err := rootClient(opts)
+		client, err := rootClient(cmd, opts)
 		if err != nil || client == nil {
 			return err
 		}

@@ -18,6 +18,11 @@ func serverClient(cmd *cobra.Command, opts utils.OutputOptions) (pipeops.ClientA
 	if !utils.RequireAuth(client, opts) {
 		return nil, nil
 	}
+	if flag := cmd.Flags().Lookup("workspace"); flag != nil {
+		if ws := flag.Value.String(); ws != "" {
+			client.SetWorkspaceOverride(ws)
+		}
+	}
 	return client, nil
 }
 

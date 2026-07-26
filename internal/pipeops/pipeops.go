@@ -19,8 +19,9 @@ import (
 
 // Client represents the PipeOps client wrapping the Go SDK
 type Client struct {
-	sdkClient *sdk.Client
-	config    *config.Config
+	sdkClient         *sdk.Client
+	config            *config.Config
+	workspaceOverride string // per-command --workspace / explicit scope
 }
 
 // NewClient creates a new PipeOps client
@@ -140,8 +141,17 @@ func (c *Client) getClusterUUID() string {
 	return ""
 }
 
+// SetWorkspaceOverride scopes subsequent workspace-aware calls for this client
+// instance (used by --workspace flags). Empty string clears the override.
+func (c *Client) SetWorkspaceOverride(workspaceUUID string) {
+	c.workspaceOverride = strings.TrimSpace(workspaceUUID)
+}
+
 func (c *Client) getWorkspaceUUID() string {
-	// Prefer env var so it can be overridden per-invocation without editing config.
+	// Prefer explicit per-command override, then env, then saved default.
+	if v := strings.TrimSpace(c.workspaceOverride); v != "" {
+		return v
+	}
 	if v := strings.TrimSpace(os.Getenv("PIPEOPS_WORKSPACE_UUID")); v != "" {
 		return v
 	}
@@ -510,9 +520,9 @@ func BuildSDKCreateProjectRequest(req *models.ProjectCreateRequest) *sdk.CreateP
 	envVariables := buildCreateEnvVariables(req)
 
 	return &sdk.CreateProjectRequest{
-		Name:               strings.TrimSpace(req.Name),
-		Username:           username,
-		Source:             source,
+		Name:     strings.TrimSpace(req.Name),
+		Username: username,
+		Source:   source,
 		// Expand short owner/repo to full HTTPS clone URL (runner clones as-is).
 		Repository:         sdk.CanonicalizeRepository(strings.TrimSpace(req.Repository), source),
 		CommitURL:          strings.TrimSpace(req.CommitURL),
@@ -712,49 +722,58 @@ func (c *Client) StopProject(projectID string) error {
 }
 
 // GetProjectEnvVariables retrieves environment variables for a project.
-// API returns data as a bare array of {Key,Value}; the SDK expects
-// data.env_variables and also pins the wrong workspace via firstWorkspaceUUID.
+// API returns data as a bare array of {Key,Value}. Prefer an explicit/selected
+// workspace when known; fall back to the unscoped path so multi-workspace
+// accounts are not 403'd by the wrong default workspace.
 func (c *Client) GetProjectEnvVariables(projectID string) ([]sdk.EnvVariable, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
 	}
 
 	ctx := context.Background()
-	workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
-	if err != nil {
-		return nil, err
+	paths := []string{fmt.Sprintf("project/settings/env/%s", url.PathEscape(projectID))}
+	if workspaceUUID, err := c.resolveWorkspaceUUID(ctx); err == nil && workspaceUUID != "" {
+		// Try scoped path first, then bare path.
+		paths = []string{
+			fmt.Sprintf("project/settings/env/%s?workspace_uuid=%s",
+				url.PathEscape(projectID), url.QueryEscape(workspaceUUID)),
+			paths[0],
+		}
 	}
 
-	u := fmt.Sprintf("project/settings/env/%s?workspace_uuid=%s",
-		url.PathEscape(projectID), url.QueryEscape(workspaceUUID))
-	req, err := c.sdkClient.NewRequest(http.MethodGet, u, nil)
-	if err != nil {
-		return nil, err
-	}
+	var lastErr error
+	for _, u := range paths {
+		req, err := c.sdkClient.NewRequest(http.MethodGet, u, nil)
+		if err != nil {
+			return nil, err
+		}
 
-	// Accept either array or object-shaped data.
-	var raw struct {
-		Data json.RawMessage `json:"data"`
-	}
-	if _, err := c.sdkClient.Do(ctx, req, &raw); err != nil {
-		return nil, err
-	}
-	if len(raw.Data) == 0 || string(raw.Data) == "null" {
-		return []sdk.EnvVariable{}, nil
-	}
+		// Accept either array or object-shaped data.
+		var raw struct {
+			Data json.RawMessage `json:"data"`
+		}
+		if _, err := c.sdkClient.Do(ctx, req, &raw); err != nil {
+			lastErr = err
+			continue
+		}
+		if len(raw.Data) == 0 || string(raw.Data) == "null" {
+			return []sdk.EnvVariable{}, nil
+		}
 
-	var asArray []sdk.EnvVariable
-	if err := json.Unmarshal(raw.Data, &asArray); err == nil {
-		return asArray, nil
-	}
+		var asArray []sdk.EnvVariable
+		if err := json.Unmarshal(raw.Data, &asArray); err == nil {
+			return asArray, nil
+		}
 
-	var wrapped struct {
-		EnvVariables []sdk.EnvVariable `json:"env_variables"`
+		var wrapped struct {
+			EnvVariables []sdk.EnvVariable `json:"env_variables"`
+		}
+		if err := json.Unmarshal(raw.Data, &wrapped); err != nil {
+			return nil, fmt.Errorf("decode project env variables: %w", err)
+		}
+		return wrapped.EnvVariables, nil
 	}
-	if err := json.Unmarshal(raw.Data, &wrapped); err != nil {
-		return nil, fmt.Errorf("decode project env variables: %w", err)
-	}
-	return wrapped.EnvVariables, nil
+	return nil, lastErr
 }
 
 // UpdateProjectEnvVariables updates environment variables for a project.
@@ -2140,6 +2159,14 @@ func (c *Client) ListGitOps(ctx context.Context, opts *sdk.GitOpsListOptions) (*
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	if opts == nil {
+		opts = &sdk.GitOpsListOptions{}
+	}
+	if strings.TrimSpace(opts.WorkspaceUUID) == "" {
+		if workspaceUUID, err := c.resolveWorkspaceUUID(ctx); err == nil {
+			opts.WorkspaceUUID = workspaceUUID
+		}
+	}
 	resp, _, err := c.sdkClient.GitOps.List(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -2274,7 +2301,6 @@ func (c *Client) GetGitOpsHistory(ctx context.Context, uuid string, opts *sdk.Gi
 
 // --- Project Groups ---
 
-
 func (c *Client) projectGroupWorkspaceOpts(ctx context.Context, opts *sdk.ProjectGroupWorkspaceOptions) *sdk.ProjectGroupWorkspaceOptions {
 	if opts == nil {
 		opts = &sdk.ProjectGroupWorkspaceOptions{}
@@ -2287,7 +2313,6 @@ func (c *Client) projectGroupWorkspaceOpts(ctx context.Context, opts *sdk.Projec
 	}
 	return opts
 }
-
 
 func (c *Client) projectGroupListOpts(ctx context.Context, opts *sdk.ProjectGroupListOptions) *sdk.ProjectGroupListOptions {
 	if opts == nil {

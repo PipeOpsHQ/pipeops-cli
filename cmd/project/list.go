@@ -36,6 +36,7 @@ Examples:
 		if !utils.RequireAuth(client, opts) {
 			return
 		}
+		applyWorkspaceFlag(cmd, client)
 
 		// Fetch projects from API
 		projectsResp, err := client.GetProjects()
@@ -98,6 +99,7 @@ Examples:
 
 // NewList initializes and returns the list command
 func (p *projectModel) listProjects() *cobra.Command {
+	listCmd.Flags().String("workspace", "", workspaceFlagHelp)
 	p.rootCmd.AddCommand(listCmd)
 	return listCmd
 }
