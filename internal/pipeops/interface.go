@@ -84,6 +84,7 @@ type ClientAPI interface {
 	RestartSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error
 	DeleteSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error
 	CreateSandboxSession(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxSession, error)
+	ExecInSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions, body *sdk.ExecSandboxRequest) (*sdk.ExecSandboxResult, error)
 	SandboxUsageDaily(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, from, to time.Time) (*sdk.SandboxUsageDailyResponse, error)
 	ListAddonBackups(ctx context.Context, deploymentUID string) (*sdk.AddonBackupListResponse, error)
 	StartAddonBackupExport(ctx context.Context, deploymentUID string, body *sdk.AddonBackupExportRequest) (*sdk.AddonBackupExportResponse, error)

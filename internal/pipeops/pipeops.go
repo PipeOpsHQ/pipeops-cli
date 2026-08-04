@@ -2722,6 +2722,22 @@ func (c *Client) CreateSandboxSession(ctx context.Context, sandboxID string, opt
 	return &resp.Data, nil
 }
 
+// ExecInSandbox runs a non-interactive command inside a sandbox.
+func (c *Client) ExecInSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions, body *sdk.ExecSandboxRequest) (*sdk.ExecSandboxResult, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.sandboxOptsWithWorkspace(ctx, opts)
+	resp, _, err := c.sdkClient.Sandboxes.Exec(ctx, sandboxID, opts, body)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
+}
+
 // SandboxUsageDaily returns usage rollups for a workspace day range.
 func (c *Client) SandboxUsageDaily(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, from, to time.Time) (*sdk.SandboxUsageDailyResponse, error) {
 	if !c.IsAuthenticated() {

@@ -81,6 +81,7 @@ type MockClient struct {
 	RestartSandboxFunc               func(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error
 	DeleteSandboxFunc                func(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error
 	CreateSandboxSessionFunc         func(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxSession, error)
+	ExecInSandboxFunc                func(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions, body *sdk.ExecSandboxRequest) (*sdk.ExecSandboxResult, error)
 	SandboxUsageDailyFunc            func(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, from, to time.Time) (*sdk.SandboxUsageDailyResponse, error)
 	ListAddonBackupsFunc             func(ctx context.Context, deploymentUID string) (*sdk.AddonBackupListResponse, error)
 	StartAddonBackupExportFunc       func(ctx context.Context, deploymentUID string, body *sdk.AddonBackupExportRequest) (*sdk.AddonBackupExportResponse, error)
@@ -792,6 +793,13 @@ func (m *MockClient) CreateSandboxSession(ctx context.Context, sandboxID string,
 		return m.CreateSandboxSessionFunc(ctx, sandboxID, opts)
 	}
 	return &sdk.SandboxSession{}, nil
+}
+
+func (m *MockClient) ExecInSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions, body *sdk.ExecSandboxRequest) (*sdk.ExecSandboxResult, error) {
+	if m.ExecInSandboxFunc != nil {
+		return m.ExecInSandboxFunc(ctx, sandboxID, opts, body)
+	}
+	return &sdk.ExecSandboxResult{}, nil
 }
 
 func (m *MockClient) SandboxUsageDaily(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, from, to time.Time) (*sdk.SandboxUsageDailyResponse, error) {

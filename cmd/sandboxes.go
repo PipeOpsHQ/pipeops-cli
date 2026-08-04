@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/pipeops"
@@ -26,6 +27,7 @@ Examples:
   pipeops sandboxes restart <id> --workspace <uuid>
   pipeops sandboxes delete <id> --yes --workspace <uuid>
   pipeops sandboxes session <id> --workspace <uuid>
+  pipeops sandboxes exec <id> -- command echo hello --workspace <uuid>
   pipeops sandboxes usage --from 2026-08-01 --to 2026-08-04 --workspace <uuid>`,
 }
 
@@ -206,6 +208,81 @@ var sandboxesSessionCmd = &cobra.Command{
 	Args: cobra.ExactArgs(1),
 }
 
+var sandboxesExecCmd = &cobra.Command{
+	Use:   "exec <sandbox-id> -- <command...>",
+	Short: "Run a command inside a running sandbox",
+	Long: `Execute a non-interactive shell command in a sandbox via the PipeOps BFF.
+
+Examples:
+  pipeops sandboxes exec <id> -- echo hello
+  pipeops sandboxes exec <id> --command "ls -la /home" --workspace <uuid>
+  pipeops sandboxes exec <id> --workdir /tmp -- timeout 120 -- uname -a`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		opts := utils.GetOutputOptions(cmd)
+		client, err := rootClient(cmd, opts)
+		if err != nil || client == nil {
+			return err
+		}
+		if len(args) < 1 {
+			return fmt.Errorf("sandbox id is required")
+		}
+		sandboxID := args[0]
+		commandFlag, _ := cmd.Flags().GetString("command")
+		workdir, _ := cmd.Flags().GetString("workdir")
+		timeout, _ := cmd.Flags().GetInt("timeout")
+
+		command := strings.TrimSpace(commandFlag)
+		if command == "" {
+			if len(args) < 2 {
+				return fmt.Errorf("provide a command via --command or after -- (e.g. pipeops sandboxes exec ID -- ls -la)")
+			}
+			// Join remaining args as a shell command string.
+			parts := make([]string, 0, len(args)-1)
+			for _, a := range args[1:] {
+				parts = append(parts, a)
+			}
+			command = strings.Join(parts, " ")
+		}
+
+		body := &sdk.ExecSandboxRequest{
+			Command:        command,
+			WorkDir:        workdir,
+			TimeoutSeconds: timeout,
+		}
+		result, err := client.ExecInSandbox(context.Background(), sandboxID, sandboxWorkspaceOpts(cmd), body)
+		if err != nil {
+			return fmt.Errorf("exec in sandbox: %w", err)
+		}
+		if opts.Format == utils.OutputFormatJSON {
+			return utils.PrintJSON(result)
+		}
+		// Print combined output to stdout so pipes work; metadata on stderr via Print*.
+		out := result.Output
+		if out == "" {
+			out = result.Stdout
+			if result.Stderr != "" {
+				if out != "" && !strings.HasSuffix(out, "\n") {
+					out += "\n"
+				}
+				out += result.Stderr
+			}
+		}
+		fmt.Print(out)
+		if !strings.HasSuffix(out, "\n") && out != "" {
+			fmt.Println()
+		}
+		if !opts.Quiet {
+			utils.PrintSuccess(fmt.Sprintf("exit_code=%d", result.ExitCode), opts)
+		}
+		if result.ExitCode != 0 {
+			return fmt.Errorf("command exited with code %d", result.ExitCode)
+		}
+		return nil
+	},
+	// Allow: exec <id> -- cmd args...
+	Args: cobra.MinimumNArgs(1),
+}
+
 var sandboxesUsageCmd = &cobra.Command{
 	Use:   "usage",
 	Short: "Show daily sandbox usage for a workspace",
@@ -302,7 +379,7 @@ func init() {
 	for _, c := range []*cobra.Command{
 		sandboxesListCmd, sandboxesGetCmd, sandboxesCreateCmd,
 		sandboxesStartCmd, sandboxesStopCmd, sandboxesRestartCmd,
-		sandboxesDeleteCmd, sandboxesSessionCmd, sandboxesUsageCmd,
+		sandboxesDeleteCmd, sandboxesSessionCmd, sandboxesExecCmd, sandboxesUsageCmd,
 	} {
 		c.Flags().String("workspace", "", workspaceFlag)
 	}
@@ -312,6 +389,10 @@ func init() {
 	sandboxesCreateCmd.Flags().String("role", "standard", "Role/profile (e.g. standard)")
 
 	sandboxesDeleteCmd.Flags().Bool("yes", false, "Confirm sandbox deletion")
+
+	sandboxesExecCmd.Flags().String("command", "", "Shell command (alternative to args after --)")
+	sandboxesExecCmd.Flags().String("workdir", "", "Working directory inside the sandbox")
+	sandboxesExecCmd.Flags().Int("timeout", 60, "Command timeout in seconds (max 300)")
 
 	sandboxesUsageCmd.Flags().String("from", "", "Start day YYYY-MM-DD")
 	sandboxesUsageCmd.Flags().String("to", "", "End day YYYY-MM-DD")
@@ -325,6 +406,7 @@ func init() {
 		sandboxesRestartCmd,
 		sandboxesDeleteCmd,
 		sandboxesSessionCmd,
+		sandboxesExecCmd,
 		sandboxesUsageCmd,
 	)
 	rootCmd.AddCommand(sandboxesCmd)
