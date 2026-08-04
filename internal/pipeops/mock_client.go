@@ -82,6 +82,8 @@ type MockClient struct {
 	DeleteSandboxFunc                func(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error
 	CreateSandboxSessionFunc         func(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxSession, error)
 	ExecInSandboxFunc                func(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions, body *sdk.ExecSandboxRequest) (*sdk.ExecSandboxResult, error)
+	ListSandboxFilesFunc             func(ctx context.Context, sandboxID, path string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxFileList, error)
+	ReadSandboxFileFunc              func(ctx context.Context, sandboxID, path string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxFileContent, error)
 	SandboxUsageDailyFunc            func(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, from, to time.Time) (*sdk.SandboxUsageDailyResponse, error)
 	ListAddonBackupsFunc             func(ctx context.Context, deploymentUID string) (*sdk.AddonBackupListResponse, error)
 	StartAddonBackupExportFunc       func(ctx context.Context, deploymentUID string, body *sdk.AddonBackupExportRequest) (*sdk.AddonBackupExportResponse, error)
@@ -800,6 +802,20 @@ func (m *MockClient) ExecInSandbox(ctx context.Context, sandboxID string, opts *
 		return m.ExecInSandboxFunc(ctx, sandboxID, opts, body)
 	}
 	return &sdk.ExecSandboxResult{}, nil
+}
+
+func (m *MockClient) ListSandboxFiles(ctx context.Context, sandboxID, path string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxFileList, error) {
+	if m.ListSandboxFilesFunc != nil {
+		return m.ListSandboxFilesFunc(ctx, sandboxID, path, opts)
+	}
+	return &sdk.SandboxFileList{}, nil
+}
+
+func (m *MockClient) ReadSandboxFile(ctx context.Context, sandboxID, path string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxFileContent, error) {
+	if m.ReadSandboxFileFunc != nil {
+		return m.ReadSandboxFileFunc(ctx, sandboxID, path, opts)
+	}
+	return &sdk.SandboxFileContent{}, nil
 }
 
 func (m *MockClient) SandboxUsageDaily(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, from, to time.Time) (*sdk.SandboxUsageDailyResponse, error) {

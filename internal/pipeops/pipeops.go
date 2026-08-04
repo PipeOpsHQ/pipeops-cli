@@ -2738,6 +2738,38 @@ func (c *Client) ExecInSandbox(ctx context.Context, sandboxID string, opts *sdk.
 	return &resp.Data, nil
 }
 
+// ListSandboxFiles lists a directory inside a sandbox.
+func (c *Client) ListSandboxFiles(ctx context.Context, sandboxID, path string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxFileList, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.sandboxOptsWithWorkspace(ctx, opts)
+	resp, _, err := c.sdkClient.Sandboxes.ListFiles(ctx, sandboxID, path, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
+}
+
+// ReadSandboxFile reads a file from a sandbox (utf-8 or base64 content).
+func (c *Client) ReadSandboxFile(ctx context.Context, sandboxID, path string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxFileContent, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.sandboxOptsWithWorkspace(ctx, opts)
+	resp, _, err := c.sdkClient.Sandboxes.ReadFile(ctx, sandboxID, path, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
+}
+
 // SandboxUsageDaily returns usage rollups for a workspace day range.
 func (c *Client) SandboxUsageDaily(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, from, to time.Time) (*sdk.SandboxUsageDailyResponse, error) {
 	if !c.IsAuthenticated() {

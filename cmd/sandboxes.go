@@ -28,6 +28,8 @@ Examples:
   pipeops sandboxes delete <id> --yes --workspace <uuid>
   pipeops sandboxes session <id> --workspace <uuid>
   pipeops sandboxes exec <id> -- command echo hello --workspace <uuid>
+  pipeops sandboxes files list <id> --path /home/user --workspace <uuid>
+  pipeops sandboxes files read <id> --path /home/user/app.go --workspace <uuid>
   pipeops sandboxes usage --from 2026-08-01 --to 2026-08-04 --workspace <uuid>`,
 }
 
@@ -283,6 +285,86 @@ Examples:
 	Args: cobra.MinimumNArgs(1),
 }
 
+var sandboxesFilesCmd = &cobra.Command{
+	Use:   "files",
+	Short: "List or read files inside a running sandbox",
+}
+
+var sandboxesFilesListCmd = &cobra.Command{
+	Use:   "list <sandbox-id>",
+	Short: "List a directory inside a sandbox",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		opts := utils.GetOutputOptions(cmd)
+		client, err := rootClient(cmd, opts)
+		if err != nil || client == nil {
+			return err
+		}
+		path, _ := cmd.Flags().GetString("path")
+		list, err := client.ListSandboxFiles(context.Background(), args[0], path, sandboxWorkspaceOpts(cmd))
+		if err != nil {
+			return fmt.Errorf("list sandbox files: %w", err)
+		}
+		if opts.Format == utils.OutputFormatJSON {
+			return utils.PrintJSON(list)
+		}
+		if list == nil || len(list.Files) == 0 {
+			utils.PrintWarning("No files found", opts)
+			return nil
+		}
+		rows := make([][]string, 0, len(list.Files))
+		for _, f := range list.Files {
+			kind := "file"
+			if f.IsDir {
+				kind = "dir"
+			}
+			rows = append(rows, []string{kind, f.Name, f.Path, fmt.Sprintf("%d", f.Size), f.Mode})
+		}
+		utils.PrintTable([]string{"TYPE", "NAME", "PATH", "SIZE", "MODE"}, rows, opts)
+		if !opts.Quiet {
+			utils.PrintSuccess(fmt.Sprintf("%d entries in %s", list.Count, list.Path), opts)
+		}
+		return nil
+	},
+	Args: cobra.ExactArgs(1),
+}
+
+var sandboxesFilesReadCmd = &cobra.Command{
+	Use:   "read <sandbox-id>",
+	Short: "Read a file from a sandbox",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		opts := utils.GetOutputOptions(cmd)
+		client, err := rootClient(cmd, opts)
+		if err != nil || client == nil {
+			return err
+		}
+		path, _ := cmd.Flags().GetString("path")
+		if strings.TrimSpace(path) == "" {
+			return fmt.Errorf("--path is required")
+		}
+		file, err := client.ReadSandboxFile(context.Background(), args[0], path, sandboxWorkspaceOpts(cmd))
+		if err != nil {
+			return fmt.Errorf("read sandbox file: %w", err)
+		}
+		if opts.Format == utils.OutputFormatJSON {
+			return utils.PrintJSON(file)
+		}
+		// Print content for piping; metadata when not quiet.
+		fmt.Print(file.Content)
+		if file.Content != "" && !strings.HasSuffix(file.Content, "\n") {
+			fmt.Println()
+		}
+		if !opts.Quiet {
+			msg := fmt.Sprintf("encoding=%s size=%d", file.Encoding, file.Size)
+			if file.Truncated {
+				msg += " truncated=true"
+			}
+			utils.PrintSuccess(msg, opts)
+		}
+		return nil
+	},
+	Args: cobra.ExactArgs(1),
+}
+
 var sandboxesUsageCmd = &cobra.Command{
 	Use:   "usage",
 	Short: "Show daily sandbox usage for a workspace",
@@ -379,7 +461,8 @@ func init() {
 	for _, c := range []*cobra.Command{
 		sandboxesListCmd, sandboxesGetCmd, sandboxesCreateCmd,
 		sandboxesStartCmd, sandboxesStopCmd, sandboxesRestartCmd,
-		sandboxesDeleteCmd, sandboxesSessionCmd, sandboxesExecCmd, sandboxesUsageCmd,
+		sandboxesDeleteCmd, sandboxesSessionCmd, sandboxesExecCmd,
+		sandboxesFilesListCmd, sandboxesFilesReadCmd, sandboxesUsageCmd,
 	} {
 		c.Flags().String("workspace", "", workspaceFlag)
 	}
@@ -394,8 +477,13 @@ func init() {
 	sandboxesExecCmd.Flags().String("workdir", "", "Working directory inside the sandbox")
 	sandboxesExecCmd.Flags().Int("timeout", 60, "Command timeout in seconds (max 300)")
 
+	sandboxesFilesListCmd.Flags().String("path", "/home/user", "Directory path inside the sandbox")
+	sandboxesFilesReadCmd.Flags().String("path", "", "File path inside the sandbox (required)")
+
 	sandboxesUsageCmd.Flags().String("from", "", "Start day YYYY-MM-DD")
 	sandboxesUsageCmd.Flags().String("to", "", "End day YYYY-MM-DD")
+
+	sandboxesFilesCmd.AddCommand(sandboxesFilesListCmd, sandboxesFilesReadCmd)
 
 	sandboxesCmd.AddCommand(
 		sandboxesListCmd,
@@ -407,6 +495,7 @@ func init() {
 		sandboxesDeleteCmd,
 		sandboxesSessionCmd,
 		sandboxesExecCmd,
+		sandboxesFilesCmd,
 		sandboxesUsageCmd,
 	)
 	rootCmd.AddCommand(sandboxesCmd)
