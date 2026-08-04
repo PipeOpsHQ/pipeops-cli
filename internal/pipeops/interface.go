@@ -2,6 +2,7 @@ package pipeops
 
 import (
 	"context"
+	"time"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
@@ -74,6 +75,16 @@ type ClientAPI interface {
 	DeleteVolume(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) error
 	StartVolumeExport(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.VolumeExportResponse, error)
 	GetVolumeExport(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.VolumeExportResponse, error)
+	// Sandboxes (Rexec BFF)
+	ListSandboxes(ctx context.Context, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxListResponse, error)
+	GetSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) (*sdk.Sandbox, error)
+	CreateSandbox(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, body *sdk.CreateSandboxRequest) (*sdk.SandboxResponse, error)
+	StartSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error
+	StopSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error
+	RestartSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error
+	DeleteSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error
+	CreateSandboxSession(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxSession, error)
+	SandboxUsageDaily(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, from, to time.Time) (*sdk.SandboxUsageDailyResponse, error)
 	ListAddonBackups(ctx context.Context, deploymentUID string) (*sdk.AddonBackupListResponse, error)
 	StartAddonBackupExport(ctx context.Context, deploymentUID string, body *sdk.AddonBackupExportRequest) (*sdk.AddonBackupExportResponse, error)
 	GetAddonBackupExport(ctx context.Context, deploymentUID, exportID string) (*sdk.AddonBackupExportResponse, error)

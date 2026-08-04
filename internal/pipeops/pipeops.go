@@ -1155,7 +1155,7 @@ func (c *Client) DeployAddon(req *sdk.DeployAddOnRequest) (*models.AddonDeployme
 	if err != nil {
 		return nil, err
 	}
-	deployment := addonDeploymentFromSDK(resp.Data.Deployment)
+	deployment := addonDeploymentFromSDK(resp.Data)
 	return &deployment, nil
 }
 
@@ -1203,7 +1203,7 @@ func (c *Client) GetAddonDeployment(deploymentID string) (*models.AddonDeploymen
 	ctx := context.Background()
 	resp, _, err := c.sdkClient.AddOns.GetDeployment(ctx, deploymentID)
 	if err == nil && resp != nil {
-		deployment := addonDeploymentFromSDK(resp.Data.Deployment)
+		deployment := addonDeploymentFromSDK(resp.Data)
 		if deployment.ID != "" || deployment.Name != "" {
 			return &deployment, nil
 		}
@@ -2595,4 +2595,142 @@ func (c *Client) ListProjectGroupCandidates(ctx context.Context, opts *sdk.Proje
 		return nil, err
 	}
 	return resp, nil
+}
+
+func (c *Client) sandboxOptsWithWorkspace(ctx context.Context, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxWorkspaceOptions, error) {
+	if opts == nil {
+		opts = &sdk.SandboxWorkspaceOptions{}
+	}
+	if opts.WorkspaceUUID != "" || opts.Workspace != "" {
+		return opts, nil
+	}
+	ws, err := c.resolveWorkspaceUUID(ctx)
+	if err != nil {
+		return opts, nil
+	}
+	opts.WorkspaceUUID = ws
+	return opts, nil
+}
+
+// ListSandboxes lists sandboxes for a workspace via the Rexec BFF.
+func (c *Client) ListSandboxes(ctx context.Context, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxListResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.sandboxOptsWithWorkspace(ctx, opts)
+	resp, _, err := c.sdkClient.Sandboxes.List(ctx, opts)
+	return resp, err
+}
+
+// GetSandbox returns one sandbox by id.
+func (c *Client) GetSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) (*sdk.Sandbox, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.sandboxOptsWithWorkspace(ctx, opts)
+	resp, _, err := c.sdkClient.Sandboxes.Get(ctx, sandboxID, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
+}
+
+// CreateSandbox creates a sandbox.
+func (c *Client) CreateSandbox(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, body *sdk.CreateSandboxRequest) (*sdk.SandboxResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.sandboxOptsWithWorkspace(ctx, opts)
+	resp, _, err := c.sdkClient.Sandboxes.Create(ctx, opts, body)
+	return resp, err
+}
+
+// StartSandbox starts a sandbox.
+func (c *Client) StartSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.sandboxOptsWithWorkspace(ctx, opts)
+	_, _, err := c.sdkClient.Sandboxes.Start(ctx, sandboxID, opts)
+	return err
+}
+
+// StopSandbox stops a sandbox.
+func (c *Client) StopSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.sandboxOptsWithWorkspace(ctx, opts)
+	_, _, err := c.sdkClient.Sandboxes.Stop(ctx, sandboxID, opts)
+	return err
+}
+
+// RestartSandbox restarts a sandbox.
+func (c *Client) RestartSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.sandboxOptsWithWorkspace(ctx, opts)
+	_, _, err := c.sdkClient.Sandboxes.Restart(ctx, sandboxID, opts)
+	return err
+}
+
+// DeleteSandbox deletes a sandbox.
+func (c *Client) DeleteSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error {
+	if !c.IsAuthenticated() {
+		return errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.sandboxOptsWithWorkspace(ctx, opts)
+	_, _, err := c.sdkClient.Sandboxes.Delete(ctx, sandboxID, opts)
+	return err
+}
+
+// CreateSandboxSession mints a short-lived terminal session grant.
+func (c *Client) CreateSandboxSession(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxSession, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.sandboxOptsWithWorkspace(ctx, opts)
+	resp, _, err := c.sdkClient.Sandboxes.CreateSession(ctx, sandboxID, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
+}
+
+// SandboxUsageDaily returns usage rollups for a workspace day range.
+func (c *Client) SandboxUsageDaily(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, from, to time.Time) (*sdk.SandboxUsageDailyResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	opts, _ = c.sandboxOptsWithWorkspace(ctx, opts)
+	resp, _, err := c.sdkClient.Sandboxes.UsageDaily(ctx, opts, from, to)
+	return resp, err
 }
