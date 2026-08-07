@@ -3,7 +3,7 @@ module github.com/PipeOpsHQ/pipeops-cli
 go 1.25.0
 
 require (
-	github.com/PipeOpsHQ/pipeops-go-sdk v0.18.1-0.20260804094427-44fd3a52bd88
+	github.com/PipeOpsHQ/pipeops-go-sdk v0.18.1
 	github.com/briandowns/spinner v1.23.2
 	github.com/fatih/color v1.18.0
 	github.com/gorilla/websocket v1.5.3

@@ -2191,13 +2191,23 @@ func (c *Client) GetGitOps(ctx context.Context, uuid string) (*sdk.GitOpsConfig,
 }
 
 // CreateGitOps creates a GitOps application configuration.
-
+// Ensures workspace_uuid is set (controller requires it on body and/or query).
 func (c *Client) CreateGitOps(ctx context.Context, body *sdk.CreateGitOpsConfigRequest) (*sdk.GitOpsConfig, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
 	}
 	if ctx == nil {
 		ctx = context.Background()
+	}
+	if body == nil {
+		return nil, errors.New("gitops create body is required")
+	}
+	if strings.TrimSpace(body.WorkspaceUUID) == "" {
+		workspaceUUID, err := c.resolveWorkspaceUUID(ctx)
+		if err != nil {
+			return nil, err
+		}
+		body.WorkspaceUUID = workspaceUUID
 	}
 	resp, _, err := c.sdkClient.GitOps.Create(ctx, body)
 	if err != nil {
