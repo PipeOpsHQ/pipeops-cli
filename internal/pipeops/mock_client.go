@@ -2,6 +2,7 @@ package pipeops
 
 import (
 	"context"
+	"time"
 
 	"github.com/PipeOpsHQ/pipeops-cli/internal/config"
 	"github.com/PipeOpsHQ/pipeops-cli/models"
@@ -72,6 +73,18 @@ type MockClient struct {
 	DeleteVolumeFunc                 func(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) error
 	StartVolumeExportFunc            func(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.VolumeExportResponse, error)
 	GetVolumeExportFunc              func(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.VolumeExportResponse, error)
+	ListSandboxesFunc                func(ctx context.Context, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxListResponse, error)
+	GetSandboxFunc                   func(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) (*sdk.Sandbox, error)
+	CreateSandboxFunc                func(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, body *sdk.CreateSandboxRequest) (*sdk.SandboxResponse, error)
+	StartSandboxFunc                 func(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error
+	StopSandboxFunc                  func(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error
+	RestartSandboxFunc               func(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error
+	DeleteSandboxFunc                func(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error
+	CreateSandboxSessionFunc         func(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxSession, error)
+	ExecInSandboxFunc                func(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions, body *sdk.ExecSandboxRequest) (*sdk.ExecSandboxResult, error)
+	ListSandboxFilesFunc             func(ctx context.Context, sandboxID, path string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxFileList, error)
+	ReadSandboxFileFunc              func(ctx context.Context, sandboxID, path string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxFileContent, error)
+	SandboxUsageDailyFunc            func(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, from, to time.Time) (*sdk.SandboxUsageDailyResponse, error)
 	ListAddonBackupsFunc             func(ctx context.Context, deploymentUID string) (*sdk.AddonBackupListResponse, error)
 	StartAddonBackupExportFunc       func(ctx context.Context, deploymentUID string, body *sdk.AddonBackupExportRequest) (*sdk.AddonBackupExportResponse, error)
 	GetAddonBackupExportFunc         func(ctx context.Context, deploymentUID, exportID string) (*sdk.AddonBackupExportResponse, error)
@@ -726,4 +739,88 @@ func (m *MockClient) ListProjectGroupCandidates(ctx context.Context, opts *sdk.P
 		return m.ListProjectGroupCandidatesFunc(ctx, opts)
 	}
 	return &sdk.ProjectGroupCandidatesResponse{}, nil
+}
+
+func (m *MockClient) ListSandboxes(ctx context.Context, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxListResponse, error) {
+	if m.ListSandboxesFunc != nil {
+		return m.ListSandboxesFunc(ctx, opts)
+	}
+	return &sdk.SandboxListResponse{}, nil
+}
+
+func (m *MockClient) GetSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) (*sdk.Sandbox, error) {
+	if m.GetSandboxFunc != nil {
+		return m.GetSandboxFunc(ctx, sandboxID, opts)
+	}
+	return &sdk.Sandbox{}, nil
+}
+
+func (m *MockClient) CreateSandbox(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, body *sdk.CreateSandboxRequest) (*sdk.SandboxResponse, error) {
+	if m.CreateSandboxFunc != nil {
+		return m.CreateSandboxFunc(ctx, opts, body)
+	}
+	return &sdk.SandboxResponse{}, nil
+}
+
+func (m *MockClient) StartSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error {
+	if m.StartSandboxFunc != nil {
+		return m.StartSandboxFunc(ctx, sandboxID, opts)
+	}
+	return nil
+}
+
+func (m *MockClient) StopSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error {
+	if m.StopSandboxFunc != nil {
+		return m.StopSandboxFunc(ctx, sandboxID, opts)
+	}
+	return nil
+}
+
+func (m *MockClient) RestartSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error {
+	if m.RestartSandboxFunc != nil {
+		return m.RestartSandboxFunc(ctx, sandboxID, opts)
+	}
+	return nil
+}
+
+func (m *MockClient) DeleteSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) error {
+	if m.DeleteSandboxFunc != nil {
+		return m.DeleteSandboxFunc(ctx, sandboxID, opts)
+	}
+	return nil
+}
+
+func (m *MockClient) CreateSandboxSession(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxSession, error) {
+	if m.CreateSandboxSessionFunc != nil {
+		return m.CreateSandboxSessionFunc(ctx, sandboxID, opts)
+	}
+	return &sdk.SandboxSession{}, nil
+}
+
+func (m *MockClient) ExecInSandbox(ctx context.Context, sandboxID string, opts *sdk.SandboxWorkspaceOptions, body *sdk.ExecSandboxRequest) (*sdk.ExecSandboxResult, error) {
+	if m.ExecInSandboxFunc != nil {
+		return m.ExecInSandboxFunc(ctx, sandboxID, opts, body)
+	}
+	return &sdk.ExecSandboxResult{}, nil
+}
+
+func (m *MockClient) ListSandboxFiles(ctx context.Context, sandboxID, path string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxFileList, error) {
+	if m.ListSandboxFilesFunc != nil {
+		return m.ListSandboxFilesFunc(ctx, sandboxID, path, opts)
+	}
+	return &sdk.SandboxFileList{}, nil
+}
+
+func (m *MockClient) ReadSandboxFile(ctx context.Context, sandboxID, path string, opts *sdk.SandboxWorkspaceOptions) (*sdk.SandboxFileContent, error) {
+	if m.ReadSandboxFileFunc != nil {
+		return m.ReadSandboxFileFunc(ctx, sandboxID, path, opts)
+	}
+	return &sdk.SandboxFileContent{}, nil
+}
+
+func (m *MockClient) SandboxUsageDaily(ctx context.Context, opts *sdk.SandboxWorkspaceOptions, from, to time.Time) (*sdk.SandboxUsageDailyResponse, error) {
+	if m.SandboxUsageDailyFunc != nil {
+		return m.SandboxUsageDailyFunc(ctx, opts, from, to)
+	}
+	return &sdk.SandboxUsageDailyResponse{}, nil
 }
