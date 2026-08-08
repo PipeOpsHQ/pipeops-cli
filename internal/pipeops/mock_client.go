@@ -27,6 +27,7 @@ type MockClient struct {
 	UpdateProjectEnvVariablesFunc    func(projectID string, envVars []sdk.EnvVariable, merge bool) ([]sdk.EnvVariable, error)
 	ListProjectDeploymentsFunc       func(projectID string, opts *sdk.ProjectDeploymentListOptions) (*sdk.ProjectDeploymentsResponse, error)
 	ListProjectDeploymentHistoryFunc func(projectID string, opts *sdk.ProjectDeploymentHistoryOptions) (*sdk.ProjectDeploymentHistoryResponse, error)
+	GetBuildLogsFunc                 func(projectID string, opts *sdk.BuildLogsOptions) (*sdk.BuildLogsResponse, error)
 	GetLogsFunc                      func(req *models.LogsRequest) (*models.LogsResponse, error)
 	StreamLogsFunc                   func(req *models.LogsRequest, callback func(*models.StreamLogEntry) error) error
 	GetServicesFunc                  func(projectID string, addonID string) (*models.ListServicesResponse, error)
@@ -207,6 +208,13 @@ func (m *MockClient) ListProjectDeploymentHistory(projectID string, opts *sdk.Pr
 		return m.ListProjectDeploymentHistoryFunc(projectID, opts)
 	}
 	return &sdk.ProjectDeploymentHistoryResponse{}, nil
+}
+
+func (m *MockClient) GetBuildLogs(projectID string, opts *sdk.BuildLogsOptions) (*sdk.BuildLogsResponse, error) {
+	if m.GetBuildLogsFunc != nil {
+		return m.GetBuildLogsFunc(projectID, opts)
+	}
+	return &sdk.BuildLogsResponse{}, nil
 }
 
 func (m *MockClient) GetLogs(req *models.LogsRequest) (*models.LogsResponse, error) {

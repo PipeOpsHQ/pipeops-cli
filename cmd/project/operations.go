@@ -312,5 +312,5 @@ func registerOperationCommands(root *cobra.Command) {
 	}
 
 	envCmd.AddCommand(envGetCmd, envSetCmd)
-	root.AddCommand(getCmd, updateCmd, deleteCmd, deployCmd, restartCmd, stopCmd, envCmd, deploymentsCmd, deploymentHistoryCmd)
+	root.AddCommand(getCmd, updateCmd, deleteCmd, deployCmd, restartCmd, stopCmd, envCmd, deploymentsCmd, deploymentHistoryCmd, buildLogsCmd)
 }
