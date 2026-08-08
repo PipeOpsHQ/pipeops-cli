@@ -16,8 +16,11 @@ Examples:
   - List all projects:
     pipeops project list
 
-  - View project logs:
+  - View project runtime logs:
     pipeops project logs <project-id>
+
+  - View Firebase deployment build logs:
+    pipeops project build-logs <project-id>
 
   - Update project configurations:
     pipeops project update --id project-id`,

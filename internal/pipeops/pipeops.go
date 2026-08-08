@@ -841,6 +841,36 @@ func (c *Client) ListProjectDeploymentHistory(projectID string, opts *sdk.Projec
 	return resp, nil
 }
 
+// GetBuildLogs fetches deployment build logs from Firebase (pipeops-build-logs),
+// the same source as the dashboard Build Logs tab. Prefer this after deploy.
+//
+// Workspace UUID is only sent when explicitly configured (--workspace, env, or
+// saved default). Auto-picking the first workspace can 403 on multi-tenant
+// production (same rule as the MCP tool / go-sdk).
+func (c *Client) GetBuildLogs(projectID string, opts *sdk.BuildLogsOptions) (*sdk.BuildLogsResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	projectID = strings.TrimSpace(projectID)
+	if projectID == "" {
+		return nil, errors.New("project ID cannot be empty")
+	}
+	if opts == nil {
+		opts = &sdk.BuildLogsOptions{}
+	}
+	// Only attach workspace when the caller/config set one — never invent one.
+	if strings.TrimSpace(opts.WorkspaceUUID) == "" {
+		opts.WorkspaceUUID = c.getWorkspaceUUID()
+	}
+
+	ctx := context.Background()
+	resp, _, err := c.sdkClient.Projects.GetBuildLogs(ctx, projectID, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 // GetLogs retrieves project logs
 func (c *Client) GetLogs(req *models.LogsRequest) (*models.LogsResponse, error) {
 	if !c.IsAuthenticated() {

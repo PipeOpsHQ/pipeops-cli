@@ -29,6 +29,8 @@ type ClientAPI interface {
 	UpdateProjectEnvVariables(projectID string, envVars []sdk.EnvVariable, merge bool) ([]sdk.EnvVariable, error)
 	ListProjectDeployments(projectID string, opts *sdk.ProjectDeploymentListOptions) (*sdk.ProjectDeploymentsResponse, error)
 	ListProjectDeploymentHistory(projectID string, opts *sdk.ProjectDeploymentHistoryOptions) (*sdk.ProjectDeploymentHistoryResponse, error)
+	// GetBuildLogs fetches Firebase pipeops-build-logs (dashboard Build Logs tab).
+	GetBuildLogs(projectID string, opts *sdk.BuildLogsOptions) (*sdk.BuildLogsResponse, error)
 	GetLogs(req *models.LogsRequest) (*models.LogsResponse, error)
 	StreamLogs(req *models.LogsRequest, callback func(*models.StreamLogEntry) error) error
 	GetServices(projectID string, addonID string) (*models.ListServicesResponse, error)
