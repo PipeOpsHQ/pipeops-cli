@@ -68,6 +68,8 @@ type MockClient struct {
 	CreateServiceAccountTokenFunc    func(ctx context.Context, req *sdk.ServiceAccountTokenRequest) (*sdk.ServiceAccountToken, error)
 	UpdateServiceAccountTokenFunc    func(ctx context.Context, tokenID string, req *sdk.ServiceAccountTokenUpdateRequest) (*sdk.ServiceAccountToken, error)
 	RevokeServiceAccountTokenFunc    func(ctx context.Context, tokenID string) error
+	ListProjectAuditLogsFunc         func(ctx context.Context, projectUUID string, opts *sdk.ProjectAuditLogListOptions) (*sdk.ProjectAuditLogListResponse, error)
+	ListWorkspaceAuditLogsFunc       func(ctx context.Context, opts *sdk.WorkspaceAuditLogListOptions) (*sdk.WorkspaceAuditLogListResponse, error)
 	ListVolumesFunc                  func(ctx context.Context, opts *sdk.VolumeListOptions) (*sdk.VolumeListResponse, error)
 	GetVolumeFunc                    func(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.Volume, error)
 	RemountVolumeFunc                func(ctx context.Context, volumeUUID string, body *sdk.RemountVolumeRequest, opts *sdk.VolumeListOptions) (*sdk.RemountVolumeResponse, error)
@@ -516,6 +518,20 @@ func (m *MockClient) RevokeServiceAccountToken(ctx context.Context, tokenID stri
 		return m.RevokeServiceAccountTokenFunc(ctx, tokenID)
 	}
 	return nil
+}
+
+func (m *MockClient) ListProjectAuditLogs(ctx context.Context, projectUUID string, opts *sdk.ProjectAuditLogListOptions) (*sdk.ProjectAuditLogListResponse, error) {
+	if m.ListProjectAuditLogsFunc != nil {
+		return m.ListProjectAuditLogsFunc(ctx, projectUUID, opts)
+	}
+	return &sdk.ProjectAuditLogListResponse{}, nil
+}
+
+func (m *MockClient) ListWorkspaceAuditLogs(ctx context.Context, opts *sdk.WorkspaceAuditLogListOptions) (*sdk.WorkspaceAuditLogListResponse, error) {
+	if m.ListWorkspaceAuditLogsFunc != nil {
+		return m.ListWorkspaceAuditLogsFunc(ctx, opts)
+	}
+	return &sdk.WorkspaceAuditLogListResponse{}, nil
 }
 
 func (m *MockClient) ListVolumes(ctx context.Context, opts *sdk.VolumeListOptions) (*sdk.VolumeListResponse, error) {
