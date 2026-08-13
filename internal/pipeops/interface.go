@@ -71,6 +71,10 @@ type ClientAPI interface {
 	CreateServiceAccountToken(ctx context.Context, req *sdk.ServiceAccountTokenRequest) (*sdk.ServiceAccountToken, error)
 	UpdateServiceAccountToken(ctx context.Context, tokenID string, req *sdk.ServiceAccountTokenUpdateRequest) (*sdk.ServiceAccountToken, error)
 	RevokeServiceAccountToken(ctx context.Context, tokenID string) error
+	// Audit logs (project / workspace historical activity)
+	ListProjectAuditLogs(ctx context.Context, projectUUID string, opts *sdk.ProjectAuditLogListOptions) (*sdk.ProjectAuditLogListResponse, error)
+	ListWorkspaceAuditLogs(ctx context.Context, opts *sdk.WorkspaceAuditLogListOptions) (*sdk.WorkspaceAuditLogListResponse, error)
+
 	ListVolumes(ctx context.Context, opts *sdk.VolumeListOptions) (*sdk.VolumeListResponse, error)
 	GetVolume(ctx context.Context, volumeUUID string, opts *sdk.VolumeListOptions) (*sdk.Volume, error)
 	RemountVolume(ctx context.Context, volumeUUID string, body *sdk.RemountVolumeRequest, opts *sdk.VolumeListOptions) (*sdk.RemountVolumeResponse, error)

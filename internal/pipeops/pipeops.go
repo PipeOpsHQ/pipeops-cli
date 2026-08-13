@@ -1290,17 +1290,40 @@ func (c *Client) ListAddonCategories() ([]sdk.AddOnCategory, error) {
 }
 
 // GetAddonDeploymentSession gets an addon deployment session.
+// Returns a map with deployments (array) and optional session object for callers.
 func (c *Client) GetAddonDeploymentSession(sessionID string) (map[string]interface{}, error) {
 	if !c.IsAuthenticated() {
 		return nil, errors.New("not authenticated")
 	}
 
 	ctx := context.Background()
-	resp, _, err := c.sdkClient.AddOns.GetDeploymentSession(ctx, sessionID)
+	var sessionOpts []*sdk.GetDeploymentSessionOptions
+	if ws, err := c.resolveWorkspaceUUID(ctx); err == nil && ws != "" {
+		sessionOpts = append(sessionOpts, &sdk.GetDeploymentSessionOptions{WorkspaceUUID: ws})
+	}
+	resp, _, err := c.sdkClient.AddOns.GetDeploymentSession(ctx, sessionID, sessionOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return resp.Data.Session, nil
+	if resp == nil {
+		return map[string]interface{}{}, nil
+	}
+	out := map[string]interface{}{
+		"success": resp.Success,
+		"status":  resp.Status,
+		"message": resp.Message,
+	}
+	if len(resp.Deployments) > 0 {
+		out["deployments"] = resp.Deployments
+		out["data"] = resp.Deployments
+	}
+	if resp.Session != nil {
+		out["session"] = resp.Session
+		if out["data"] == nil {
+			out["data"] = resp.Session
+		}
+	}
+	return out, nil
 }
 
 // ViewAddonDeploymentConfigs retrieves addon deployment configs.
@@ -1998,6 +2021,24 @@ func (c *Client) CreateServiceAccountToken(ctx context.Context, req *sdk.Service
 	}, nil
 }
 
+// serviceTokenWorkspaceOpts resolves workspace scope for SA token routes.
+func (c *Client) serviceTokenWorkspaceOpts(ctx context.Context) *sdk.ServiceTokenWorkspaceOptions {
+	ws, err := c.resolveWorkspaceUUID(ctx)
+	if err != nil || strings.TrimSpace(ws) == "" {
+		return nil
+	}
+	return &sdk.ServiceTokenWorkspaceOptions{WorkspaceUUID: ws}
+}
+
+// gitOpsWorkspaceOpts resolves workspace scope for GitOps by-UUID routes.
+func (c *Client) gitOpsWorkspaceOpts(ctx context.Context) *sdk.GitOpsWorkspaceOptions {
+	ws, err := c.resolveWorkspaceUUID(ctx)
+	if err != nil || strings.TrimSpace(ws) == "" {
+		return nil
+	}
+	return &sdk.GitOpsWorkspaceOptions{WorkspaceUUID: ws}
+}
+
 // UpdateServiceAccountToken updates a service account token.
 func (c *Client) UpdateServiceAccountToken(ctx context.Context, tokenID string, req *sdk.ServiceAccountTokenUpdateRequest) (*sdk.ServiceAccountToken, error) {
 	if !c.IsAuthenticated() {
@@ -2007,7 +2048,7 @@ func (c *Client) UpdateServiceAccountToken(ctx context.Context, tokenID string, 
 		ctx = context.Background()
 	}
 
-	resp, _, err := c.sdkClient.ServiceTokens.UpdateServiceAccountToken(ctx, tokenID, req)
+	resp, _, err := c.sdkClient.ServiceTokens.UpdateServiceAccountToken(ctx, tokenID, req, c.serviceTokenWorkspaceOpts(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -2023,7 +2064,7 @@ func (c *Client) RevokeServiceAccountToken(ctx context.Context, tokenID string) 
 		ctx = context.Background()
 	}
 
-	_, err := c.sdkClient.ServiceTokens.RevokeServiceAccountToken(ctx, tokenID)
+	_, err := c.sdkClient.ServiceTokens.RevokeServiceAccountToken(ctx, tokenID, c.serviceTokenWorkspaceOpts(ctx))
 	return err
 }
 
@@ -2042,6 +2083,50 @@ func (c *Client) volumeOptsWithWorkspace(ctx context.Context, opts *sdk.VolumeLi
 	}
 	opts.WorkspaceUUID = ws
 	return opts, nil
+}
+
+// ListProjectAuditLogs returns historical actions for one project.
+// GET /project/audit-logs/:uuid
+func (c *Client) ListProjectAuditLogs(ctx context.Context, projectUUID string, opts *sdk.ProjectAuditLogListOptions) (*sdk.ProjectAuditLogListResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	projectUUID = strings.TrimSpace(projectUUID)
+	if projectUUID == "" {
+		return nil, errors.New("project uuid is required")
+	}
+	resp, _, err := c.sdkClient.AuditLogs.ListProject(ctx, projectUUID, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// ListWorkspaceAuditLogs returns historical actions across a workspace.
+// GET /project/workspace-audit-logs?workspace_uuid=
+func (c *Client) ListWorkspaceAuditLogs(ctx context.Context, opts *sdk.WorkspaceAuditLogListOptions) (*sdk.WorkspaceAuditLogListResponse, error) {
+	if !c.IsAuthenticated() {
+		return nil, errors.New("not authenticated")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if opts == nil {
+		opts = &sdk.WorkspaceAuditLogListOptions{}
+	}
+	if strings.TrimSpace(opts.WorkspaceUUID) == "" {
+		if ws, err := c.resolveWorkspaceUUID(ctx); err == nil && ws != "" {
+			opts.WorkspaceUUID = ws
+		}
+	}
+	resp, _, err := c.sdkClient.AuditLogs.ListWorkspace(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 // ListVolumes lists workspace volumes.
@@ -2213,7 +2298,7 @@ func (c *Client) GetGitOps(ctx context.Context, uuid string) (*sdk.GitOpsConfig,
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	resp, _, err := c.sdkClient.GitOps.Get(ctx, uuid)
+	resp, _, err := c.sdkClient.GitOps.Get(ctx, uuid, c.gitOpsWorkspaceOpts(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -2255,7 +2340,7 @@ func (c *Client) UpdateGitOps(ctx context.Context, uuid string, body *sdk.Update
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	resp, _, err := c.sdkClient.GitOps.Update(ctx, uuid, body)
+	resp, _, err := c.sdkClient.GitOps.Update(ctx, uuid, body, c.gitOpsWorkspaceOpts(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -2271,7 +2356,7 @@ func (c *Client) DeleteGitOps(ctx context.Context, uuid string) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	_, err := c.sdkClient.GitOps.Delete(ctx, uuid)
+	_, err := c.sdkClient.GitOps.Delete(ctx, uuid, c.gitOpsWorkspaceOpts(ctx))
 	return err
 }
 
@@ -2284,7 +2369,7 @@ func (c *Client) TriggerGitOpsSync(ctx context.Context, uuid string, body *sdk.T
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	resp, _, err := c.sdkClient.GitOps.TriggerSync(ctx, uuid, body)
+	resp, _, err := c.sdkClient.GitOps.TriggerSync(ctx, uuid, body, c.gitOpsWorkspaceOpts(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -2300,7 +2385,7 @@ func (c *Client) GetGitOpsSyncStatus(ctx context.Context, uuid string) (*sdk.Git
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	resp, _, err := c.sdkClient.GitOps.GetSyncStatus(ctx, uuid)
+	resp, _, err := c.sdkClient.GitOps.GetSyncStatus(ctx, uuid, c.gitOpsWorkspaceOpts(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -2316,7 +2401,7 @@ func (c *Client) GetGitOpsDiff(ctx context.Context, uuid string) (*sdk.GitOpsDif
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	resp, _, err := c.sdkClient.GitOps.GetDiff(ctx, uuid)
+	resp, _, err := c.sdkClient.GitOps.GetDiff(ctx, uuid, c.gitOpsWorkspaceOpts(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -2331,6 +2416,14 @@ func (c *Client) GetGitOpsHistory(ctx context.Context, uuid string, opts *sdk.Gi
 	}
 	if ctx == nil {
 		ctx = context.Background()
+	}
+	if opts == nil {
+		opts = &sdk.GitOpsListOptions{}
+	}
+	if strings.TrimSpace(opts.WorkspaceUUID) == "" {
+		if wsOpts := c.gitOpsWorkspaceOpts(ctx); wsOpts != nil {
+			opts.WorkspaceUUID = wsOpts.WorkspaceUUID
+		}
 	}
 	resp, _, err := c.sdkClient.GitOps.GetHistory(ctx, uuid, opts)
 	if err != nil {
